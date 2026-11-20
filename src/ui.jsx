@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 // ─── SHARED UI ───
 
@@ -151,6 +151,76 @@ export function Advanced({ open, onToggle, changed = [], children }) {
       <div className="adv-body" aria-hidden={!open}>
         <div className="adv-inner">{children}</div>
       </div>
+    </div>
+  );
+}
+
+// Dropdown: a button showing the current choice, with a list that opens below.
+// Opening/closing is a CSS transition (interruptible); the choice applies the
+// moment it's clicked (optimistic). Esc or a click outside closes it.
+export function Dropdown({ label, value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => {
+      if (!ref.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+  const current = options.find((o) => o.id === value);
+  return (
+    <div
+      ref={ref}
+      className={"dd" + (open ? " open" : "")}
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) {
+          e.stopPropagation();
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        type="button"
+        className="dd-btn"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={label}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span>{current?.label}</span>
+        <svg className="dd-chev" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 10l4 4 4-4" />
+        </svg>
+      </button>
+      <ul className="dd-menu" role="listbox" aria-label={label}>
+        {options.map((o, i) => (
+          <li key={String(o.id)} style={{ "--i": i }}>
+            <button
+              type="button"
+              role="option"
+              aria-selected={o.id === value}
+              className={o.id === value ? "on" : ""}
+              disabled={o.disabled || o.id === value}
+              tabIndex={open ? 0 : -1}
+              onClick={() => {
+                onChange(o.id);
+                setOpen(false);
+              }}
+            >
+              <span className="dd-label">
+                {/* The current choice is marked and can't be picked again */}
+                <svg className="dd-check" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12.5l4.5 4.5L19 7.5" />
+                </svg>
+                {o.label}
+              </span>
+              {o.id === value ? <span className="dd-note">Current</span> : o.note && <span className="dd-note">{o.note}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

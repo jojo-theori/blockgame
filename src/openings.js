@@ -6,8 +6,8 @@
 // with the T that clears lines; the next step is written for the board after
 // that clear.
 //
-// Shapes transcribed from four.lol (TKI, PCO, DT Cannon, Albatross) and
-// hse30.tistory.com (Mountainous Stacking 2).
+// Shapes transcribed from four.lol (TKI, PCO, Albatross, DT Cannon bag 1) and
+// hse30.tistory.com (Mountainous Stacking 2, DT Cannon bag 2).
 
 import { COLS, ROWS } from "./game.js";
 
@@ -62,7 +62,51 @@ export const OPENERS = [
     ],
   },
   {
+    id: "dt",
+    name: "DT Cannon",
+    jp: "DT砲",
+    desc: "TSD into TST over two bags. Works with an early L and S.",
+    steps: [
+      {
+        label: "Bag 1",
+        grid: [
+          "....T.....",
+          "...TTTI...",
+          "....SSIZZ.",
+          "OO.SSLIJZZ",
+          "OO.LLLIJJJ",
+        ],
+      },
+      {
+        label: "Bag 2 · TSD",
+        // hse30.tistory.com/64: S and Z stand upright in the middle.
+        grid: [
+          "..LLS..Z..",
+          "...LSSZZ.I",
+          "JJ.LXSZOOI",
+          "J..XXXXOOI",
+          "JTTTXXXXXI",
+          "XXTXXXXXXX",
+          "XX.XXXXXXX",
+        ],
+        spin: true,
+      },
+      {
+        label: "TST",
+        grid: [
+          "..XXX..X..",
+          "...XXXXX.X",
+          "XXTXXXXXXX",
+          "XTTXXXXXXX",
+          "XXTXXXXXXX",
+        ],
+        spin: true,
+      },
+    ],
+  },
+  {
     id: "tki",
+    disabled: true, // temporarily off
     name: "TKI",
     jp: "開幕TSD",
     desc: "A T-spin double straight away. Needs an early I.",
@@ -81,6 +125,7 @@ export const OPENERS = [
   },
   {
     id: "pco",
+    disabled: true, // temporarily off
     name: "PCO",
     jp: "パフェテンプレ",
     desc: "Perfect clear opener. Keep the I in hold for the second bag.",
@@ -110,49 +155,8 @@ export const OPENERS = [
     ],
   },
   {
-    id: "dt",
-    name: "DT Cannon",
-    jp: "DT砲",
-    desc: "TSD into TST over two bags. Works with an early L and S.",
-    steps: [
-      {
-        label: "Bag 1",
-        grid: [
-          "....T.....",
-          "...TTTI...",
-          "....SSIZZ.",
-          "OO.SSLIJZZ",
-          "OO.LLLIJJJ",
-        ],
-      },
-      {
-        label: "Bag 2 · TSD",
-        grid: [
-          "..LL....SS",
-          "...LZZ.SSI",
-          "JJ.LXZZOOI",
-          "J..XXXXOOI",
-          "JTTTXXXXXI",
-          "XXTXXXXXXX",
-          "XX.XXXXXXX",
-        ],
-        spin: true,
-      },
-      {
-        label: "TST",
-        grid: [
-          "..XX....XX",
-          "...XXX.XXX",
-          "XXTXXXXXXX",
-          "XTTXXXXXXX",
-          "XXTXXXXXXX",
-        ],
-        spin: true,
-      },
-    ],
-  },
-  {
     id: "albatross",
+    disabled: true, // temporarily off
     name: "Albatross",
     jp: "アルバトロスSP",
     desc: "Air TSD, then TST, then TSD. Needs an early O.",
@@ -208,6 +212,28 @@ export function mirrorOpener(op) {
       extra: st.extra ? st.extra.map(mirrorLetter) : undefined,
     })),
   };
+}
+
+// One stage of an opener on its own (for stage practice).
+export function stageOpener(op, idx) {
+  return { ...op, id: `${op.id}@${idx}`, steps: [op.steps[idx]], stage: idx };
+}
+
+// The board (piece ids) as it stands when stage `idx` begins: every earlier
+// stage built, with its line clears applied.
+export function boardBefore(op, idx) {
+  let m = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+  for (let s = 0; s < idx; s++) {
+    const t = stepTarget(op.steps[s]);
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++) {
+        const ch = t[r][c];
+        if (ch && ch !== "X") m[r][c] = LETTER_ID[ch];
+      }
+    m = m.filter((row) => !row.every((v) => v));
+    while (m.length < ROWS) m.unshift(new Array(COLS).fill(0));
+  }
+  return m;
 }
 
 // Expand a step grid to a full ROWS×COLS matrix of letters ("" = nothing).

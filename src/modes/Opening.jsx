@@ -23,6 +23,8 @@ import {
   stepPicture,
   openerSequence,
   mirrorOpener,
+  stageOpener,
+  boardBefore,
 } from "../openings.js";
 import { getSolver, solvableRun } from "../openSolver.js";
 
@@ -54,9 +56,17 @@ export default function Opening({ settings, onBack }) {
   const zoom = useFit(700, 600);
   const prefs = loadPrefs();
   const [phase, setPhase] = useState("select"); // select | countdown | playing | done
-  const [openerIdx, setOpenerIdx] = useState(() =>
-    Math.max(0, OPENERS.findIndex((o) => o.id === prefs.opener)),
-  );
+  const [openerIdx, setOpenerIdx] = useState(() => {
+    const i = OPENERS.findIndex((o) => o.id === prefs.opener && !o.disabled);
+    return i >= 0 ? i : OPENERS.findIndex((o) => !o.disabled);
+  });
+  const [stage, setStage] = useState(null); // null = every stage, else one stage index
+  const [runStage, setRunStage] = useState(null); // stage of the run in progress
+  const selectOpener = (i) => {
+    if (OPENERS[i]?.disabled) return;
+    setOpenerIdx(i);
+    if (i !== openerIdx) setStage(null);
+  };
   const [order, setOrder] = useState(prefs.order ?? "random"); // fixed | random
   const [guide, setGuide] = useState(prefs.guide ?? true);
   const [mirror, setMirror] = useState(prefs.mirror ?? "on"); // off | on (on = random side each run)
@@ -88,12 +98,14 @@ export default function Opening({ settings, onBack }) {
   // Read by the game loop (which is not re-created on every render).
   const autoNextRef = useRef(autoNext);
   const openerIdxRef = useRef(openerIdx);
+  const stageRef = useRef(stage);
   const startRef = useRef(null);
   const restartOnChange = useRef(false);
   useEffect(() => {
     autoNextRef.current = autoNext;
     openerIdxRef.current = openerIdx;
-  }, [autoNext, openerIdx]);
+    stageRef.current = stage;
+  }, [autoNext, openerIdx, stage]);
 
   // Practice state lives in refs so the engine hook can read and update it.
   const playOpRef = useRef(null); // opener (possibly mirrored) of the current run
@@ -116,7 +128,14 @@ export default function Opening({ settings, onBack }) {
     (cells, id, engine) => {
       const st = run.current;
       const letter = ID_LETTER[id];
-      const ok = cells.every(([r, c]) => r >= 0 && st.target[r][c] === letter);
+      let ok = cells.every(([r, c]) => r >= 0 && st.target[r][c] === letter);
+      // A spin step's T is the finisher: it only counts once everything else in
+      // the step is down (placing it early would seal the other pieces out).
+      const stepDef = playOpRef.current?.steps[st.step];
+      if (ok && stepDef?.spin && letter === "T") {
+        const others = st.target.some((row) => row.some((ch) => ch && ch !== "X" && ch !== "T"));
+        if (others) ok = false;
+      }
       if (!ok) {
         st.misses++;
         st.reject = { cells, t: performance.now() };
@@ -229,7 +248,11 @@ export default function Opening({ settings, onBack }) {
         engine.playing = false;
         setStreak((n) => n + 1);
         const cur = openerIdxRef.current;
-        const next = autoNextRef.current === "all" ? (cur + 1) % OPENERS.length : cur;
+        let next = cur;
+        if (stageRef.current == null) {
+          do next = (next + 1) % OPENERS.length;
+          while (OPENERS[next].disabled && next !== cur);
+        }
         if (next !== cur) setOpenerIdx(next);
         startRef.current?.({ idx: next, quick: true, keepStreak: true });
         return;
@@ -266,7 +289,7 @@ export default function Opening({ settings, onBack }) {
     render();
   }, [render, phase]);
 
-  const launch = useCallback((op, seq) => {
+  const launch = useCallback((op, seq, startBoard) => {
     playOpRef.current = op;
     const s = settingsRef.current;
     const engine = new BlockEngine({
@@ -291,6 +314,11 @@ export default function Opening({ settings, onBack }) {
     };
     prevPlacedRef.current = 0;
     engine.start();
+    if (startBoard) {
+      // Stage practice: begin from the board the earlier stages leave behind.
+      engine.matrix = startBoard.map((row) => row.slice());
+      engine.updateGhost();
+    }
     setResult(null);
     setPhase("playing");
     lastTimeRef.current = 0;
@@ -304,18 +332,22 @@ export default function Opening({ settings, onBack }) {
     if (countdownRef.current) clearTimeout(countdownRef.current);
     keysRef.current = buildKeyMap(loadKeyBindings().solo);
     const base = OPENERS[opts.idx ?? openerIdx];
+    const stageIdx = (opts.idx ?? openerIdx) === openerIdx ? stage : null;
+    const runOf = stageIdx == null ? base : stageOpener(base, stageIdx);
     if (!opts.keepStreak) setStreak(0);
     // Always a run that has a solution: random bags are rerolled until the
     // opener can be built from them; with mirror on the side is random too.
     const planned =
-      solvableRun(base, { mirror: mirror === "on", random: order === "random", ideal: openerSequence }) ||
-      solvableRun(base, { mirror: false, random: false, ideal: openerSequence });
+      solvableRun(runOf, { mirror: mirror === "on", random: order === "random", ideal: openerSequence }) ||
+      solvableRun(runOf, { mirror: false, random: false, ideal: openerSequence });
     const op = planned.op;
     const seq = planned.seq;
     const mir = planned.mirrored;
+    const startBoard = stageIdx == null ? null : boardBefore(mir ? mirrorOpener(base) : base, stageIdx);
     setMirroredRun(mir);
+    setRunStage(stageIdx);
     if (opts.quick) {
-      launch(op, seq);
+      launch(op, seq, startBoard);
       return;
     }
     engineRef.current = null;
@@ -324,9 +356,9 @@ export default function Opening({ settings, onBack }) {
     setCountdownText("Ready");
     countdownRef.current = setTimeout(() => {
       setCountdownText("Go");
-      countdownRef.current = setTimeout(() => launch(op, seq), 350);
+      countdownRef.current = setTimeout(() => launch(op, seq, startBoard), 350);
     }, 550);
-  }, [launch, openerIdx, mirror, order]);
+  }, [launch, openerIdx, mirror, order, stage]);
 
   useEffect(() => {
     startRef.current = startGame;
@@ -353,7 +385,13 @@ export default function Opening({ settings, onBack }) {
         if (e.code === "ArrowDown" || e.code === "ArrowUp") {
           e.preventDefault();
           const d = e.code === "ArrowDown" ? 1 : -1;
-          setOpenerIdx((i) => (i + d + OPENERS.length) % OPENERS.length);
+          setOpenerIdx((i) => {
+            let n = i;
+            do n = (n + d + OPENERS.length) % OPENERS.length;
+            while (OPENERS[n].disabled && n !== i);
+            if (n !== i) setStage(null);
+            return n;
+          });
         } else if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
           e.preventDefault();
           setOrder((o) => (o === "fixed" ? "random" : "fixed"));
@@ -426,15 +464,13 @@ export default function Opening({ settings, onBack }) {
               {OPENERS.map((o, i) => (
                 <button
                   key={o.id}
-                  className={openerIdx === i ? "on" : ""}
-                  onMouseEnter={() => setOpenerIdx(i)}
-                  onClick={() => {
-                    setOpenerIdx(i);
-                    startGame();
-                  }}
+                  className={(openerIdx === i ? "on" : "") + (o.disabled ? " off" : "")}
+                  disabled={o.disabled}
+                  onClick={() => selectOpener(i)}
                 >
                   <span className="nm">
                     {o.name} <span className="small dim">{o.jp}</span>
+                    {o.disabled && <span className="tag">Soon</span>}
                   </span>
                   <span className="ds">{o.desc}</span>
                 </button>
@@ -442,14 +478,22 @@ export default function Opening({ settings, onBack }) {
             </div>
           </div>
 
-          <div className="preview">
+          <div className="preview stages" role="radiogroup" aria-label="Stage">
+            <button type="button" className={"stage-all" + (stage == null ? " on" : "")} onClick={() => setStage(null)}>
+              All stages
+            </button>
             {opener.steps.map((s, i) => (
-              <div key={opener.id + i}>
-                <div className="k" style={{ marginBottom: 4 }}>
+              <button
+                type="button"
+                key={opener.id + i}
+                className={"stage" + (stage === i ? " on" : "")}
+                onClick={() => setStage(stage === i ? null : i)}
+              >
+                <span className="k">
                   {String(i + 1).padStart(2, "0")} · {s.label}
-                </div>
+                </span>
                 <StepPicture step={s} size={8} />
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -530,7 +574,8 @@ export default function Opening({ settings, onBack }) {
   // ─── PLAY ───
   const st = run.current;
   const engine = engineRef.current;
-  const stepIdx = Math.min(st.step, opener.steps.length - 1);
+  // In stage practice the run has one step; show it as that stage of the opener.
+  const stepIdx = runStage != null ? runStage : Math.min(st.step, opener.steps.length - 1);
   const step = opener.steps[stepIdx];
   const remaining = new Set();
   if (st.target && !st.done) for (const row of st.target) for (const ch of row) if (ch && ch !== "X") remaining.add(ch);
@@ -548,6 +593,7 @@ export default function Opening({ settings, onBack }) {
     <>
       <div className="mode-label">
         Opening · {opener.name}
+        {runStage != null ? ` · Stage ${runStage + 1}` : ""}
         {opener.mirrored ? " · Mirrored" : ""}
       </div>
       <div className="play" style={{ zoom }}>

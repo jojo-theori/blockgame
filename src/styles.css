@@ -535,16 +535,32 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .adv-chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; transition: transform 0.3s var(--out); }
 .adv.open .adv-chev { transform: rotate(180deg); }
 .adv-sum { margin-top: 6px; font-size: var(--t1); color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+/* Open: the area grows first, then the options drift in one after another.
+   Close: the options fade out quickly, then the area folds. Nothing is ever
+   seen being clipped (no wipe). All transitions, so a click mid-way reverses. */
 .adv-body {
   display: grid;
   grid-template-rows: 0fr;
-  opacity: 0;
   width: 100%;
-  transition: grid-template-rows 0.32s var(--out), opacity 0.24s var(--out);
+  transition: grid-template-rows 0.3s var(--out) 0.08s;
 }
-.adv.open .adv-body { grid-template-rows: 1fr; opacity: 1; }
-.adv-inner { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s 0.32s; }
+.adv.open .adv-body { grid-template-rows: 1fr; transition: grid-template-rows 0.34s var(--out); }
+.adv-inner { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s 0.4s; }
 .adv.open .adv-inner { visibility: visible; transition: visibility 0s; }
+.adv .opts > .opt {
+  animation: none;
+  opacity: 0;
+  transform: translateY(-6px);
+  filter: blur(2px);
+  transition: opacity 0.12s var(--out), transform 0.16s var(--out), filter 0.12s var(--out);
+}
+.adv.open .opts > .opt {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition: opacity 0.32s var(--out), transform 0.42s var(--out), filter 0.32s var(--out);
+  transition-delay: calc(110ms + var(--i, 0) * 45ms);
+}
 .adv .opts { margin-top: 0; padding-top: 18px; }
 .adv .opts.inline { gap: 16px 24px; }
 .adv .group button { padding: 0 11px; }
@@ -568,9 +584,163 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 }
 .link:hover { text-decoration-color: var(--fg); }
 
-/* ─── Battle sides ─── */
-.slots { display: flex; align-items: flex-start; justify-content: center; gap: 28px; }
-.slot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.vs { align-self: center; margin-top: -40px; font-size: var(--t2); color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
-.slot-note { margin: 18px 0 0; min-height: 1.6em; text-align: center; }
-.slot .group button { padding: 0 12px; }
+/* ─── Battle seats ─── */
+.seats { display: flex; align-items: stretch; justify-content: center; gap: 20px; }
+.seat {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 20px 20px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  text-align: left;
+}
+.seat-name { font-size: var(--t6); font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: var(--seat); transition: color 0.3s var(--out); }
+.seat-sub { font-size: var(--t2); color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.seat-fields { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.vs { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: var(--t2); color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.swap {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--dim);
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out), transform 0.3s var(--out);
+}
+.swap:hover { background: var(--hover); color: var(--fg); }
+.swap:active { transform: rotate(180deg); }
+.swap svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.slot-note { margin: 20px 0 0; min-height: 1.6em; text-align: center; }
+
+/* ─── Dropdown ─── */
+.dd { position: relative; width: 100%; }
+.dd-btn {
+  width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--fg);
+  font-size: var(--t2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s var(--out);
+}
+.dd-btn:hover, .dd.open .dd-btn { background: var(--hover); }
+.dd-chev { width: 14px; height: 14px; fill: none; stroke: var(--dim); stroke-width: 1.6; transition: transform 0.25s var(--out); }
+.dd.open .dd-chev { transform: rotate(180deg); }
+.dd-menu {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 12px;
+  background: #141414;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.18s var(--out), transform 0.22s var(--out);
+}
+.dd.open .dd-menu { opacity: 1; transform: none; pointer-events: auto; }
+.dd-menu li { opacity: 0; transform: translateY(-3px); transition: opacity 0.18s var(--out), transform 0.22s var(--out); }
+.dd.open .dd-menu li { opacity: 1; transform: none; transition-delay: calc(var(--i, 0) * 30ms); }
+.dd-menu button {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dim);
+  font-size: var(--t2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+.dd-menu button:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.dd-menu button.on { color: var(--fg); }
+.dd-menu button:disabled { color: #3a3a3a; cursor: default; }
+.dd-note { font-size: var(--t1); color: var(--faint); text-transform: none; letter-spacing: 0.02em; }
+
+/* Battle: the seat cards fill the height between the title and the actions. */
+.page > .opts.fill { flex: 1; min-height: 0; margin-bottom: 0; padding-bottom: 8px; justify-content: stretch; }
+.opts.fill .seats { flex: 1; min-height: 0; width: 100%; }
+.opts.fill .seat { width: 280px; padding: 22px 22px 20px; }
+.seat-id { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 16px 0; }
+.opts.fill .seat-name { font-size: var(--t7); line-height: 1; letter-spacing: -0.01em; }
+.opts.fill .seat-fields { margin-top: 0; }
+
+/* Inline warning (e.g. both seats are CPU) */
+.warn { display: inline-flex; align-items: center; gap: 8px; color: #f2cb4c; }
+.warn svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+
+/* ─── Opening stages ─── */
+.preview.stages { height: auto; overflow: visible; gap: 6px; }
+.stages button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--dim);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s var(--out), box-shadow 0.2s var(--out);
+}
+.stages button:hover { background: var(--hover); }
+.stages button.on { background: var(--hover); box-shadow: 0 0 0 1px var(--accent); }
+.stages .stage-all { flex-direction: row; justify-content: center; align-items: center; height: 30px; padding: 0 10px; font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; }
+.stages .stage-all.on { color: var(--fg); }
+.stages button.on .k { color: var(--fg); }
+/* Unavailable openers: no fill or outline and much darker text, so they read
+   as "not here yet" next to the selectable cards. (Colour, not opacity: the
+   entrance animation would override opacity.) */
+.oplist button.off,
+.oplist button.off:hover { cursor: default; background: transparent; border-color: transparent; color: #3c3c3c; }
+.oplist button.off .ds,
+.oplist button.off .nm .small { color: #2e2e2e; }
+.oplist .tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  margin-left: 8px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #161616;
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.08em;
+  vertical-align: 2px;
+}
+
+/* Current choice in a dropdown: check mark, full colour, not clickable */
+.dd-label { display: inline-flex; align-items: center; gap: 8px; }
+.dd-check { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
+.dd-menu button.on:disabled { color: var(--fg); cursor: default; background: rgba(255, 255, 255, 0.04); }
+.dd-menu button.on .dd-check { visibility: visible; }

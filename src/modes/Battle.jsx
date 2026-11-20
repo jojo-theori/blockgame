@@ -1,12 +1,57 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import { ROWS, CELL, BlockEngine } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, prep, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
-import { Segmented, Countdown, KeyHints } from "../ui.jsx";
+import { Countdown, KeyHints, Dropdown } from "../ui.jsx";
 import { useFit } from "../fit.js";
 
 const METER_W = 6;
+
+const WHO = [
+  { id: "p1", label: "Player 1" },
+  { id: "cpu", label: "CPU" },
+  { id: "p2", label: "Player 2" },
+];
+const LEVELS = [
+  { id: "easy", label: "Easy" },
+  { id: "normal", label: "Normal" },
+  { id: "hard", label: "Hard" },
+];
+const SEAT_COLOR = { p1: "#41b6e6", p2: "#e8505b", cpu: "#8a8a8a" };
+
+// A seat in the match: who plays it, and the CPU level when it's the CPU.
+function SeatCard({ seat, seats, humans }) {
+  const isCpu = seat.who === "cpu";
+  const name = WHO.find((w) => w.id === seat.who).label;
+  const sub = isCpu ? "Computer" : humans === 1 ? "Solo keys" : `${seat.who === "p1" ? "P1" : "P2"} keys`;
+  // Picking a player who already sits elsewhere swaps the two seats.
+  const options = WHO.map((w) => {
+    const takenBy = w.id !== "cpu" && seats.find((o) => o !== seat && o.who === w.id);
+    return { ...w, note: takenBy ? `Swap with seat ${takenBy.n}` : null };
+  });
+  const choose = (id) => {
+    const other = id !== "cpu" && seats.find((o) => o !== seat && o.who === id);
+    if (other) other.setWho(seat.who);
+    seat.setWho(id);
+  };
+  return (
+    <div className="seat" style={{ "--seat": SEAT_COLOR[seat.who] }}>
+      <div className="k">Seat {seat.n}</div>
+      <div className="seat-id">
+        <div className="seat-name">{name}</div>
+        <div className="seat-sub">{sub}</div>
+      </div>
+      <div className="seat-fields">
+        <Dropdown label={`Seat ${seat.n} player`} value={seat.who} options={options} onChange={choose} />
+        {/* Always rendered so switching to/from CPU never shifts the layout */}
+        <div style={{ visibility: isCpu ? "visible" : "hidden" }}>
+          <Dropdown label={`Seat ${seat.n} CPU level`} value={seat.level} options={LEVELS} onChange={seat.setLevel} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function loadBattlePrefs() {
   try {
@@ -283,34 +328,11 @@ export default function Battle({ settings, onBack, onSettings }) {
 
   // ─── SELECT SCREEN ───
   if (phase === "select") {
-    const SlotPicker = ({ side, value, other, setValue, level, setLevel }) => (
-      <div className="slot">
-        <div className="k">{side}</div>
-        <Segmented
-          label={side}
-          options={[
-            { id: "p1", label: "Player 1", disabled: other === "p1" },
-            { id: "cpu", label: "CPU" },
-            { id: "p2", label: "Player 2", disabled: other === "p2" },
-          ]}
-          value={value}
-          onChange={setValue}
-        />
-        {/* Always rendered so switching to/from CPU never shifts the layout */}
-        <div style={{ visibility: value === "cpu" ? "visible" : "hidden" }}>
-          <Segmented
-            label={`${side} CPU level`}
-            options={[
-              { id: "easy", label: "Easy" },
-              { id: "normal", label: "Normal" },
-              { id: "hard", label: "Hard" },
-            ]}
-            value={level}
-            onChange={setLevel}
-          />
-        </div>
-      </div>
-    );
+    // One card per seat. Built from an array so more seats can be added later.
+    const seats = [
+      { n: 1, who: left, setWho: setLeft, level: leftLevel, setLevel: setLeftLevel },
+      { n: 2, who: right, setWho: setRight, level: rightLevel, setLevel: setRightLevel },
+    ];
     const bothCpu = left === "cpu" && right === "cpu";
     const humans = [left, right].filter((x) => x !== "cpu").length;
     return (
@@ -319,15 +341,47 @@ export default function Battle({ settings, onBack, onSettings }) {
         <p className="lede">
           First to top out loses. Line clears send garbage; clearing while garbage is queued cancels it.
         </p>
-        <div className="opts">
-          <div className="slots">
-            {SlotPicker({ side: "Left", value: left, other: right, setValue: setLeft, level: leftLevel, setLevel: setLeftLevel })}
-            <div className="vs">vs</div>
-            {SlotPicker({ side: "Right", value: right, other: left, setValue: setRight, level: rightLevel, setLevel: setRightLevel })}
+        <div className="opts fill">
+          <div className="seats">
+            {seats.map((seat, i) => (
+              <Fragment key={seat.n}>
+                {i > 0 && (
+                  <div className="vs">
+                    <span>vs</span>
+                    <button
+                      type="button"
+                      className="swap"
+                      aria-label="Swap seats"
+                      title="Swap seats"
+                      onClick={() => {
+                        const a = seats[i - 1];
+                        const b = seat;
+                        const [aw, al] = [a.who, a.level];
+                        a.setWho(b.who);
+                        a.setLevel(b.level);
+                        b.setWho(aw);
+                        b.setLevel(al);
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 7h11l-3-3M17 17H6l3 3" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                <SeatCard seat={seat} seats={seats} humans={humans} />
+              </Fragment>
+            ))}
           </div>
           <p className="note slot-note">
             {bothCpu ? (
-              "Both sides are CPU, so you'll be watching."
+              <span className="warn">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3.5 22 20.5H2Z" />
+                  <path d="M12 10v4.5M12 17.2v.3" />
+                </svg>
+                Both sides are CPU, so you&apos;ll be watching.
+              </span>
             ) : humans === 2 ? (
               <>
                 Player 1 and Player 2 use their own keys. Change them in{" "}
