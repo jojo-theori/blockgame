@@ -403,7 +403,7 @@ export default function Opening({ settings, onBack }) {
         </div>
         <div className="actions">
           <button className="btn primary" onClick={startGame}>
-            Start {opener.name}
+            Start
           </button>
           <button className="btn ghost" onClick={onBack}>
             Back
