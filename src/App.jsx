@@ -97,7 +97,7 @@ export default function App() {
   const current = MODES.find((m) => m.id === view);
 
   return (
-    <div className="app">
+    <div className={"app" + (view === "menu" ? " is-home" : "")}>
       <div className="bg-grid" />
       {view !== "menu" && (
         <button className="wordmark" onClick={goMenu} title="Home">

@@ -57,7 +57,13 @@ canvas { display: block; }
   pointer-events: none;
   background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
   background-size: 20px 20px;
+  /* Drifts slowly on the home screen. Elsewhere it pauses where it is (no jump
+     back), and resumes when you come home. One loop = whole cells, so seamless. */
+  animation: grid-drift 16s linear infinite;
+  animation-play-state: paused;
 }
+.app.is-home .bg-grid { animation-play-state: running; }
+@keyframes grid-drift { from { background-position: 0 0; } to { background-position: 40px 20px; } }
 .wordmark {
   position: absolute;
   z-index: 30;
