@@ -2,7 +2,7 @@
 
 A modern block stacker sprint built with React + Vite.
 
-Live: **[blockgame.umjo.me](https://blockgame.umjo.me)**
+Live: **[jbl.umjo.me](https://jbl.umjo.me)**
 
 ## Credits & Inspiration
 
