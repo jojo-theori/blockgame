@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ROWS, COLS, BlockEngine, formatTime } from "../game.js";
 import { buildKeyMap, loadKeyBindings, keyLabel } from "../keys.js";
-import { drawBoard, drawQueue, BOARD_W, BOARD_H, HOLD_W, SLOT } from "../render.js";
+import { drawBoard, BOARD_W, BOARD_H } from "../render.js";
 import { playDropSound } from "../sound.js";
 import { Segmented, Stat, Countdown, KeyHints, Kbd } from "../ui.jsx";
 import { useFit } from "../fit.js";
@@ -36,6 +36,30 @@ function pickTarget(id, prevKey, allow180) {
   do t = all[Math.floor(Math.random() * all.length)];
   while (all.length > 1 && t.key === prevKey);
   return { id, cells: t.cells, key: t.key, best: bestPaths(id, t.cells, { allow180 }) };
+}
+
+// Fill the board so only the target is left open: each row the target
+// occupies is solid except the target cells, so dropping the piece in clears
+// those rows. A row is left empty instead when completing it would need a
+// block above a target cell (that would block the drop).
+function buildWell(cells) {
+  const m = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+  const isTarget = new Set(cells.map(([r, c]) => r * COLS + c));
+  const covers = (r, c) => {
+    for (let rr = r + 1; rr < ROWS; rr++) if (isTarget.has(rr * COLS + c)) return true;
+    return false;
+  };
+  for (const r of new Set(cells.map(([row]) => row))) {
+    const fill = [];
+    let ok = true;
+    for (let c = 0; c < COLS; c++) {
+      if (isTarget.has(r * COLS + c)) continue;
+      if (covers(r, c)) ok = false;
+      fill.push(c);
+    }
+    if (ok) for (const c of fill) m[r][c] = 8;
+  }
+  return m;
 }
 
 // Every optimal input (up to three), using the player's own bindings.
@@ -81,7 +105,6 @@ export default function Finesse({ settings, onBack }) {
   const [faultFlash, setFaultFlash] = useState(0);
 
   const canvasRef = useRef(null);
-  const queueRef = useRef(null);
   const engineRef = useRef(null);
   const rafRef = useRef(null);
   const loopRef = useRef(null);
@@ -128,12 +151,16 @@ export default function Finesse({ settings, onBack }) {
         if (onFault === "retry") return reject();
         setFaultFlash((n) => n + 1);
       }
-      // Accepted: keep the board empty and aim the next piece.
+      // Accepted: set up the well for the next piece right away.
       st.done++;
       st.keys += keys;
-      for (const [r, c] of cells) if (r >= 0 && r < ROWS && c >= 0 && c < COLS) engine.matrix[r][c] = 0;
-      if (goal && st.done >= goal) st.finished = true;
-      else st.target = pickTarget(engine.queue[0], t.key, allow180);
+      if (goal && st.done >= goal) {
+        st.finished = true;
+        engine.matrix = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+      } else {
+        st.target = pickTarget(engine.queue[0], t.key, allow180);
+        engine.matrix = buildWell(st.target.cells);
+      }
       return true;
     },
     [goal, onFault, allow180],
@@ -143,19 +170,13 @@ export default function Finesse({ settings, onBack }) {
   const render = useCallback(() => {
     const engine = engineRef.current;
     const st = run.current;
-    let guide = null;
-    if (st.target && !st.finished) {
-      guide = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
-      for (const [r, c] of st.target.cells) guide[r][c] = st.target.id;
-    }
     let reject = null;
     if (st.reject) {
       const age = (performance.now() - st.reject.t) / 600;
       if (age < 1) reject = { cells: st.reject.cells, alpha: 1 - age };
       else st.reject = null;
     }
-    drawBoard(canvasRef.current, engine, { guide, reject });
-    if (engine) drawQueue(queueRef.current, engine.queue);
+    drawBoard(canvasRef.current, engine, { reject });
   }, []);
 
   // ─── LOOP ───
@@ -205,8 +226,11 @@ export default function Finesse({ settings, onBack }) {
     engine.validatePlacement = validate;
     engineRef.current = engine;
     engine.start();
+    const first = pickTarget(engine.currentId, null, allow180);
+    engine.matrix = buildWell(first.cells);
+    engine.updateGhost();
     run.current = {
-      target: pickTarget(engine.currentId, null, allow180),
+      target: first,
       done: 0,
       faults: 0,
       clean: 0,
@@ -307,7 +331,7 @@ export default function Finesse({ settings, onBack }) {
       <div className="page" style={{ "--accent": ACCENT }}>
         <h1 className="title">Finesse</h1>
         <p className="lede">
-          Drop each piece into the outlined spot with as few key presses as possible. Holding left or right to the
+          Fill the gap with as few key presses as possible. Holding left or right to the
           wall counts as one press.
         </p>
         <div className="opts">
@@ -420,16 +444,12 @@ export default function Finesse({ settings, onBack }) {
 
         <div className="side right" style={{ width: 180 }}>
           <div>
-            <div className="k">Next</div>
-            <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
-          </div>
-          <div>
             <div className="k" style={{ marginBottom: 8 }}>
               Last piece
             </div>
             {!last && <div className="note">Best input appears here after each piece.</div>}
             {last && (
-              <div className={"last" + (last.ok ? " ok" : " bad")}>
+              <div key={`${hud.done}-${hud.faults}`} className={"last" + (last.ok ? " ok" : " bad")}>
                 <div className="v xs">
                   {last.spot ? "Wrong spot" : last.ok ? "Clean" : `+${last.keys - last.best.count} keys`}
                 </div>

@@ -355,7 +355,18 @@ export default function Battle({ settings, onBack }) {
     <>
       <div className="mode-label">Battle · {opponent === "cpu" ? "vs CPU" : "vs Player"}</div>
       <div style={{ position: "relative" }}>
-        <div style={{ display: "flex", gap: 56, alignItems: "flex-start", zoom }}>
+        {/* When the match ends the boards fade back instead of being covered by a
+            dark box, so the page background and grid stay continuous. */}
+        <div
+          style={{
+            display: "flex",
+            gap: 56,
+            alignItems: "flex-start",
+            zoom,
+            opacity: done ? 0.12 : 1,
+            transition: "opacity 0.35s var(--out)",
+          }}
+        >
           <PlayerBoard
             engineRef={engine1Ref}
             label="P1"
@@ -375,12 +386,12 @@ export default function Battle({ settings, onBack }) {
         />
 
         {done && (
-          <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "rgba(0,0,0,0.78)" }}>
+          <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "transparent" }}>
             <div className="k">{winner === "p1" ? `${nameP2} topped out` : "P1 topped out"}</div>
             <div className="title">
               {winner === "p1" ? "P1 wins" : `${nameP2} wins`}
             </div>
-            <div className="row-btns across">
+            <div className="row-btns" style={{ width: 220 }}>
               <button className="btn primary" onClick={startGame} autoFocus>
                 Rematch
               </button>

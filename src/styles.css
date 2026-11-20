@@ -75,6 +75,7 @@ canvas { display: block; }
 
 /* ─── Segmented group (pill) ─── */
 .group {
+  position: relative;
   display: inline-flex;
   gap: 2px;
   background: var(--panel);
@@ -82,6 +83,8 @@ canvas { display: block; }
   padding: 4px;
 }
 .group button {
+  position: relative;
+  z-index: 1;
   border: 0;
   background: transparent;
   color: var(--dim);
@@ -94,7 +97,7 @@ canvas { display: block; }
   transition: color 0.2s var(--out);
 }
 .group button:not(.on):not(:disabled):hover { color: var(--fg); }
-.group button.on { background: var(--fg); color: #000; }
+.group button.on { color: #000; }
 .group button:disabled { opacity: 0.3; cursor: default; }
 
 /* ─── Buttons ─── */
@@ -282,8 +285,6 @@ canvas { display: block; }
 }
 .veil .grid2 .v { font-size: var(--t4); margin-top: 4px; }
 .veil .row-btns { flex-direction: column; align-items: stretch; gap: 8px; }
-.veil .row-btns.across { flex-direction: row; justify-content: center; }
-.veil .row-btns.across .btn { width: 150px; }
 .veil .btn { height: 34px; font-size: var(--t2); }
 .veil .row-btns + .keys { margin-top: 24px; }
 
@@ -437,3 +438,61 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .last .v { margin: 0; }
 .last.ok .v { color: #5cc45c; }
 .last.bad .v { color: var(--bad); }
+
+/* ─── Motion ───
+   Interruptible: state changes are CSS transitions, so a new state retargets
+   them mid-flight; nothing blocks input. Staggered: things that appear
+   together arrive one after another. Optimistic: state changes first, and
+   motion only decorates it. */
+.seg-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--fg);
+  pointer-events: none;
+  transition: transform 0.32s var(--out), width 0.32s var(--out), opacity 0.2s;
+}
+
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+
+.page > *, .home > *, .actions > *, .veil > *, .row-btns > * {
+  animation: enter 0.42s var(--out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.menu > button, .oplist > button, .opts > .opt, .settings .opts > .opt {
+  animation: enter 0.42s var(--out) both;
+  animation-delay: calc(120ms + var(--i, 0) * 35ms);
+}
+.actions > * { animation-delay: calc(200ms + var(--i, 0) * 40ms); }
+.row-btns > * { animation-delay: calc(160ms + var(--i, 0) * 40ms); }
+/* Game screens only fade in (no movement), before play starts. */
+.play > * { animation: appear 0.35s var(--out) both; animation-delay: calc(var(--i, 0) * 50ms); }
+.mode-label, .wordmark { animation: appear 0.35s var(--out) both; }
+
+/* Press and focus feedback */
+.btn, .menu button, .oplist button, .group button { transition-property: color, background, border-color, transform; }
+.btn:active, .menu button:active, .oplist button:active { transform: scale(0.98); transition-duration: 0.08s; }
+.menu .dot { transition: transform 0.3s var(--out); }
+.menu button.on .dot { transform: scale(1.35); }
+.last { animation: appear 0.25s var(--out); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+.page > :nth-child(1), .home > :nth-child(1), .menu > :nth-child(1), .oplist > :nth-child(1), .opts > :nth-child(1), .actions > :nth-child(1), .veil > :nth-child(1), .row-btns > :nth-child(1), .settings .opts > :nth-child(1), .play > :nth-child(1) { --i: 1; }
+.page > :nth-child(2), .home > :nth-child(2), .menu > :nth-child(2), .oplist > :nth-child(2), .opts > :nth-child(2), .actions > :nth-child(2), .veil > :nth-child(2), .row-btns > :nth-child(2), .settings .opts > :nth-child(2), .play > :nth-child(2) { --i: 2; }
+.page > :nth-child(3), .home > :nth-child(3), .menu > :nth-child(3), .oplist > :nth-child(3), .opts > :nth-child(3), .actions > :nth-child(3), .veil > :nth-child(3), .row-btns > :nth-child(3), .settings .opts > :nth-child(3), .play > :nth-child(3) { --i: 3; }
+.page > :nth-child(4), .home > :nth-child(4), .menu > :nth-child(4), .oplist > :nth-child(4), .opts > :nth-child(4), .actions > :nth-child(4), .veil > :nth-child(4), .row-btns > :nth-child(4), .settings .opts > :nth-child(4), .play > :nth-child(4) { --i: 4; }
+.page > :nth-child(5), .home > :nth-child(5), .menu > :nth-child(5), .oplist > :nth-child(5), .opts > :nth-child(5), .actions > :nth-child(5), .veil > :nth-child(5), .row-btns > :nth-child(5), .settings .opts > :nth-child(5), .play > :nth-child(5) { --i: 5; }
+.page > :nth-child(6), .home > :nth-child(6), .menu > :nth-child(6), .oplist > :nth-child(6), .opts > :nth-child(6), .actions > :nth-child(6), .veil > :nth-child(6), .row-btns > :nth-child(6), .settings .opts > :nth-child(6), .play > :nth-child(6) { --i: 6; }
+.page > :nth-child(7), .home > :nth-child(7), .menu > :nth-child(7), .oplist > :nth-child(7), .opts > :nth-child(7), .actions > :nth-child(7), .veil > :nth-child(7), .row-btns > :nth-child(7), .settings .opts > :nth-child(7), .play > :nth-child(7) { --i: 7; }
+.page > :nth-child(8), .home > :nth-child(8), .menu > :nth-child(8), .oplist > :nth-child(8), .opts > :nth-child(8), .actions > :nth-child(8), .veil > :nth-child(8), .row-btns > :nth-child(8), .settings .opts > :nth-child(8), .play > :nth-child(8) { --i: 8; }
+.page > :nth-child(9), .home > :nth-child(9), .menu > :nth-child(9), .oplist > :nth-child(9), .opts > :nth-child(9), .actions > :nth-child(9), .veil > :nth-child(9), .row-btns > :nth-child(9), .settings .opts > :nth-child(9), .play > :nth-child(9) { --i: 9; }
+.page > :nth-child(10), .home > :nth-child(10), .menu > :nth-child(10), .oplist > :nth-child(10), .opts > :nth-child(10), .actions > :nth-child(10), .veil > :nth-child(10), .row-btns > :nth-child(10), .settings .opts > :nth-child(10), .play > :nth-child(10) { --i: 10; }
+.page > :nth-child(11), .home > :nth-child(11), .menu > :nth-child(11), .oplist > :nth-child(11), .opts > :nth-child(11), .actions > :nth-child(11), .veil > :nth-child(11), .row-btns > :nth-child(11), .settings .opts > :nth-child(11), .play > :nth-child(11) { --i: 11; }
+.page > :nth-child(12), .home > :nth-child(12), .menu > :nth-child(12), .oplist > :nth-child(12), .opts > :nth-child(12), .actions > :nth-child(12), .veil > :nth-child(12), .row-btns > :nth-child(12), .settings .opts > :nth-child(12), .play > :nth-child(12) { --i: 12; }

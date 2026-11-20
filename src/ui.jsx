@@ -1,8 +1,53 @@
+import { useLayoutEffect, useRef } from "react";
+
 // ─── SHARED UI ───
 
+// Move a segmented control's highlight onto its selected button.
+function placePill(group, pill, instant) {
+  const on = group?.querySelector("button.on");
+  if (!pill) return;
+  if (!on) {
+    pill.style.opacity = "0";
+    return;
+  }
+  if (instant) pill.style.transition = "none";
+  pill.style.opacity = "1";
+  pill.style.width = on.offsetWidth + "px";
+  pill.style.transform = `translateX(${on.offsetLeft}px)`;
+  if (instant) {
+    void pill.offsetWidth;
+    pill.style.transition = "";
+  }
+}
+
 export function Segmented({ options, value, onChange, focus = false, label }) {
+  const groupRef = useRef(null);
+  const pillRef = useRef(null);
+
+  // The highlight is one element that slides to the selected option. It is a
+  // CSS transition, so a new pick mid-slide just retargets it (interruptible),
+  // and the value itself changes immediately (optimistic).
+  // Value changes slide; the very first placement does not.
+  useLayoutEffect(() => {
+    const pill = pillRef.current;
+    placePill(groupRef.current, pill, !pill?.dataset.ready);
+    if (pill) pill.dataset.ready = "1";
+  }, [value, options.length]);
+
+  // Size changes (fonts loading, window resize) snap without animating.
+  useLayoutEffect(() => {
+    let seen = false;
+    const ro = new ResizeObserver(() => {
+      if (seen) placePill(groupRef.current, pillRef.current, true);
+      seen = true;
+    });
+    ro.observe(groupRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div className={"group" + (focus ? " focus" : "")} role="radiogroup" aria-label={label}>
+    <div ref={groupRef} className={"group" + (focus ? " focus" : "")} role="radiogroup" aria-label={label}>
+      <span ref={pillRef} className="seg-pill" aria-hidden="true" />
       {options.map((o) => (
         <button
           key={o.id}
