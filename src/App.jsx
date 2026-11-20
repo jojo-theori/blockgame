@@ -144,7 +144,7 @@ export default function App() {
           />
         )}
         {view === "sprint" && <Sprint settings={settings} onBack={goMenu} />}
-        {view === "battle" && <Battle settings={settings} onBack={goMenu} />}
+        {view === "battle" && <Battle settings={settings} onBack={goMenu} onSettings={() => setView("settings")} />}
         {view === "opening" && <Opening settings={settings} onBack={goMenu} />}
         {view === "finesse" && <Finesse settings={settings} onBack={goMenu} />}
         {current && !current.ready && <ComingSoon label={current.label} color={current.color} onBack={goMenu} />}

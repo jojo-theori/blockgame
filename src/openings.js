@@ -6,7 +6,8 @@
 // with the T that clears lines; the next step is written for the board after
 // that clear.
 //
-// Shapes transcribed from four.lol (TKI, PCO, DT Cannon, Albatross).
+// Shapes transcribed from four.lol (TKI, PCO, DT Cannon, Albatross) and
+// hse30.tistory.com (Mountainous Stacking 2).
 
 import { COLS, ROWS } from "./game.js";
 
@@ -14,6 +15,52 @@ export const LETTER_ID = { I: 1, T: 2, L: 3, J: 4, S: 5, Z: 6, O: 7 };
 export const ID_LETTER = { 1: "I", 2: "T", 3: "L", 4: "J", 5: "S", 6: "Z", 7: "O" };
 
 export const OPENERS = [
+  {
+    // Shapes from hse30.tistory.com/1095 (bag 1 J-early form; the L-early form
+    // is its mirror), form A for bag 2, and the first form-A PC solution.
+    id: "mountain2",
+    name: "Mountainous 2",
+    jp: "山岳積み2号",
+    desc: "Works with any first bag. TST, then TSD into a perfect clear.",
+    steps: [
+      {
+        label: "Bag 1",
+        grid: [
+          "......L...",
+          "......L...",
+          "IS....LL..",
+          "ISS....T..",
+          "IJS.ZZTTOO",
+          "IJJJ.ZZTOO",
+        ],
+      },
+      {
+        label: "Bag 2 · TST",
+        grid: [
+          "JJOO......",
+          "JSOO..X..I",
+          "JSS...XLLI",
+          "XXSTZZXXLI",
+          "XXXTTZZXLI",
+          "XXXTXXXXXX",
+          "XXXX.XXXXX",
+        ],
+        spin: true,
+      },
+      {
+        label: "Bag 3 · TSD · PC",
+        grid: [
+          "IIIILLLJJJ",
+          "XXXXLSSOOJ",
+          "XXXXSSXOOX",
+          "XXXTTTXXXX",
+          "XXXXTXXXXX",
+        ],
+        // Order from the fumen solution (TOSJLI): the T spins in first.
+        order: ["T", "O", "S", "J", "L", "I"],
+      },
+    ],
+  },
   {
     id: "tki",
     name: "TKI",

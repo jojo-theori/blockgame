@@ -3,8 +3,8 @@ import { ROWS, COLS, BlockEngine, formatTime } from "../game.js";
 import { buildKeyMap, loadKeyBindings, keyLabel } from "../keys.js";
 import { drawBoard, BOARD_W, BOARD_H } from "../render.js";
 import { playDropSound } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd } from "../ui.jsx";
-import { useFit } from "../fit.js";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced } from "../ui.jsx";
+import { useFit, useStoredBool } from "../fit.js";
 import { placements, bestPaths, sameCells } from "../finesse.js";
 
 const ACCENT = "#5cc45c";
@@ -98,6 +98,7 @@ export default function Finesse({ settings, onBack }) {
   const [onFault, setOnFault] = useState(prefs.onFault ?? "retry"); // retry | continue
   const [piece, setPiece] = useState(prefs.piece ?? 0); // 0 = all pieces
   const [allow180, setAllow180] = useState(prefs.allow180 ?? true);
+  const [advOpen, setAdvOpen] = useStoredBool("jbl-adv-finesse");
   const [countdownText, setCountdownText] = useState("");
   const [hud, setHud] = useState(EMPTY_HUD);
   const [bind, setBind] = useState(() => loadKeyBindings().solo);
@@ -344,6 +345,16 @@ export default function Finesse({ settings, onBack }) {
               onChange={setGoal}
             />
           </div>
+          <Advanced
+            open={advOpen}
+            onToggle={() => setAdvOpen((o) => !o)}
+            changed={[
+              piece ? `Piece ${PIECES.find((p) => p.id === piece).label}` : null,
+              allow180 ? null : "No 180",
+              onFault === "retry" ? null : "Keep going",
+            ].filter(Boolean)}
+          >
+          <div className="opts">
           <div className="opt">
             <div className="k">Piece</div>
             <Segmented label="Piece" options={PIECES} value={piece} onChange={setPiece} />
@@ -372,6 +383,8 @@ export default function Finesse({ settings, onBack }) {
               onChange={setOnFault}
             />
           </div>
+          </div>
+          </Advanced>
         </div>
         <div className="actions">
           <button className="btn primary" onClick={startGame}>
@@ -380,13 +393,6 @@ export default function Finesse({ settings, onBack }) {
           <button className="btn ghost" onClick={onBack}>
             Back
           </button>
-          <KeyHints
-            items={[
-              [["←", "→"], "pieces"],
-              [["↑", "↓"], "on a fault"],
-              [["Enter"], "start"],
-            ]}
-          />
         </div>
       </div>
     );
@@ -462,7 +468,7 @@ export default function Finesse({ settings, onBack }) {
               </div>
             )}
           </div>
-          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[[["F"], "restart"], [["Esc"], goal ? "setup" : "finish"]]} />
+          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[[["F"], "restart"], [["Esc"], "exit"]]} />
         </div>
       </div>
     </>

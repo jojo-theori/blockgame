@@ -10,7 +10,7 @@ import {
   FORBIDDEN_CODES,
 } from "../keys.js";
 
-import { Segmented, KeyHints } from "../ui.jsx";
+import { Segmented } from "../ui.jsx";
 
 const PROFILE_LIST = [
   { id: "solo", label: "Solo" },
@@ -145,7 +145,7 @@ export default function Settings({
   return (
     <div className="page" style={{ "--accent": "#ebebeb" }}>
       <h1 className="title">Settings</h1>
-      <div className="mid">
+      <div className="mid shrink">
       <div>
         <Segmented
           label="Section"
@@ -199,7 +199,7 @@ export default function Settings({
 
         {section === "keys" && (
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12, flexWrap: "nowrap" }}>
               <Segmented
                 label="Profile"
                 options={PROFILE_LIST}
@@ -209,8 +209,8 @@ export default function Settings({
                   setError("");
                 }}
               />
-              <button className="btn ghost" onClick={resetProfile}>
-                Reset to default
+              <button className="btn ghost compact" onClick={resetProfile}>
+                Reset
               </button>
             </div>
             <p className="note">
@@ -224,7 +224,7 @@ export default function Settings({
                 const isRecording =
                   recording && recording.profile === activeProfile && recording.action === action;
                 return (
-                  <div key={action} className="opt" style={{ minHeight: 48, gridTemplateColumns: "1fr auto" }}>
+                  <div key={action} className="opt" style={{ minHeight: 44, padding: "4px 0", gridTemplateColumns: "1fr auto" }}>
                     <div className="k" style={{ color: "var(--fg)" }}>{ACTION_NAMES[action]}</div>
                     <button
                       className={"btn keybtn" + (isRecording ? " rec" : "")}
@@ -249,7 +249,6 @@ export default function Settings({
         <button className="btn ghost" onClick={onBack}>
           Back
         </button>
-        <KeyHints items={[[["Esc"], "back"]]} />
       </div>
     </div>
   );

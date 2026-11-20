@@ -304,7 +304,6 @@ export default function Sprint({ settings, onBack }) {
           <button className="btn ghost" onClick={onBack}>
             Back
           </button>
-          <KeyHints items={[[["Enter"], "start"], [["Esc"], "back"]]} />
         </div>
       </div>
     );
@@ -363,7 +362,16 @@ export default function Sprint({ settings, onBack }) {
                   Again
                 </button>
                 <button className="btn" onClick={copyReplay}>
-                  {copied ? "Copied" : "Copy log"}
+                  {copied ? (
+                    <>
+                      <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 12.5l4.5 4.5L19 7.5" />
+                      </svg>
+                      Copied
+                    </>
+                  ) : (
+                    "Copy log"
+                  )}
                 </button>
                 <button className="btn ghost" onClick={onBack}>
                   Menu
@@ -384,7 +392,16 @@ export default function Sprint({ settings, onBack }) {
                 </button>
                 {stats?.replayText && (
                   <button className="btn" onClick={copyReplay}>
-                    {copied ? "Copied" : "Copy log"}
+                    {copied ? (
+                    <>
+                      <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 12.5l4.5 4.5L19 7.5" />
+                      </svg>
+                      Copied
+                    </>
+                  ) : (
+                    "Copy log"
+                  )}
                   </button>
                 )}
                 <button className="btn ghost" onClick={onBack}>
@@ -400,7 +417,7 @@ export default function Sprint({ settings, onBack }) {
             <div className="k">Next</div>
             <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
           </div>
-          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[[["F"], "restart"], [["Esc"], "setup"]]} />
+          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[[["F"], "restart"], [["Esc"], "exit"]]} />
         </div>
       </div>
     </>

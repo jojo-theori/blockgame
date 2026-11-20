@@ -77,6 +77,16 @@ export function drawBoard(canvas, engine, opts = {}) {
     }
   }
 
+  // focus: the cells the current piece should go to (the solution's next move)
+  if (opts.focus) {
+    const color = COLORS[opts.focus.id];
+    for (const [r, c] of opts.focus.cells) {
+      if (engine.matrix[r]?.[c]) continue;
+      cell(ctx, c * CELL, r * CELL, CELL, color, 0.32);
+      outline(ctx, c * CELL, r * CELL, CELL, color, 1);
+    }
+  }
+
   const dead = opts.dead;
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {

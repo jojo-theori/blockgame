@@ -23,9 +23,9 @@ Keep motion light (≈150–350 ms, ease-out `var(--out)`, small distances). Res
 
 ## UI rules
 
-- Title starts at a fixed top. The settings block is centred between the title and the actions. Actions (buttons + key hints) are anchored to the bottom, so content never moves them.
+- Title starts at a fixed top. The settings block sits directly under it (top aligned, never centred), so switching tabs or options never moves controls already on screen. Actions (buttons + key hints) are anchored to the bottom. Areas whose content varies (e.g. opener previews) get a fixed size.
 - Buttons that sit together are the same size. Key hints sit a fixed gap below the buttons.
-- During a game, key hints live in the side column. They never go on the board or in result overlays.
+- Key hints appear only in game: in the side column (Battle: under the boards). Never on setup screens, Settings, the board or result overlays.
 - Uppercase for title-like text and key commands. Descriptions stay in sentence case. Keep type small and spacing generous.
 - Restart is always F.
 - Key caps and segmented controls are flat: solid fill, no stroke.

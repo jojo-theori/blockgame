@@ -134,3 +134,23 @@ export function KeyHints({ items, style }) {
     </div>
   );
 }
+
+// Collapsible "Advanced settings" block for options most players never change.
+// While collapsed it lists any option that differs from its default, so a
+// changed setting is never hidden. Expanding is a CSS transition (interruptible).
+export function Advanced({ open, onToggle, changed = [], children }) {
+  return (
+    <div className={"adv" + (open ? " open" : "")}>
+      <button type="button" className="adv-toggle" aria-expanded={open} onClick={onToggle}>
+        <span>Advanced settings</span>
+        <svg className="adv-chev" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 10l4 4 4-4" />
+        </svg>
+      </button>
+      {!open && changed.length > 0 && <div className="adv-sum">{changed.join(" · ")}</div>}
+      <div className="adv-body" aria-hidden={!open}>
+        <div className="adv-inner">{children}</div>
+      </div>
+    </div>
+  );
+}

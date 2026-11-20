@@ -14,3 +14,23 @@ export function useFit(w, h) {
   }, [w, h]);
   return zoom;
 }
+
+// Boolean state remembered in localStorage (e.g. whether "Advanced settings" is open).
+export function useStoredBool(key, initial = false) {
+  const [v, setV] = useState(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw === null ? initial : raw === "1";
+    } catch {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, v ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [key, v]);
+  return [v, setV];
+}

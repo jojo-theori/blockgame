@@ -134,31 +134,31 @@ canvas { display: block; }
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 8px 16px;
-  font-size: var(--t2);
+  gap: 6px 14px;
+  font-size: var(--t1);
   color: var(--faint);
   line-height: 1.6;
 }
-.keys .hint { display: inline-flex; align-items: center; gap: 6px; }
+.keys .hint { display: inline-flex; align-items: center; gap: 5px; }
 .kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #1c1c1c;
   color: var(--dim);
   font: inherit;
-  font-size: var(--t1);
+  font-size: 10px;
   line-height: 1;
   letter-spacing: 0.04em;
   vertical-align: middle;
 }
-.kbd.icon { width: 24px; padding: 0; }
-.kbd-arrow { width: 9px; height: 9px; display: block; }
+.kbd.icon { width: 18px; padding: 0; }
+.kbd-arrow { width: 7px; height: 7px; display: block; }
 
 /* ─── Main area ─── */
 .main {
@@ -185,10 +185,12 @@ canvas { display: block; }
   text-align: center;
   padding: clamp(16px, 5vh, 56px) 0 0;
 }
-/* Three bands: title at the top, settings block centred between title and
-   actions, actions anchored to the bottom. */
+/* Three bands: title at the top, the settings block directly under it (top
+   aligned, so switching tabs or options never moves what is already on screen),
+   actions anchored to the bottom. */
 .page > .actions, .home > .keys { margin-top: auto; padding-top: 32px; }
-.page > .opts, .page > .mid, .home > .menu { margin-top: auto; margin-bottom: auto; padding-top: 32px; }
+.page > .opts, .page > .mid { margin-top: 0; margin-bottom: auto; padding-top: 28px; }
+.home > .menu { margin-top: auto; margin-bottom: auto; padding-top: 32px; }
 .page > .opts ~ .actions, .page > .mid ~ .actions, .home > .menu ~ .keys { margin-top: 0; }
 .mid { width: 100%; display: flex; flex-direction: column; align-items: center; }
 .opts.inline { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 20px 32px; }
@@ -355,7 +357,11 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .slider .v { font-size: var(--t4); text-align: right; margin: 0; }
 
 /* ─── Settings ─── */
-.settings { width: 100%; max-width: 480px; margin-top: 24px; text-align: left; }
+.settings { width: 100%; max-width: 480px; margin-top: 24px; text-align: left; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.settings::-webkit-scrollbar { display: none; }
+/* Settings page: the block may shrink and scroll inside, so the actions never leave the screen. */
+.page > .mid { flex: none; }
+.page > .mid.shrink { min-height: 0; flex: 0 1 auto; } /* Settings only: the list scrolls inside */
 .settings .opts { margin-top: 0; gap: 0; align-items: stretch; }
 .settings .opt {
   width: 100%;
@@ -369,19 +375,21 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .settings .opt > .group { justify-self: start; }
 .settings .opt .k { white-space: nowrap; }
 .keybtn { min-width: 110px; }
+.btn.compact { height: 38px; padding: 0 16px; flex: none; }
+.settings .group { flex: none; }
 .keybtn.rec { border-color: var(--fg); }
 .err { color: var(--bad); font-size: var(--t2); margin-top: 12px; }
 .note { font-size: var(--t2); color: var(--faint); line-height: 1.6; margin: 0 0 12px; }
 
 /* ─── Opening ─── */
-.page.wide { max-width: 760px; }
-.openers { display: grid; grid-template-columns: 1fr 160px; gap: 40px; margin-top: 0; align-items: start; width: 100%; text-align: left; }
-.oplist { display: flex; flex-direction: column; gap: 8px; }
+.page.wide { max-width: 880px; }
+.openers { display: grid; grid-template-columns: 1fr 140px; gap: 32px; max-width: 640px; margin: 0 auto; align-items: start; width: 100%; text-align: left; }
+.oplist { display: flex; flex-direction: column; gap: 6px; }
 .oplist button {
   display: grid;
   gap: 2px;
-  padding: 10px 22px;
-  border-radius: 16px;
+  padding: 8px 22px;
+  border-radius: 14px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.035);
   color: var(--dim);
@@ -395,7 +403,9 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .oplist button.on { color: var(--fg); border-color: var(--accent); background: var(--hover); }
 .oplist button.on .ds { color: var(--dim); }
 .oplist button:focus { outline: none; }
-.preview { display: flex; flex-direction: column; gap: 12px; }
+/* Fixed-size preview box: openers have 1–3 steps of different heights, and the
+   box must not grow or shrink with them (that would re-centre the page). */
+.preview { display: flex; flex-direction: column; gap: 8px; height: 240px; overflow: hidden; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
   display: inline-flex;
@@ -496,3 +506,65 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .page > :nth-child(10), .home > :nth-child(10), .menu > :nth-child(10), .oplist > :nth-child(10), .opts > :nth-child(10), .actions > :nth-child(10), .veil > :nth-child(10), .row-btns > :nth-child(10), .settings .opts > :nth-child(10), .play > :nth-child(10) { --i: 10; }
 .page > :nth-child(11), .home > :nth-child(11), .menu > :nth-child(11), .oplist > :nth-child(11), .opts > :nth-child(11), .actions > :nth-child(11), .veil > :nth-child(11), .row-btns > :nth-child(11), .settings .opts > :nth-child(11), .play > :nth-child(11) { --i: 11; }
 .page > :nth-child(12), .home > :nth-child(12), .menu > :nth-child(12), .oplist > :nth-child(12), .opts > :nth-child(12), .actions > :nth-child(12), .veil > :nth-child(12), .row-btns > :nth-child(12), .settings .opts > :nth-child(12), .play > :nth-child(12) { --i: 12; }
+
+/* ─── Advanced settings (collapsible) ─── */
+.adv { width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 16px; }
+.adv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dim);
+  font-size: var(--t2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s var(--out), background 0.2s var(--out);
+}
+.adv-toggle:hover { color: var(--fg); background: var(--hover); }
+.adv-chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; transition: transform 0.3s var(--out); }
+.adv.open .adv-chev { transform: rotate(180deg); }
+.adv-sum { margin-top: 6px; font-size: var(--t1); color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.adv-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  width: 100%;
+  transition: grid-template-rows 0.32s var(--out), opacity 0.24s var(--out);
+}
+.adv.open .adv-body { grid-template-rows: 1fr; opacity: 1; }
+.adv-inner { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s 0.32s; }
+.adv.open .adv-inner { visibility: visible; transition: visibility 0s; }
+.adv .opts { margin-top: 0; padding-top: 18px; }
+.adv .opts.inline { gap: 16px 24px; }
+.adv .group button { padding: 0 11px; }
+
+/* Inline check shown on a button after a successful action (e.g. Copied) */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-check { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; animation: appear 0.2s var(--out); }
+
+/* Inline text link (e.g. "Change them in Settings") */
+.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--faint);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: text-decoration-color 0.2s var(--out);
+}
+.link:hover { text-decoration-color: var(--fg); }
+
+/* ─── Battle sides ─── */
+.slots { display: flex; align-items: flex-start; justify-content: center; gap: 28px; }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.vs { align-self: center; margin-top: -40px; font-size: var(--t2); color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.slot-note { margin: 18px 0 0; min-height: 1.6em; text-align: center; }
+.slot .group button { padding: 0 12px; }

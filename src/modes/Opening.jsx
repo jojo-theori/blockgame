@@ -13,8 +13,8 @@ import {
   SLOT,
 } from "../render.js";
 import { playDropSound } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd } from "../ui.jsx";
-import { useFit } from "../fit.js";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced } from "../ui.jsx";
+import { useFit, useStoredBool } from "../fit.js";
 import {
   OPENERS,
   LETTER_ID,
@@ -24,8 +24,9 @@ import {
   openerSequence,
   mirrorOpener,
 } from "../openings.js";
+import { getSolver, solvableRun } from "../openSolver.js";
 
-const PREFS_KEY = "jbl-opening";
+const PREFS_KEY = "jbl-opening-v2";
 
 function loadPrefs() {
   try {
@@ -56,10 +57,13 @@ export default function Opening({ settings, onBack }) {
   const [openerIdx, setOpenerIdx] = useState(() =>
     Math.max(0, OPENERS.findIndex((o) => o.id === prefs.opener)),
   );
-  const [order, setOrder] = useState(prefs.order ?? "fixed"); // fixed | random
+  const [order, setOrder] = useState(prefs.order ?? "random"); // fixed | random
   const [guide, setGuide] = useState(prefs.guide ?? true);
-  const [mirror, setMirror] = useState(prefs.mirror ?? "off"); // off | on | random
+  const [mirror, setMirror] = useState(prefs.mirror ?? "on"); // off | on (on = random side each run)
   const [mirroredRun, setMirroredRun] = useState(false);
+  const [autoNext, setAutoNext] = useState(prefs.autoNext ?? "all"); // off | all
+  const [streak, setStreak] = useState(0);
+  const [advOpen, setAdvOpen] = useStoredBool("jbl-adv-opening");
   const [countdownText, setCountdownText] = useState("");
   const [, setTick] = useState(0);
   const [result, setResult] = useState(null);
@@ -81,6 +85,16 @@ export default function Opening({ settings, onBack }) {
   const settingsRef = useRef(settings);
   const prevPlacedRef = useRef(0);
 
+  // Read by the game loop (which is not re-created on every render).
+  const autoNextRef = useRef(autoNext);
+  const openerIdxRef = useRef(openerIdx);
+  const startRef = useRef(null);
+  const restartOnChange = useRef(false);
+  useEffect(() => {
+    autoNextRef.current = autoNext;
+    openerIdxRef.current = openerIdx;
+  }, [autoNext, openerIdx]);
+
   // Practice state lives in refs so the engine hook can read and update it.
   const playOpRef = useRef(null); // opener (possibly mirrored) of the current run
   const run = useRef({ step: 0, target: null, misses: 0, done: false, reject: null, lastAction: "", actionKey: 0 });
@@ -91,11 +105,11 @@ export default function Opening({ settings, onBack }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ opener: opener.id, order, guide, mirror }));
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ opener: opener.id, order, guide, mirror, autoNext }));
     } catch {
       /* ignore */
     }
-  }, [opener.id, order, guide, mirror]);
+  }, [opener.id, order, guide, mirror, autoNext]);
 
   // ─── PLACEMENT CHECK ───
   const validate = useCallback(
@@ -134,6 +148,43 @@ export default function Opening({ settings, onBack }) {
     return t.map((row) => row.map((ch) => (ch && ch !== "X" ? LETTER_ID[ch] : 0)));
   };
 
+  // The solution's next move from the current state: "place", "hold" or null
+  // (no solution any more). Recomputed only when the state changes.
+  const updateHint = (engine) => {
+    const st = run.current;
+    const op = playOpRef.current;
+    if (!engine || !op || st.done) return;
+    const key = [engine.placedBlocks, engine.hold, engine.currentId, engine.holdUsed, st.step].join();
+    if (st.hintKey === key) return;
+    st.hintKey = key;
+    const solver = getSolver(op);
+    const S = solver.steps[st.step];
+    if (!S) return;
+    let mask = 0;
+    S.pieces.forEach((pc, i) => {
+      if (!st.target.some((row) => row.includes(pc.letter))) mask |= 1 << i;
+    });
+    const plan = solver.solve([...engine.queue, ...(engine.pendingSeq || [])], {
+      cur: engine.currentId,
+      next: 0,
+      hold: engine.hold,
+      step: st.step,
+      mask,
+      canHold: !engine.holdUsed,
+    });
+    st.hint = plan ? plan[0] || null : "stuck";
+  };
+
+  const focusCells = () => {
+    const st = run.current;
+    const engine = engineRef.current;
+    if (!guide || !engine || st.hint !== "place") return null;
+    const L = ID_LETTER[engine.currentId];
+    const cells = [];
+    st.target?.forEach((row, r) => row.forEach((ch, c) => ch === L && cells.push([r, c])));
+    return cells.length ? { cells, id: engine.currentId } : null;
+  };
+
   // ─── RENDER ───
   const render = useCallback(() => {
     const engine = engineRef.current;
@@ -144,7 +195,7 @@ export default function Opening({ settings, onBack }) {
       if (age < 1) reject = { cells: st.reject.cells, alpha: 1 - age };
       else st.reject = null;
     }
-    drawBoard(canvasRef.current, engine, { guide: guideGrid(), reject });
+    drawBoard(canvasRef.current, engine, { guide: guideGrid(), focus: focusCells(), reject });
     if (engine) {
       drawHold(holdRef.current, engine.hold, engine.holdUsed);
       drawQueue(queueRef.current, engine.queue);
@@ -162,6 +213,7 @@ export default function Opening({ settings, onBack }) {
       const dt = lastTimeRef.current ? timestamp - lastTimeRef.current : 16;
       lastTimeRef.current = timestamp;
       engine.update(Math.min(dt, 100), performance.now());
+      updateHint(engine);
 
       if (engine.placedBlocks > prevPlacedRef.current) {
         prevPlacedRef.current = engine.placedBlocks;
@@ -172,6 +224,16 @@ export default function Opening({ settings, onBack }) {
         }
       }
 
+      if (st.done && autoNextRef.current !== "off") {
+        // Continuous: count it and go straight into the next one (no result screen).
+        engine.playing = false;
+        setStreak((n) => n + 1);
+        const cur = openerIdxRef.current;
+        const next = autoNextRef.current === "all" ? (cur + 1) % OPENERS.length : cur;
+        if (next !== cur) setOpenerIdx(next);
+        startRef.current?.({ idx: next, quick: true, keepStreak: true });
+        return;
+      }
       if (st.done) {
         engine.playing = false;
         const pieces = engine.placedBlocks;
@@ -204,7 +266,7 @@ export default function Opening({ settings, onBack }) {
     render();
   }, [render, phase]);
 
-  const launch = useCallback((op) => {
+  const launch = useCallback((op, seq) => {
     playOpRef.current = op;
     const s = settingsRef.current;
     const engine = new BlockEngine({
@@ -212,7 +274,7 @@ export default function Opening({ settings, onBack }) {
       arr: s.arr,
       sdf: s.sdf,
       sprintLines: 999999,
-      sequence: order === "fixed" ? openerSequence(op) : null,
+      sequence: seq,
     });
     engine.validatePlacement = validate;
     engineRef.current = engine;
@@ -224,6 +286,8 @@ export default function Opening({ settings, onBack }) {
       reject: null,
       lastAction: "",
       actionKey: 0,
+      hint: null,
+      hintKey: null,
     };
     prevPlacedRef.current = 0;
     engine.start();
@@ -231,24 +295,49 @@ export default function Opening({ settings, onBack }) {
     setPhase("playing");
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(loopRef.current);
-  }, [order, validate]);
+  }, [validate]);
 
-  const startGame = useCallback(() => {
+  // opts.idx: opener to play (defaults to the selected one); opts.quick: skip the
+  // countdown (continuous mode); opts.keepStreak: don't reset the streak.
+  const startGame = useCallback((opts = {}) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
     keysRef.current = buildKeyMap(loadKeyBindings().solo);
-    engineRef.current = null;
-    const mir = mirror === "on" || (mirror === "random" && Math.random() < 0.5);
-    const op = mir ? mirrorOpener(baseOpener) : baseOpener;
+    const base = OPENERS[opts.idx ?? openerIdx];
+    if (!opts.keepStreak) setStreak(0);
+    // Always a run that has a solution: random bags are rerolled until the
+    // opener can be built from them; with mirror on the side is random too.
+    const planned =
+      solvableRun(base, { mirror: mirror === "on", random: order === "random", ideal: openerSequence }) ||
+      solvableRun(base, { mirror: false, random: false, ideal: openerSequence });
+    const op = planned.op;
+    const seq = planned.seq;
+    const mir = planned.mirrored;
     setMirroredRun(mir);
+    if (opts.quick) {
+      launch(op, seq);
+      return;
+    }
+    engineRef.current = null;
     run.current = { ...run.current, step: 0, target: stepTarget(op.steps[0]), done: false, reject: null };
     setPhase("countdown");
     setCountdownText("Ready");
     countdownRef.current = setTimeout(() => {
       setCountdownText("Go");
-      countdownRef.current = setTimeout(() => launch(op), 350);
+      countdownRef.current = setTimeout(() => launch(op, seq), 350);
     }, 550);
-  }, [launch, baseOpener, mirror]);
+  }, [launch, openerIdx, mirror, order]);
+
+  useEffect(() => {
+    startRef.current = startGame;
+  }, [startGame]);
+
+  // Changing order or mirror mid-game restarts with the new setting right away.
+  useEffect(() => {
+    if (!restartOnChange.current) return;
+    restartOnChange.current = false;
+    startGame();
+  }, [order, mirror, startGame]);
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -282,9 +371,18 @@ export default function Opening({ settings, onBack }) {
         e.preventDefault();
         return startGame();
       }
-      if (e.code === "KeyG") {
-        setGuide((g) => !g);
-        return;
+      // In-game settings (only when the key isn't bound to a game action)
+      if (!keysRef.current[e.code]) {
+        if (e.code === "KeyG") return setGuide((g) => !g);
+        if (e.code === "KeyO") {
+          restartOnChange.current = true;
+          return setOrder((o) => (o === "fixed" ? "random" : "fixed"));
+        }
+        if (e.code === "KeyM") {
+          restartOnChange.current = true;
+          return setMirror((m) => (m === "on" ? "off" : "on"));
+        }
+        if (e.code === "KeyN") return setAutoNext((a) => (a === "all" ? "off" : "all"));
       }
       if (phase !== "playing") return;
       const action = keysRef.current[e.code];
@@ -319,7 +417,7 @@ export default function Opening({ settings, onBack }) {
       <div className="page wide" style={{ "--accent": "#b14fd0" }}>
         <h1 className="title">Opening</h1>
         <p className="lede">
-          Build an opener piece by piece. A piece placed off the target goes back to the top.
+          Build openers piece by piece. Every run has a solution.
         </p>
         <div className="mid">
         <div className="openers">
@@ -347,21 +445,25 @@ export default function Opening({ settings, onBack }) {
           <div className="preview">
             {opener.steps.map((s, i) => (
               <div key={opener.id + i}>
-                <div className="k" style={{ marginBottom: 8 }}>
+                <div className="k" style={{ marginBottom: 4 }}>
                   {String(i + 1).padStart(2, "0")} · {s.label}
                 </div>
-                <StepPicture step={s} size={10} />
+                <StepPicture step={s} size={8} />
               </div>
             ))}
-            {order === "random" && (
-              <p className="note" style={{ marginTop: 4 }}>
-                With a random bag some orders can&apos;t build the opener. Use hold, or press <Kbd>F</Kbd> to
-                reroll.
-              </p>
-            )}
           </div>
         </div>
-        <div className="opts inline" style={{ marginTop: 28 }}>
+        <Advanced
+          open={advOpen}
+          onToggle={() => setAdvOpen((o) => !o)}
+          changed={[
+            order === "random" ? null : "Ideal order",
+            mirror === "on" ? null : "Mirror off",
+            guide ? null : "Guide hidden",
+            autoNext === "all" ? null : "Auto next off",
+          ].filter(Boolean)}
+        >
+        <div className="opts inline">
           <div className="opt">
             <div className="k">Piece order</div>
             <Segmented
@@ -381,7 +483,6 @@ export default function Opening({ settings, onBack }) {
               options={[
                 { id: "off", label: "Off" },
                 { id: "on", label: "On" },
-                { id: "random", label: "Random" },
               ]}
               value={mirror}
               onChange={setMirror}
@@ -399,7 +500,20 @@ export default function Opening({ settings, onBack }) {
               onChange={setGuide}
             />
           </div>
+          <div className="opt">
+            <div className="k">Auto next</div>
+            <Segmented
+              label="Auto next"
+              options={[
+                { id: "off", label: "Off" },
+                { id: "all", label: "On" },
+              ]}
+              value={autoNext}
+              onChange={setAutoNext}
+            />
+          </div>
         </div>
+        </Advanced>
         </div>
         <div className="actions">
           <button className="btn primary" onClick={startGame}>
@@ -408,7 +522,6 @@ export default function Opening({ settings, onBack }) {
           <button className="btn ghost" onClick={onBack}>
             Back
           </button>
-          <KeyHints items={[[["↑", "↓"], "opener"], [["←", "→"], "order"], [["G"], "guide"], [["Enter"], "start"]]} />
         </div>
       </div>
     );
@@ -421,10 +534,15 @@ export default function Opening({ settings, onBack }) {
   const step = opener.steps[stepIdx];
   const remaining = new Set();
   if (st.target && !st.done) for (const row of st.target) for (const ch of row) if (ch && ch !== "X") remaining.add(ch);
-  const wrongPiece =
-    engine && engine.playing && !remaining.has(ID_LETTER[engine.currentId]) && !st.done
-      ? ID_LETTER[engine.currentId]
-      : null;
+  void remaining;
+  const hintText =
+    phase !== "playing" || !guide
+      ? ""
+      : st.hint === "hold"
+        ? `Hold the ${ID_LETTER[engine?.currentId] || ""}.`
+        : st.hint === "stuck"
+          ? "No solution from here. Press F to restart."
+          : "";
 
   return (
     <>
@@ -452,6 +570,10 @@ export default function Opening({ settings, onBack }) {
             <div className="v xs" style={{ marginTop: 4 }}>
               {step.label}
             </div>
+          </div>
+          {/* Always rendered so turning auto next on/off never shifts the column */}
+          <div style={{ visibility: autoNext === "off" ? "hidden" : "visible" }}>
+            <Stat k="Streak" v={streak} />
           </div>
         </div>
 
@@ -514,12 +636,19 @@ export default function Opening({ settings, onBack }) {
             {/* Space is always reserved so the hint never pushes anything around */}
             <p
               className="note"
-              style={{ marginTop: 0, minHeight: "3.2em", visibility: wrongPiece && phase === "playing" ? "visible" : "hidden" }}
+              style={{ marginTop: 0, minHeight: "3.2em", visibility: hintText ? "visible" : "hidden" }}
             >
-              {wrongPiece || "–"} isn&apos;t in this step. Hold it.
+              {hintText || "–"}
             </p>
           </div>
-          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[[["F"], "restart"], [["G"], guide ? "guide off" : "guide on"], [["Esc"], "list"]]} />
+          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[
+              [["F"], "restart"],
+              [["G"], `guide ${guide ? "on" : "off"}`],
+              [["O"], `order ${order === "fixed" ? "ideal" : "random"}`],
+              [["M"], `mirror ${mirror}`],
+              [["N"], `auto next ${autoNext === "all" ? "on" : "off"}`],
+              [["Esc"], "exit"],
+            ]} />
         </div>
       </div>
     </>

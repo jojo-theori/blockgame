@@ -8,6 +8,14 @@ import { useFit } from "../fit.js";
 
 const METER_W = 6;
 
+function loadBattlePrefs() {
+  try {
+    return JSON.parse(localStorage.getItem("jbl-battle") || "{}");
+  } catch {
+    return {};
+  }
+}
+
 function createEngine(settings) {
   return new BlockEngine({
     das: settings.das,
@@ -86,20 +94,23 @@ function PlayerBoard({ engineRef, label, sub, result, mirror }) {
   );
 }
 
-export default function Battle({ settings, onBack }) {
+export default function Battle({ settings, onBack, onSettings }) {
   const zoom = useFit(1040, 600);
   // select | countdown | playing | finished
   const [phase, setPhase] = useState("select");
-  const [opponent, setOpponent] = useState("cpu"); // cpu | player
-  const [difficulty, setDifficulty] = useState("normal"); // easy | normal | hard
-  const [selectIdx, setSelectIdx] = useState(0);
+  // Each side is Player 1, Player 2 or CPU (a human can only be on one side).
+  const saved = loadBattlePrefs();
+  const [left, setLeft] = useState(saved.left ?? "p1");
+  const [right, setRight] = useState(saved.right ?? "cpu");
+  const [leftLevel, setLeftLevel] = useState(saved.leftLevel ?? "normal");
+  const [rightLevel, setRightLevel] = useState(saved.rightLevel ?? "normal");
   const [countdownText, setCountdownText] = useState("");
   const [, forceUpdate] = useState(0);
   const [winner, setWinner] = useState(null); // "p1" | "p2"
 
   const engine1Ref = useRef(null);
   const engine2Ref = useRef(null);
-  const cpuRef = useRef(null);
+  const cpusRef = useRef([]);
   const rafRef = useRef(null);
   const lastTimeRef = useRef(0);
   const phaseRef = useRef("select");
@@ -117,26 +128,25 @@ export default function Battle({ settings, onBack }) {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("jbl-battle", JSON.stringify({ left, right, leftLevel, rightLevel }));
+    } catch {
+      /* ignore */
+    }
+  }, [left, right, leftLevel, rightLevel]);
 
   const reloadKeys = useCallback(() => {
     const all = loadKeyBindings();
-    if (opponent === "cpu") {
-      p1KeysRef.current = buildKeyMap(all.solo);
-      p2KeysRef.current = {};
-    } else {
-      p1KeysRef.current = buildKeyMap(all.p1);
-      p2KeysRef.current = buildKeyMap(all.p2);
-    }
-  }, [opponent]);
+    const humans = [left, right].filter((x) => x !== "cpu").length;
+    const mapFor = (slot) => (slot === "cpu" ? {} : buildKeyMap(humans === 1 ? all.solo : all[slot]));
+    p1KeysRef.current = mapFor(left);
+    p2KeysRef.current = mapFor(right);
+  }, [left, right]);
 
   useEffect(() => {
     reloadKeys();
   }, [reloadKeys]);
-
-  const setOpponentAndResetFocus = useCallback((next) => {
-    setOpponent(next);
-    setSelectIdx(0);
-  }, []);
 
   // Shared loop, ref-based to avoid stale closures.
   useEffect(() => {
@@ -152,7 +162,7 @@ export default function Battle({ settings, onBack }) {
 
       e1.update(cappedDt, now);
       e2.update(cappedDt, now);
-      cpuRef.current?.update(now);
+      for (const cpu of cpusRef.current) cpu.update(now);
 
       // Hand over attack whenever it is there: player pieces lock inside key
       // handlers, between frames, so "placed this frame" would miss them.
@@ -185,13 +195,16 @@ export default function Battle({ settings, onBack }) {
     e2.start();
     engine1Ref.current = e1;
     engine2Ref.current = e2;
-    cpuRef.current = opponent === "cpu" ? new CPUPlayer(e2, difficulty) : null;
+    cpusRef.current = [
+      left === "cpu" ? new CPUPlayer(e1, leftLevel) : null,
+      right === "cpu" ? new CPUPlayer(e2, rightLevel) : null,
+    ].filter(Boolean);
     setWinner(null);
     phaseRef.current = "playing";
     setPhase("playing");
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(loopRef.current);
-  }, [opponent, difficulty]);
+  }, [left, right, leftLevel, rightLevel]);
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -218,6 +231,11 @@ export default function Battle({ settings, onBack }) {
         } else if (phase === "select") {
           onBack();
         }
+        return;
+      }
+      if (phase === "select" && (e.code === "Enter" || e.code === "NumpadEnter")) {
+        e.preventDefault();
+        startGame();
         return;
       }
       if (e.code === "KeyF" && (phase === "playing" || phase === "finished")) {
@@ -265,95 +283,93 @@ export default function Battle({ settings, onBack }) {
 
   // ─── SELECT SCREEN ───
   if (phase === "select") {
-    const items = [
-      { id: "opponent" },
-      ...(opponent === "cpu" ? [{ id: "difficulty" }] : []),
-      { id: "start" },
-      { id: "back" },
-    ];
-    const cur = items[selectIdx]?.id;
+    const SlotPicker = ({ side, value, other, setValue, level, setLevel }) => (
+      <div className="slot">
+        <div className="k">{side}</div>
+        <Segmented
+          label={side}
+          options={[
+            { id: "p1", label: "Player 1", disabled: other === "p1" },
+            { id: "cpu", label: "CPU" },
+            { id: "p2", label: "Player 2", disabled: other === "p2" },
+          ]}
+          value={value}
+          onChange={setValue}
+        />
+        {/* Always rendered so switching to/from CPU never shifts the layout */}
+        <div style={{ visibility: value === "cpu" ? "visible" : "hidden" }}>
+          <Segmented
+            label={`${side} CPU level`}
+            options={[
+              { id: "easy", label: "Easy" },
+              { id: "normal", label: "Normal" },
+              { id: "hard", label: "Hard" },
+            ]}
+            value={level}
+            onChange={setLevel}
+          />
+        </div>
+      </div>
+    );
+    const bothCpu = left === "cpu" && right === "cpu";
+    const humans = [left, right].filter((x) => x !== "cpu").length;
     return (
-      <div className="page" style={{ "--accent": "#e8505b" }}>
+      <div className="page wide" style={{ "--accent": "#e8505b" }}>
         <h1 className="title">Battle</h1>
         <p className="lede">
           First to top out loses. Line clears send garbage; clearing while garbage is queued cancels it.
         </p>
         <div className="opts">
-          <div className={"opt" + (cur === "opponent" ? " focus" : "")}>
-            <div className="k">Opponent</div>
-            <Segmented
-              label="Opponent"
-              options={[
-                { id: "cpu", label: "CPU" },
-                { id: "player", label: "Player 2" },
-              ]}
-              value={opponent}
-              onChange={setOpponentAndResetFocus}
-              focus={cur === "opponent"}
-            />
+          <div className="slots">
+            {SlotPicker({ side: "Left", value: left, other: right, setValue: setLeft, level: leftLevel, setLevel: setLeftLevel })}
+            <div className="vs">vs</div>
+            {SlotPicker({ side: "Right", value: right, other: left, setValue: setRight, level: rightLevel, setLevel: setRightLevel })}
           </div>
-          {opponent === "cpu" ? (
-            <div className={"opt" + (cur === "difficulty" ? " focus" : "")}>
-              <div className="k">Difficulty</div>
-              <Segmented
-                label="Difficulty"
-                options={[
-                  { id: "easy", label: "Easy" },
-                  { id: "normal", label: "Normal" },
-                  { id: "hard", label: "Hard" },
-                ]}
-                value={difficulty}
-                onChange={setDifficulty}
-                focus={cur === "difficulty"}
-              />
-            </div>
-          ) : (
-            <div className="opt">
-              <div className="k">Keys</div>
-              <div className="dim small">P1 and P2 use their own bindings. Change them in Settings.</div>
-            </div>
-          )}
+          <p className="note slot-note">
+            {bothCpu ? (
+              "Both sides are CPU, so you'll be watching."
+            ) : humans === 2 ? (
+              <>
+                Player 1 and Player 2 use their own keys. Change them in{" "}
+                <button type="button" className="link" onClick={onSettings}>
+                  Settings
+                </button>
+                .
+              </>
+            ) : (
+              <>
+                You play with your solo keys. Change them in{" "}
+                <button type="button" className="link" onClick={onSettings}>
+                  Settings
+                </button>
+                .
+              </>
+            )}
+          </p>
         </div>
         <div className="actions">
-          <button className={"btn primary" + (cur === "start" ? " focus" : "")} onClick={startGame}>
+          <button className="btn primary" onClick={startGame}>
             Start
           </button>
-          <button className={"btn ghost" + (cur === "back" ? " focus" : "")} onClick={onBack}>
+          <button className="btn ghost" onClick={onBack}>
             Back
           </button>
-          <KeyHints items={[[["↑", "↓"], "move"], [["←", "→"], "change"], [["Enter"], "select"]]} />
         </div>
-
-        <BattleSelectKeyboard
-          itemsCount={items.length}
-          setSelectIdx={setSelectIdx}
-          onLeftRight={(dir) => {
-            if (cur === "opponent") {
-              setOpponentAndResetFocus(opponent === "cpu" ? "player" : "cpu");
-            } else if (cur === "difficulty") {
-              setDifficulty((d) => {
-                const order = ["easy", "normal", "hard"];
-                const i = order.indexOf(d);
-                return order[(i + (dir > 0 ? 1 : order.length - 1)) % order.length];
-              });
-            }
-          }}
-          onEnter={() => {
-            if (cur === "back") onBack();
-            else startGame();
-          }}
-        />
       </div>
     );
   }
 
-  const nameP2 = opponent === "cpu" ? "CPU" : "P2";
-  const subP2 = opponent === "cpu" ? difficulty[0].toUpperCase() + difficulty.slice(1) : null;
+  const nameOf = (slot) => (slot === "cpu" ? "CPU" : slot === "p1" ? "P1" : "P2");
+  const levelOf = (slot, lv) => (slot === "cpu" ? lv[0].toUpperCase() + lv.slice(1) : null);
+  const nameP1 = nameOf(left);
+  const nameP2 = nameOf(right);
   const done = phase === "finished";
 
   return (
     <>
-      <div className="mode-label">Battle · {opponent === "cpu" ? "vs CPU" : "vs Player"}</div>
+      <div className="mode-label">
+        Battle · {nameP1} vs {nameP2}
+      </div>
       <div style={{ position: "relative" }}>
         {/* When the match ends the boards fade back instead of being covered by a
             dark box, so the page background and grid stay continuous. */}
@@ -369,27 +385,28 @@ export default function Battle({ settings, onBack }) {
         >
           <PlayerBoard
             engineRef={engine1Ref}
-            label="P1"
+            label={nameP1}
+            sub={levelOf(left, leftLevel)}
             result={done ? (winner === "p1" ? "Won" : "Lost") : null}
           />
           <PlayerBoard
             engineRef={engine2Ref}
             label={nameP2}
-            sub={subP2}
+            sub={levelOf(right, rightLevel)}
             result={done ? (winner === "p2" ? "Won" : "Lost") : null}
           />
         </div>
         {phase === "countdown" && <Countdown text={countdownText} />}
         <KeyHints
           style={{ position: "absolute", left: 0, right: 0, top: "100%", marginTop: 24 }}
-          items={[[["F"], "rematch"], [["Esc"], "setup"]]}
+          items={[[["F"], "rematch"], [["Esc"], "exit"]]}
         />
 
         {done && (
           <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "transparent" }}>
-            <div className="k">{winner === "p1" ? `${nameP2} topped out` : "P1 topped out"}</div>
+            <div className="k">{winner === "p1" ? `${nameP2} topped out` : `${nameP1} topped out`}</div>
             <div className="title">
-              {winner === "p1" ? "P1 wins" : `${nameP2} wins`}
+              {winner === "p1" ? `${nameP1} wins` : `${nameP2} wins`}
             </div>
             <div className="row-btns" style={{ width: 220 }}>
               <button className="btn primary" onClick={startGame} autoFocus>
@@ -407,31 +424,4 @@ export default function Battle({ settings, onBack }) {
       </div>
     </>
   );
-}
-
-// ─── SELECT-SCREEN KEYBOARD ───
-function BattleSelectKeyboard({ itemsCount, setSelectIdx, onLeftRight, onEnter }) {
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.code === "ArrowDown") {
-        e.preventDefault();
-        setSelectIdx((i) => (i + 1) % itemsCount);
-      } else if (e.code === "ArrowUp") {
-        e.preventDefault();
-        setSelectIdx((i) => (i - 1 + itemsCount) % itemsCount);
-      } else if (e.code === "ArrowLeft") {
-        e.preventDefault();
-        onLeftRight(-1);
-      } else if (e.code === "ArrowRight") {
-        e.preventDefault();
-        onLeftRight(1);
-      } else if (e.code === "Enter" || e.code === "NumpadEnter") {
-        e.preventDefault();
-        onEnter();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [itemsCount, setSelectIdx, onLeftRight, onEnter]);
-  return null;
 }
