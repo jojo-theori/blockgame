@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { keyLabel } from "./keys.js";
+import { sfx } from "./sound.js";
 
 // ─── SHARED UI ───
 
@@ -57,6 +59,7 @@ export function Segmented({ options, value, onChange, focus = false, label }) {
           disabled={o.disabled}
           onClick={(e) => {
             e.currentTarget.blur();
+            if (o.id !== value) sfx.tick();
             onChange(o.id);
           }}
         >
@@ -77,6 +80,10 @@ export function Stat({ k, v, big = false, style }) {
 }
 
 export function Countdown({ text }) {
+  useEffect(() => {
+    if (text === "Ready") sfx.ready();
+    else if (text === "Go") sfx.go();
+  }, [text]);
   return (
     <div className="count">
       <span key={text}>{text}</span>
@@ -104,6 +111,21 @@ function ArrowIcon({ rotate }) {
       <path d="M12 6.5 19 17H5Z" />
     </svg>
   );
+}
+
+// A key's name from its e.code. Arrow keys draw the same triangle icon as the
+// key caps instead of the thin text arrows.
+const ARROW_CODES = { ArrowUp: 0, ArrowRight: 90, ArrowDown: 180, ArrowLeft: 270 };
+export function KeyName({ code }) {
+  const rotate = ARROW_CODES[code];
+  if (rotate !== undefined) {
+    return (
+      <span className="key-arrow" role="img" aria-label={keyLabel(code)}>
+        <ArrowIcon rotate={rotate} />
+      </span>
+    );
+  }
+  return <>{keyLabel(code)}</>;
 }
 
 // Keyboard key cap
@@ -141,7 +163,15 @@ export function KeyHints({ items, style }) {
 export function Advanced({ open, onToggle, changed = [], children }) {
   return (
     <div className={"adv" + (open ? " open" : "")}>
-      <button type="button" className="adv-toggle" aria-expanded={open} onClick={onToggle}>
+      <button
+        type="button"
+        className="adv-toggle"
+        aria-expanded={open}
+        onClick={() => {
+          sfx.tick();
+          onToggle();
+        }}
+      >
         <span>Advanced settings</span>
         <svg className="adv-chev" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M8 10l4 4 4-4" />
@@ -187,7 +217,10 @@ export function Dropdown({ label, value, options, onChange }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={label}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          sfx.tick();
+          setOpen((o) => !o);
+        }}
       >
         <span>{current?.label}</span>
         <svg className="dd-chev" viewBox="0 0 24 24" aria-hidden="true">
@@ -205,6 +238,7 @@ export function Dropdown({ label, value, options, onChange }) {
               disabled={o.disabled || o.id === value}
               tabIndex={open ? 0 : -1}
               onClick={() => {
+                sfx.select();
                 onChange(o.id);
                 setOpen(false);
               }}

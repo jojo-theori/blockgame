@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { BlockEngine, formatTime, buildReplayText } from "../game.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
-import { playDropSound } from "../sound.js";
+import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { Segmented, Stat, Countdown, KeyHints } from "../ui.jsx";
 import { useFit } from "../fit.js";
 
@@ -100,12 +100,10 @@ export default function Sprint({ settings, onBack }) {
       const engine = engineRef.current;
       if (!engine) return;
 
-      if (engine.placedBlocks > prevPlacedRef.current) {
-        prevPlacedRef.current = engine.placedBlocks;
-        if (settingsRef.current.soundEnabled) playDropSound();
-      }
+      trackSfx(engine);
 
       if (engine.completed && stateRef.current !== "completed") {
+        sfx.win();
         setPhase("completed");
         setStats(buildEndStats(engine));
         render();
@@ -138,6 +136,7 @@ export default function Sprint({ settings, onBack }) {
       setDisplayAttack(engine.totalAttack);
 
       if (engine.completed) {
+        sfx.win();
         setPhase("completed");
         setStats(buildEndStats(engine));
         render();
@@ -234,6 +233,7 @@ export default function Sprint({ settings, onBack }) {
       if (!action || phase !== "playing") return;
       e.preventDefault();
       engineRef.current?.onKeyDown(action, performance.now());
+      sfxForAction(action);
     };
     const handleKeyUp = (e) => {
       const action = keysRef.current[e.code];
@@ -280,7 +280,7 @@ export default function Sprint({ settings, onBack }) {
       <div className="page" style={{ "--accent": "#41b6e6" }}>
         <h1 className="title">Sprint</h1>
         <p className="lede">Clear the lines as fast as you can. The clock starts on the first piece.</p>
-        <div className="opts">
+        <div className="opts center">
           <div className="opt focus">
             <div className="k">Lines</div>
             <Segmented

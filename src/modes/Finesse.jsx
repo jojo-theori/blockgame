@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ROWS, COLS, BlockEngine, formatTime } from "../game.js";
-import { buildKeyMap, loadKeyBindings, keyLabel } from "../keys.js";
+import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, BOARD_W, BOARD_H } from "../render.js";
-import { playDropSound } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced } from "../ui.jsx";
-import { useFit, useStoredBool } from "../fit.js";
+import { sfx, sfxForAction, trackSfx } from "../sound.js";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyName } from "../ui.jsx";
+import { useFit } from "../fit.js";
 import { placements, bestPaths, sameCells } from "../finesse.js";
 
 const ACCENT = "#5cc45c";
@@ -77,9 +77,9 @@ function BestInputs({ paths, bind }) {
 // Key caps for one optimal path, using the player's own bindings.
 function PathCaps({ path, bind }) {
   const cap = (a) => {
-    if (a === "dasLeft") return `${keyLabel(bind.left)} hold`;
-    if (a === "dasRight") return `${keyLabel(bind.right)} hold`;
-    return keyLabel(bind[a]);
+    if (a === "dasLeft") return <><KeyName code={bind.left} /> hold</>;
+    if (a === "dasRight") return <><KeyName code={bind.right} /> hold</>;
+    return <KeyName code={bind[a]} />;
   };
   return (
     <span className="path">
@@ -98,7 +98,7 @@ export default function Finesse({ settings, onBack }) {
   const [onFault, setOnFault] = useState(prefs.onFault ?? "retry"); // retry | continue
   const [piece, setPiece] = useState(prefs.piece ?? 0); // 0 = all pieces
   const [allow180, setAllow180] = useState(prefs.allow180 ?? true);
-  const [advOpen, setAdvOpen] = useStoredBool("jbl-adv-finesse");
+  const [advOpen, setAdvOpen] = useState(false); // always starts folded
   const [countdownText, setCountdownText] = useState("");
   const [hud, setHud] = useState(EMPTY_HUD);
   const [bind, setBind] = useState(() => loadKeyBindings().solo);
@@ -137,6 +137,7 @@ export default function Finesse({ settings, onBack }) {
       const reject = () => {
         st.reject = { cells, t: performance.now() };
         setFaultFlash((n) => n + 1);
+        sfx.miss();
         return false;
       };
       if (!sameCells(cells, t.cells)) {
@@ -151,6 +152,7 @@ export default function Finesse({ settings, onBack }) {
         st.faults++;
         if (onFault === "retry") return reject();
         setFaultFlash((n) => n + 1);
+        sfx.miss();
       }
       // Accepted: set up the well for the next piece right away.
       st.done++;
@@ -188,12 +190,12 @@ export default function Finesse({ settings, onBack }) {
       const st = run.current;
       const dt = lastTimeRef.current ? timestamp - lastTimeRef.current : 16;
       lastTimeRef.current = timestamp;
-      const before = engine.placedBlocks;
       engine.update(Math.min(dt, 100), performance.now());
-      if (engine.placedBlocks > before && settingsRef.current.soundEnabled) playDropSound();
+      trackSfx(engine);
 
       if (st.finished) {
         engine.playing = false;
+        sfx.win();
         setHud({ clock: engine.clock, done: st.done, faults: st.faults, clean: st.clean, last: st.last });
         setResult({
           time: engine.clock,
@@ -305,6 +307,7 @@ export default function Finesse({ settings, onBack }) {
       if (!action) return;
       e.preventDefault();
       engineRef.current?.onKeyDown(action, performance.now());
+      sfxForAction(action);
     };
     const onUp = (e) => {
       const action = keysRef.current[e.code];

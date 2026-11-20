@@ -6,6 +6,7 @@ import Finesse from "./modes/Finesse.jsx";
 import Settings from "./modes/Settings.jsx";
 import ComingSoon from "./modes/ComingSoon.jsx";
 import { KeyHints } from "./ui.jsx";
+import { sfx, setSoundEnabled as setSfxEnabled } from "./sound.js";
 
 // ─── SETTINGS PERSISTENCE ───
 function loadSettings() {
@@ -53,6 +54,11 @@ export default function App() {
     saveSettings({ ...prev, das, arr, sdf, soundEnabled });
   }, [das, arr, sdf, soundEnabled]);
 
+  // Every sound follows the Sound setting.
+  useEffect(() => {
+    setSfxEnabled(soundEnabled);
+  }, [soundEnabled]);
+
   // Keep game keys from scrolling the page
   useEffect(() => {
     const preventScroll = (e) => {
@@ -71,13 +77,18 @@ export default function App() {
       if (e.code === "ArrowDown" || (e.code === "Tab" && !e.shiftKey)) {
         e.preventDefault();
         setMenuIdx((i) => (i + 1) % MODES.length);
+        sfx.tick();
       } else if (e.code === "ArrowUp" || (e.code === "Tab" && e.shiftKey)) {
         e.preventDefault();
         setMenuIdx((i) => (i - 1 + MODES.length) % MODES.length);
+        sfx.tick();
       } else if (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space") {
         e.preventDefault();
         const item = MODES[menuIdx];
-        if (item?.ready) setView(item.id);
+        if (item?.ready) {
+          sfx.select();
+          setView(item.id);
+        }
       } else if (/^Digit[1-9]$/.test(e.code)) {
         const item = MODES[+e.code.slice(5) - 1];
         if (item?.ready) setView(item.id);
@@ -118,7 +129,11 @@ export default function App() {
                   className={[menuIdx === i ? "on" : "", m.ready ? "" : "soon"].join(" ")}
                   style={{ "--accent": m.color }}
                   onMouseEnter={() => setMenuIdx(i)}
-                  onClick={() => m.ready && setView(m.id)}
+                  onClick={() => {
+                    if (!m.ready) return;
+                    sfx.select();
+                    setView(m.id);
+                  }}
                 >
                   <i className="dot" />
                   {m.label}

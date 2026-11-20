@@ -744,3 +744,54 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .dd-check { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
 .dd-menu button.on:disabled { color: var(--fg); cursor: default; background: rgba(255, 255, 255, 0.04); }
 .dd-menu button.on .dd-check { visibility: visible; }
+
+/* Arrow key glyph inside buttons and key caps */
+.key-arrow { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+.key-arrow .kbd-arrow { width: 9px; height: 9px; }
+.kbd .key-arrow .kbd-arrow { width: 7px; height: 7px; }
+.kbd { gap: 4px; }
+.keybtn .key-arrow .kbd-arrow { width: 10px; height: 10px; }
+
+/* ─── Slider extras ─── */
+.slider-track { position: relative; display: flex; align-items: center; }
+.slider-def {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 10px;
+  margin: -5px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--faint);
+  pointer-events: none;
+  transition: opacity 0.2s var(--out);
+}
+.slider-def.at { opacity: 0; }
+.slider .num {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: text;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s var(--out);
+}
+.slider .num:hover { text-decoration-color: var(--faint); }
+.slider .num-edit {
+  width: auto;
+  min-width: 2ch;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--fg);
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: right;
+  outline: none;
+}
+/* Static setup blocks (nothing in them changes height) sit midway between
+   the title and the actions. */
+.page > .opts.center { margin-top: auto; margin-bottom: auto; padding-top: 0; }

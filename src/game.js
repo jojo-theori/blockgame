@@ -482,6 +482,10 @@ export class BlockEngine {
     // Opening practice: fixed piece order consumed before random bags, and a
     // hook that can reject a placement before it locks in.
     this.sequence = settings.sequence ? settings.sequence.slice() : null;
+    // Incoming garbage waits this long (seconds of play) before it can rise,
+    // like the "charging" garbage in TETR.IO: you get a moment to clear and
+    // cancel it, and only garbage that is ready comes up on your next drop.
+    this.garbageDelay = settings.garbageDelay ?? 0.5;
     this.validatePlacement = null;
 
     this.reset();
@@ -548,7 +552,7 @@ export class BlockEngine {
     this.lastAttack = 0;
     this.totalAttack = 0;
     this.outgoingAttack = 0; // attack to be sent this turn (after self-cancel)
-    this.garbageQueue = []; // [{ amount, holeCol }]
+    this.garbageQueue = []; // [{ amount, holeCol, readyAt }]
     this.lastGarbageHoleCol = -1;
     this.stats = {
       singles: 0,
@@ -1237,14 +1241,27 @@ export class BlockEngine {
       holeCol = Math.floor(Math.random() * COLS);
     } while (holeCol === this.lastGarbageHoleCol && COLS > 1);
     this.lastGarbageHoleCol = holeCol;
-    this.garbageQueue.push({ amount, holeCol });
+    this.garbageQueue.push({ amount, holeCol, readyAt: this.clock + this.garbageDelay });
+  }
+
+  // Lines of incoming garbage that are ready / still charging.
+  garbageCounts() {
+    let ready = 0,
+      charging = 0;
+    for (const g of this.garbageQueue) {
+      if (g.readyAt <= this.clock) ready += g.amount;
+      else charging += g.amount;
+    }
+    return { ready, charging };
   }
 
   applyGarbage() {
-    const queue = this.garbageQueue;
-    this.garbageQueue = [];
+    // Only batches whose delay has passed come up; the rest keep charging.
+    const queue = this.garbageQueue.filter((g) => g.readyAt <= this.clock);
+    this.garbageQueue = this.garbageQueue.filter((g) => g.readyAt > this.clock);
     if (queue.length === 0) return;
 
+    this.garbageApplied = (this.garbageApplied || 0) + queue.reduce((n, b) => n + b.amount, 0);
     for (const batch of queue) {
       for (let i = 0; i < batch.amount; i++) {
         const top = this.matrix.shift();

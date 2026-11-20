@@ -4,6 +4,7 @@ import { CPUPlayer } from "../cpu.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, prep, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { Countdown, KeyHints, Dropdown } from "../ui.jsx";
+import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { useFit } from "../fit.js";
 
 const METER_W = 6;
@@ -89,11 +90,15 @@ function PlayerBoard({ engineRef, label, sub, result, mirror }) {
           const ctx = prep(m, METER_W, BOARD_H);
           ctx.fillStyle = "#141414";
           ctx.fillRect(0, 0, METER_W, BOARD_H);
-          let pending = 0;
-          for (const g of engine.garbageQueue) pending += g.amount;
-          const n = Math.min(pending, ROWS);
-          ctx.fillStyle = n >= 4 ? "#e8505b" : "#ebebeb";
-          ctx.fillRect(0, BOARD_H - n * CELL, METER_W, n * CELL);
+          // Ready garbage (will rise on the next drop) is solid; garbage that
+          // is still charging sits above it, dimmed.
+          const { ready, charging } = engine.garbageCounts();
+          const r = Math.min(ready, ROWS);
+          const ch = Math.min(charging, ROWS - r);
+          ctx.fillStyle = r >= 4 ? "#e8505b" : "#ebebeb";
+          ctx.fillRect(0, BOARD_H - r * CELL, METER_W, r * CELL);
+          ctx.fillStyle = "rgba(235, 235, 235, 0.28)";
+          ctx.fillRect(0, BOARD_H - (r + ch) * CELL, METER_W, ch * CELL);
         }
       }
       raf = requestAnimationFrame(tick);
@@ -156,6 +161,7 @@ export default function Battle({ settings, onBack, onSettings }) {
   const engine1Ref = useRef(null);
   const engine2Ref = useRef(null);
   const cpusRef = useRef([]);
+  const seatsRef = useRef(["p1", "cpu"]);
   const rafRef = useRef(null);
   const lastTimeRef = useRef(0);
   const phaseRef = useRef("select");
@@ -220,10 +226,18 @@ export default function Battle({ settings, onBack, onSettings }) {
         e2.outgoingAttack = 0;
       }
 
+      // Sounds follow the human players' boards only (CPU boards stay quiet).
+      if (seatsRef.current[0] !== "cpu") trackSfx(e1, { topout: false });
+      if (seatsRef.current[1] !== "cpu") trackSfx(e2, { topout: false });
+
       forceUpdate((x) => x + 1);
 
       if (e1.gameOver || e2.gameOver) {
         const w = e1.gameOver ? "p2" : "p1";
+        const winnerSeat = seatsRef.current[w === "p1" ? 0 : 1];
+        const humans = seatsRef.current.filter((x) => x !== "cpu").length;
+        if (winnerSeat !== "cpu" || humans === 0) sfx.win();
+        else sfx.lose();
         setWinner(w);
         setPhase("finished");
         return;
@@ -240,6 +254,7 @@ export default function Battle({ settings, onBack, onSettings }) {
     e2.start();
     engine1Ref.current = e1;
     engine2Ref.current = e2;
+    seatsRef.current = [left, right];
     cpusRef.current = [
       left === "cpu" ? new CPUPlayer(e1, leftLevel) : null,
       right === "cpu" ? new CPUPlayer(e2, rightLevel) : null,
@@ -295,12 +310,14 @@ export default function Battle({ settings, onBack, onSettings }) {
       if (a1) {
         e.preventDefault();
         engine1Ref.current?.onKeyDown(a1, performance.now());
+        sfxForAction(a1);
         return;
       }
       const a2 = p2KeysRef.current[e.code];
       if (a2) {
         e.preventDefault();
         engine2Ref.current?.onKeyDown(a2, performance.now());
+        sfxForAction(a2);
       }
     };
     const onUp = (e) => {

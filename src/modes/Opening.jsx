@@ -12,9 +12,9 @@ import {
   HOLD_H,
   SLOT,
 } from "../render.js";
-import { playDropSound } from "../sound.js";
+import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced } from "../ui.jsx";
-import { useFit, useStoredBool } from "../fit.js";
+import { useFit } from "../fit.js";
 import {
   OPENERS,
   LETTER_ID,
@@ -73,7 +73,7 @@ export default function Opening({ settings, onBack }) {
   const [mirroredRun, setMirroredRun] = useState(false);
   const [autoNext, setAutoNext] = useState(prefs.autoNext ?? "all"); // off | all
   const [streak, setStreak] = useState(0);
-  const [advOpen, setAdvOpen] = useStoredBool("jbl-adv-opening");
+  const [advOpen, setAdvOpen] = useState(false); // always starts folded
   const [countdownText, setCountdownText] = useState("");
   const [, setTick] = useState(0);
   const [result, setResult] = useState(null);
@@ -140,6 +140,7 @@ export default function Opening({ settings, onBack }) {
         st.misses++;
         st.reject = { cells, t: performance.now() };
         setMissFlash((n) => n + 1);
+        sfx.miss();
         return false;
       }
       for (const [r, c] of cells) st.target[r][c] = "X";
@@ -233,10 +234,10 @@ export default function Opening({ settings, onBack }) {
       lastTimeRef.current = timestamp;
       engine.update(Math.min(dt, 100), performance.now());
       updateHint(engine);
+      trackSfx(engine);
 
       if (engine.placedBlocks > prevPlacedRef.current) {
         prevPlacedRef.current = engine.placedBlocks;
-        if (settingsRef.current.soundEnabled) playDropSound();
         if (engine.lastAction && engine.lastAction !== st.lastAction) {
           st.lastAction = engine.lastAction;
           st.actionKey++;
@@ -247,6 +248,7 @@ export default function Opening({ settings, onBack }) {
         // Continuous: count it and go straight into the next one (no result screen).
         engine.playing = false;
         setStreak((n) => n + 1);
+        sfx.select();
         const cur = openerIdxRef.current;
         let next = cur;
         if (stageRef.current == null) {
@@ -259,6 +261,7 @@ export default function Opening({ settings, onBack }) {
       }
       if (st.done) {
         engine.playing = false;
+        sfx.win();
         const pieces = engine.placedBlocks;
         setResult({
           time: engine.clock,
@@ -427,6 +430,7 @@ export default function Opening({ settings, onBack }) {
       if (!action) return;
       e.preventDefault();
       engineRef.current?.onKeyDown(action, performance.now());
+      sfxForAction(action);
     };
     const onUp = (e) => {
       const action = keysRef.current[e.code];

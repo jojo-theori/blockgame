@@ -10,7 +10,7 @@ import {
   FORBIDDEN_CODES,
 } from "../keys.js";
 
-import { Segmented } from "../ui.jsx";
+import { Segmented, KeyName } from "../ui.jsx";
 
 const PROFILE_LIST = [
   { id: "solo", label: "Solo" },
@@ -166,21 +166,21 @@ export default function Settings({
                 <div className="k" style={{ color: "var(--fg)" }}>DAS</div>
                 <div className="k small">Delay before auto-repeat</div>
               </div>
-              <SliderField value={das} setValue={setDas} min={0} max={300} unit="ms" />
+              <SliderField value={das} setValue={setDas} min={0} max={300} def={133} unit="ms" />
             </div>
             <div className="opt">
               <div>
                 <div className="k" style={{ color: "var(--fg)" }}>ARR</div>
                 <div className="k small">Auto-repeat rate</div>
               </div>
-              <SliderField value={arr} setValue={setArr} min={0} max={100} unit="ms" />
+              <SliderField value={arr} setValue={setArr} min={0} max={100} def={10} unit="ms" />
             </div>
             <div className="opt">
               <div>
                 <div className="k" style={{ color: "var(--fg)" }}>SDF</div>
                 <div className="k small">Soft drop speed</div>
               </div>
-              <SliderField value={sdf} setValue={setSdf} min={1} max={100} displayValue={sdf === 100 ? "∞" : `${sdf}×`} />
+              <SliderField value={sdf} setValue={setSdf} min={1} max={100} def={30} displayValue={sdf === 100 ? "∞" : `${sdf}×`} />
             </div>
             <div className="opt">
               <div className="k" style={{ color: "var(--fg)" }}>Sound</div>
@@ -234,7 +234,7 @@ export default function Settings({
                         setRecording({ profile: activeProfile, action });
                       }}
                     >
-                      {isRecording ? "Press a key…" : keyLabel(profile[action])}
+                      {isRecording ? "Press a key…" : <KeyName code={profile[action]} />}
                     </button>
                   </div>
                 );
@@ -254,12 +254,66 @@ export default function Settings({
   );
 }
 
-function SliderField({ value, setValue, min, max, displayValue, unit }) {
+// Slider with the default marked on the track. Double-click the slider to go
+// back to the default; click the number to type a value (underline only).
+function SliderField({ value, setValue, min, max, def, displayValue, unit }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const pct = ((def - min) / (max - min)) * 100;
+  const commit = () => {
+    const n = Math.round(Number(draft.replace(/[^0-9.]/g, "")));
+    if (draft.trim() !== "" && Number.isFinite(n)) setValue(Math.min(max, Math.max(min, n)));
+    setEditing(false);
+  };
   return (
     <div className="slider">
-      <input type="range" min={min} max={max} value={value} onChange={(e) => setValue(+e.target.value)} />
+      <div className="slider-track">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => setValue(+e.target.value)}
+          onDoubleClick={() => setValue(def)}
+          title={`Double-click to reset to ${def}`}
+        />
+        {/* Default position (thumb is 14px, so offset to its centre) */}
+        <span
+          className={"slider-def" + (value === def ? " at" : "")}
+          style={{ left: `calc(${pct}% + ${(0.5 - pct / 100) * 14}px)` }}
+          aria-hidden="true"
+        />
+      </div>
       <div className="v">
-        {displayValue ?? value}
+        {editing ? (
+          <input
+            className="num-edit"
+            autoFocus
+            inputMode="numeric"
+            value={draft}
+            size={Math.max(2, draft.length)}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") commit();
+              else if (e.key === "Escape") setEditing(false);
+            }}
+          />
+        ) : (
+          <button
+            type="button"
+            className="num"
+            title="Click to type a value"
+            onClick={() => {
+              setDraft(String(value));
+              setEditing(true);
+            }}
+          >
+            {displayValue ?? value}
+          </button>
+        )}
         {unit && displayValue == null ? <span className="dim"> {unit}</span> : null}
       </div>
     </div>
