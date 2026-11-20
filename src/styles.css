@@ -1,0 +1,439 @@
+/* ─── JBL styles ───
+   Centered game layout with a light touch of the umjo design system:
+   Helvetica Neue, neutral greys, pill controls, small labels over large
+   values. Each mode keeps its own accent colour. */
+
+:root {
+  /* Fluid type scale: phone (390px) → desktop (1440px) */
+  --t1: clamp(10px, 9.6px + 0.095vw, 11.5px);
+  --t2: clamp(11px, 10.6px + 0.095vw, 12.5px);
+  --t3: clamp(12px, 11.6px + 0.095vw, 13.5px);
+  --t4: clamp(13px, 12.6px + 0.095vw, 14.5px);
+  --t5: clamp(17px, 15.5px + 0.38vw, 22px);
+  --t6: clamp(20px, 18px + 0.5vw, 26px);
+  --t7: clamp(28px, 22px + 1.1vw, 40px);
+
+  --bg: #0a0a0a;
+  --fg: #ebebeb;
+  --dim: #8a8a8a;
+  --faint: #555;
+  --line: #2a2a2a;
+  --panel: #111;
+  --hover: #1a1a1a;
+  --bad: #e8505b;
+  --out: cubic-bezier(0.22, 1, 0.36, 1);
+  --edge: 24px;
+  --accent: var(--fg);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button { font: inherit; color: inherit; }
+canvas { display: block; }
+
+.app {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/* ─── Chrome ─── */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  opacity: 0.02;
+  pointer-events: none;
+  background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.wordmark {
+  position: absolute;
+  z-index: 30;
+  left: var(--edge);
+  top: 16px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: var(--t4);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+/* ─── Segmented group (pill) ─── */
+.group {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 4px;
+}
+.group button {
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font-size: var(--t3);
+  height: 30px;
+  padding: 0 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s var(--out);
+}
+.group button:not(.on):not(:disabled):hover { color: var(--fg); }
+.group button.on { background: var(--fg); color: #000; }
+.group button:disabled { opacity: 0.3; cursor: default; }
+
+/* ─── Buttons ─── */
+.btn {
+  height: 38px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--fg);
+  font-size: var(--t3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.25s var(--out), border-color 0.25s var(--out), color 0.25s var(--out);
+}
+.btn:hover, .btn.focus { background: var(--hover); border-color: var(--dim); }
+.btn.primary { background: var(--fg); border-color: var(--fg); color: #000; }
+.btn.primary:hover, .btn.primary.focus { background: #fff; border-color: #fff; }
+.btn.ghost { border-color: transparent; color: var(--dim); }
+.btn.ghost:hover { color: var(--fg); background: var(--hover); }
+.btn:focus-visible, .group button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.row-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ─── Type ─── */
+.k { font-size: var(--t3); color: var(--dim); }
+.v { font-size: var(--t6); margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.v.s { font-size: var(--t5); }
+.v.xs { font-size: var(--t4); }
+.dim { color: var(--dim); }
+.faint { color: var(--faint); }
+.small { font-size: var(--t2); }
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: var(--t2);
+  color: var(--faint);
+  line-height: 1.6;
+}
+.keys .hint { display: inline-flex; align-items: center; gap: 6px; }
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: #1c1c1c;
+  color: var(--dim);
+  font: inherit;
+  font-size: var(--t1);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+.kbd.icon { width: 24px; padding: 0; }
+.kbd-arrow { width: 9px; height: 9px; display: block; }
+
+/* ─── Main area ─── */
+.main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px var(--edge);
+}
+/* Pages fill the main area: content starts from a fixed top, and the action
+   block (buttons + key hints) is anchored to the bottom, so its position never
+   depends on how much content sits above it. */
+.page, .home {
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(16px, 5vh, 56px) 0 0;
+}
+/* Three bands: title at the top, settings block centred between title and
+   actions, actions anchored to the bottom. */
+.page > .actions, .home > .keys { margin-top: auto; padding-top: 32px; }
+.page > .opts, .page > .mid, .home > .menu { margin-top: auto; margin-bottom: auto; padding-top: 32px; }
+.page > .opts ~ .actions, .page > .mid ~ .actions, .home > .menu ~ .keys { margin-top: 0; }
+.mid { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.opts.inline { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 20px 32px; }
+.page::-webkit-scrollbar, .home::-webkit-scrollbar { display: none; }
+.title { font-size: var(--t7); font-weight: 600; letter-spacing: -0.03em; line-height: 1; margin: 0; color: var(--accent); }
+.lede { font-size: var(--t3); color: var(--dim); line-height: 1.55; max-width: 30em; margin: 12px 0 0; }
+
+/* ─── Home ─── */
+.logo { font-size: 44px; font-weight: 700; letter-spacing: -0.05em; line-height: 1; margin: 0; }
+.sub { font-size: var(--t3); color: var(--dim); margin: 8px 0 0; }
+.menu { display: flex; flex-direction: column; gap: 10px; width: 300px; }
+.menu button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--dim);
+  font-size: var(--t4);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s var(--out), border-color 0.2s var(--out), background 0.2s var(--out);
+}
+.menu .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.menu button.on { color: var(--fg); border-color: var(--accent); background: var(--hover); }
+.menu button.soon { color: #3a3a3a; cursor: default; background: rgba(255, 255, 255, 0.015); }
+.menu button.soon .dot { opacity: 0.3; }
+.menu button.soon.on { border-color: var(--line); background: rgba(255, 255, 255, 0.015); color: var(--faint); }
+.menu .tag { margin-left: auto; font-size: var(--t1); color: var(--faint); }
+.menu button:focus { outline: none; }
+
+/* ─── Option rows (select screens) ─── */
+.opts { margin-top: 0; display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+.opt { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.opt > .k { transition: color 0.25s var(--out); }
+.opt.focus > .k { color: var(--fg); } /* keyboard focus shows on the label only; segments stay strokeless */
+.actions { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.actions .btn.primary { min-width: 180px; height: 42px; background: var(--accent); border-color: var(--accent); color: #000; font-weight: 500; }
+.actions .btn.primary:hover, .actions .btn.primary.focus { filter: brightness(1.12); background: var(--accent); }
+/* Buttons that sit together share one size; key hints keep a fixed gap below them. */
+.actions .btn { min-width: 180px; height: 42px; }
+.actions > .keys { margin-top: 18px; }
+
+/* ─── Game layout ─── */
+/* Game screens have a fixed height (the board's) and fixed-width side columns,
+   so nothing that appears or changes during play (hold, hints, feedback) can
+   move the board or re-centre the page. */
+.play {
+  display: flex;
+  gap: 32px;
+  align-items: stretch;
+  height: 560px;
+}
+.side { width: 120px; flex: none; display: flex; flex-direction: column; gap: 24px; min-height: 0; overflow: visible; }
+.side > .keys:last-child { margin-top: auto; }
+.board-wrap, .play canvas { flex: none; }
+.side.right { width: 104px; }
+.stat .v { font-size: var(--t5); }
+.stat .v.big { font-size: var(--t6); }
+.board-wrap { position: relative; }
+.board-frame { outline: 1px solid var(--line); }
+.mode-label {
+  position: fixed;
+  z-index: 30;
+  left: calc(var(--edge) + 44px);
+  top: 17px;
+  font-size: var(--t3);
+  color: var(--dim);
+}
+
+/* Overlays on top of a board */
+.veil {
+  position: absolute;
+  inset: 0;
+  padding: 48px 36px 40px;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 6px;
+  animation: fadeIn 0.35s var(--out) both;
+}
+.veil .row-btns { margin-top: auto; }
+.veil .title { font-size: var(--t6); font-weight: 500; letter-spacing: -0.01em; color: var(--fg); }
+.veil .grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 16px;
+  margin: 28px 0 36px;
+}
+.veil .grid2 .v { font-size: var(--t4); margin-top: 4px; }
+.veil .row-btns { flex-direction: column; align-items: stretch; gap: 8px; }
+.veil .row-btns.across { flex-direction: row; justify-content: center; }
+.veil .row-btns.across .btn { width: 150px; }
+.veil .btn { height: 34px; font-size: var(--t2); }
+.veil .row-btns + .keys { margin-top: 24px; }
+
+.count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* No dimming layer: it read as a black box over the boards before the start. */
+  pointer-events: none;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.9);
+  font-size: var(--t7);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+/* Countdown words switch instantly (no fade) so restarts feel snappy */
+
+.action-pop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 36px;
+  text-align: center;
+  font-size: var(--t4);
+  font-weight: 500;
+  pointer-events: none;
+  animation: rise 1s var(--out) forwards;
+}
+
+/* ─── Footer ─── */
+.ftr {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  text-align: center;
+  font-size: var(--t2);
+  color: var(--faint);
+  pointer-events: none;
+  z-index: 5;
+}
+.ftr a { color: var(--dim); text-decoration: none; pointer-events: auto; }
+.ftr a:hover { color: var(--fg); }
+
+/* ─── Range input ─── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
+input[type="range"]::-moz-range-track { height: 1px; background: var(--line); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6.5px;
+  border-radius: 50%;
+  background: var(--fg);
+  border: 0;
+}
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); border: 0; }
+.slider { display: grid; grid-template-columns: 1fr 64px; gap: 16px; align-items: center; }
+.slider .v { font-size: var(--t4); text-align: right; margin: 0; }
+
+/* ─── Settings ─── */
+.settings { width: 100%; max-width: 480px; margin-top: 24px; text-align: left; }
+.settings .opts { margin-top: 0; gap: 0; align-items: stretch; }
+.settings .opt {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 8px 0;
+}
+.settings .opt > .group { justify-self: start; }
+.settings .opt .k { white-space: nowrap; }
+.keybtn { min-width: 110px; }
+.keybtn.rec { border-color: var(--fg); }
+.err { color: var(--bad); font-size: var(--t2); margin-top: 12px; }
+.note { font-size: var(--t2); color: var(--faint); line-height: 1.6; margin: 0 0 12px; }
+
+/* ─── Opening ─── */
+.page.wide { max-width: 760px; }
+.openers { display: grid; grid-template-columns: 1fr 160px; gap: 40px; margin-top: 0; align-items: start; width: 100%; text-align: left; }
+.oplist { display: flex; flex-direction: column; gap: 8px; }
+.oplist button {
+  display: grid;
+  gap: 2px;
+  padding: 10px 22px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--dim);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s var(--out), border-color 0.2s var(--out), background 0.2s var(--out);
+}
+.oplist .nm { font-size: var(--t4); }
+.oplist .nm .small { margin-left: 6px; color: var(--faint); }
+.oplist .ds { font-size: var(--t2); color: var(--faint); }
+.oplist button.on { color: var(--fg); border-color: var(--accent); background: var(--hover); }
+.oplist button.on .ds { color: var(--dim); }
+.oplist button:focus { outline: none; }
+.preview { display: flex; flex-direction: column; gap: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: var(--t2);
+  color: var(--dim);
+}
+.chip.done { color: var(--faint); border-color: #1a1a1a; text-decoration: line-through; }
+.chip.next { color: var(--fg); border-color: var(--dim); }
+.chip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.flash { animation: flash 0.5s var(--out); }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes rise { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+@keyframes flash { 0% { color: var(--bad); } 100% { color: inherit; } }
+
+@media (max-width: 760px) {
+  :root { --edge: 16px; }
+  .openers { grid-template-columns: 1fr; }
+}
+
+/* Title-like text (headings, labels, buttons, tabs) is set in capitals;
+   descriptions and hints stay in sentence case. */
+.title, .logo, .sub, .wordmark, .mode-label, .menu button, .k, .group button, .btn,
+.tag, .chip, .oplist .nm, .count, .action-pop, .stat .v, .veil .v, .kbd, .keys .hint {
+  text-transform: uppercase;
+}
+.keys .hint { letter-spacing: 0.06em; }
+.sub, .mode-label, .menu button, .k, .group button, .btn, .tag, .chip, .oplist .nm { letter-spacing: 0.06em; }
+
+/* ─── Finesse ─── */
+.paths { display: flex; flex-direction: column; gap: 8px; }
+.path { display: flex; flex-wrap: wrap; gap: 6px; }
+.last .v { margin: 0; }
+.last.ok .v { color: #5cc45c; }
+.last.bad .v { color: var(--bad); }

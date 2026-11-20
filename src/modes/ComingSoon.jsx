@@ -1,43 +1,23 @@
-export default function ComingSoon({ label, color, onBack }) {
-  return (
-    <div style={{ textAlign: "center", zIndex: 10 }}>
-      <div
-        style={{
-          fontSize: 36,
-          fontWeight: 700,
-          letterSpacing: -1,
-          marginBottom: 8,
-          color: color,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 13,
-          color: "#444",
-          marginBottom: 40,
-          letterSpacing: 2,
-        }}
-      >
-        COMING SOON
-      </div>
+import { useEffect } from "react";
 
-      <button
-        onClick={onBack}
-        style={{
-          padding: "8px 24px",
-          background: "transparent",
-          border: "1px solid #333",
-          color: "#888",
-          fontSize: 12,
-          fontFamily: "inherit",
-          cursor: "pointer",
-          letterSpacing: 1,
-        }}
-      >
-        BACK
-      </button>
+export default function ComingSoon({ label, color, onBack }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.code === "Escape") onBack();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onBack]);
+
+  return (
+    <div className="page" style={{ "--accent": color }}>
+      <h1 className="title">{label}</h1>
+      <p className="lede">This mode is still in the lab.</p>
+      <div className="actions">
+        <button className="btn" onClick={onBack}>
+          Back
+        </button>
+      </div>
     </div>
   );
 }

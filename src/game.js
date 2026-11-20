@@ -5,15 +5,15 @@ export const COLS = 10,
 export const EMPTY = 0;
 
 export const COLORS = {
-  1: "#00f0f0", // I - cyan
-  2: "#a000f0", // T - purple
-  3: "#f0a000", // L - orange
-  4: "#0000f0", // J - blue
-  5: "#00f000", // S - green
-  6: "#f00000", // Z - red
-  7: "#f0f000", // O - yellow
-  8: "#999999", // garbage
-  9: "#444444", // solid/dead
+  1: "#41b6e6", // I - cyan
+  2: "#b14fd0", // T - purple
+  3: "#f2913d", // L - orange
+  4: "#3d6fe0", // J - blue
+  5: "#5cc45c", // S - green
+  6: "#e8505b", // Z - red
+  7: "#f2cb4c", // O - yellow
+  8: "#5a5a5a", // garbage
+  9: "#333333", // solid/dead
 };
 
 export const PIECE_NAMES = {
@@ -465,9 +465,6 @@ function getKicks(pieceId) {
 export function getShape(id, rot) {
   return SHAPES[id][rot];
 }
-function shapeSize(id) {
-  return SHAPES[id][0].length;
-}
 
 export function formatTime(seconds) {
   const m = Math.floor(seconds / 60);
@@ -482,20 +479,25 @@ export class BlockEngine {
     this.arr = settings.arr ?? 10;
     this.sdf = settings.sdf ?? 30;
     this.sprintLines = settings.sprintLines ?? 40;
+    // Opening practice: fixed piece order consumed before random bags, and a
+    // hook that can reject a placement before it locks in.
+    this.sequence = settings.sequence ? settings.sequence.slice() : null;
+    this.validatePlacement = null;
 
     this.reset();
   }
 
   reset() {
     this.matrix = createMatrix();
-    this.rng = mulberry32(Date.now());
+    this.rng = mulberry32(Date.now() + Math.floor(Math.random() * 1e9));
     this.bag = [];
     this.queue = [];
+    this.pendingSeq = this.sequence ? this.sequence.slice() : [];
     this.fillQueue();
 
     // Jstris: reject banned start sequences (S/Z/O as first pieces in Sprint)
     let attempts = 0;
-    while (this.isBannedStart() && attempts < 1000) {
+    while (!this.sequence && this.isBannedStart() && attempts < 1000) {
       this.rng = mulberry32(Date.now() + ++attempts * 7919);
       this.bag = [];
       this.queue = [];
@@ -545,6 +547,9 @@ export class BlockEngine {
     this.lastAction = "";
     this.lastAttack = 0;
     this.totalAttack = 0;
+    this.outgoingAttack = 0; // attack to be sent this turn (after self-cancel)
+    this.garbageQueue = []; // [{ amount, holeCol }]
+    this.lastGarbageHoleCol = -1;
     this.stats = {
       singles: 0,
       doubles: 0,
@@ -571,6 +576,10 @@ export class BlockEngine {
 
   fillQueue() {
     while (this.queue.length < 6) {
+      if (this.pendingSeq && this.pendingSeq.length) {
+        this.queue.push(this.pendingSeq.shift());
+        continue;
+      }
       if (this.bag.length === 0) this.bag = sevenBag(this.rng);
       this.queue.push(this.bag.shift());
     }
@@ -808,6 +817,21 @@ export class BlockEngine {
       return;
     }
 
+    if (this.validatePlacement) {
+      const cells = [];
+      for (let r = 0; r < size; r++)
+        for (let c = 0; c < size; c++)
+          if (shape[r][c]) cells.push([this.currentY + r, this.currentX + c]);
+      if (!this.validatePlacement(cells, this.currentId, this)) {
+        // Undo the write and send the same piece back to its spawn.
+        for (const [r, c] of cells)
+          if (r >= 0 && r < ROWS && c >= 0 && c < COLS) this.matrix[r][c] = EMPTY;
+        this.rejected = { cells, id: this.currentId, at: this.clock };
+        this.respawnCurrent();
+        return;
+      }
+    }
+
     this.placedBlocks++;
     this.holdUsed = false;
 
@@ -820,6 +844,26 @@ export class BlockEngine {
     const wasB2bBefore = this.b2b;
 
     this.checkLineClears();
+
+    // Battle: cancel incoming with this turn's attack, dump remainder if no clear.
+    let outgoing = this.lastAttack;
+    while (outgoing > 0 && this.garbageQueue.length > 0) {
+      const head = this.garbageQueue[0];
+      if (head.amount <= outgoing) {
+        outgoing -= head.amount;
+        this.garbageQueue.shift();
+      } else {
+        head.amount -= outgoing;
+        outgoing = 0;
+      }
+    }
+    // Accumulate until the battle loop collects it (several pieces can lock
+    // between two frames, e.g. hard drops from key events).
+    this.outgoingAttack += outgoing;
+    if (this.lastAttack === 0 && this.garbageQueue.length > 0) {
+      this.applyGarbage();
+      if (this.gameOver) return;
+    }
 
     try {
       const heights = computeHeights(this.matrix);
@@ -1027,6 +1071,22 @@ export class BlockEngine {
     }
   }
 
+  respawnCurrent() {
+    const id = this.currentId;
+    this.currentRot = 0;
+    const [sx, sy] = SPAWNS[id];
+    this.currentX = sx;
+    this.currentY = sy;
+    this.spinPossible = false;
+    this.spinMini = false;
+    this.lockActivated = false;
+    this.lockResetCount = 0;
+    this.gravityTimer = 0;
+    if (this.collides(this.currentX, this.currentY, this.currentRot)) this.currentY--;
+    this.updateGhost();
+    this._initPieceTracking();
+  }
+
   start() {
     this.reset();
     this.playing = true;
@@ -1105,7 +1165,9 @@ export class BlockEngine {
     const elapsed = now - dasTime;
     if (elapsed >= this.das) {
       if (this.arr === 0) {
-        while (this.move(dir)) {}
+        while (this.move(dir)) {
+          /* slam to wall instantly when ARR is 0 */
+        }
       } else {
         this.arrTimer += dt;
         while (this.arrTimer >= this.arr) {
@@ -1165,6 +1227,55 @@ export class BlockEngine {
       case "hold":
         this.holdPiece();
         break;
+    }
+  }
+
+  receiveGarbage(amount) {
+    if (amount <= 0) return;
+    let holeCol;
+    do {
+      holeCol = Math.floor(Math.random() * COLS);
+    } while (holeCol === this.lastGarbageHoleCol && COLS > 1);
+    this.lastGarbageHoleCol = holeCol;
+    this.garbageQueue.push({ amount, holeCol });
+  }
+
+  applyGarbage() {
+    const queue = this.garbageQueue;
+    this.garbageQueue = [];
+    if (queue.length === 0) return;
+
+    for (const batch of queue) {
+      for (let i = 0; i < batch.amount; i++) {
+        const top = this.matrix.shift();
+        if (top.some((v) => v !== EMPTY)) {
+          this.gameOver = true;
+          this.playing = false;
+          return;
+        }
+        const row = new Array(COLS).fill(8);
+        row[batch.holeCol] = EMPTY;
+        this.matrix.push(row);
+      }
+    }
+
+    if (this.currentId) {
+      if (this.collides(this.currentX, this.currentY, this.currentRot)) {
+        let push = 0;
+        while (
+          push < ROWS &&
+          this.collides(this.currentX, this.currentY - push, this.currentRot)
+        ) {
+          push++;
+        }
+        if (push >= ROWS) {
+          this.gameOver = true;
+          this.playing = false;
+          return;
+        }
+        this.currentY -= push;
+      }
+      this.updateGhost();
     }
   }
 

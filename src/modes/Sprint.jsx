@@ -1,51 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  COLS,
-  ROWS,
-  CELL,
-  BlockEngine,
-  formatTime,
-  getShape,
-  buildReplayText,
-  drawBlock,
-  drawPiecePreview,
-  DEFAULT_KEYS,
-} from "../game.js";
-
-// ─── DROP SOUND ───
-let audioCtx = null;
-
-function playDropSound() {
-  if (!audioCtx) {
-    audioCtx = new (
-      window.AudioContext || window.webkitAudioContext
-    )();
-  }
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.frequency.value = 800;
-  osc.type = "sine";
-  gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(
-    0.001,
-    audioCtx.currentTime + 0.08,
-  );
-  osc.start(audioCtx.currentTime);
-  osc.stop(audioCtx.currentTime + 0.08);
-}
+import { BlockEngine, formatTime, buildReplayText } from "../game.js";
+import { buildKeyMap, loadKeyBindings } from "../keys.js";
+import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
+import { playDropSound } from "../sound.js";
+import { Segmented, Stat, Countdown, KeyHints } from "../ui.jsx";
+import { useFit } from "../fit.js";
 
 const SPRINT_OPTIONS = [1, 20, 40, 100, 1000];
 
 export default function Sprint({ settings, onBack }) {
+  const zoom = useFit(640, 600);
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
   const engineRef = useRef(null);
   const rafRef = useRef(null);
   const lastTimeRef = useRef(0);
-  const keysRef = useRef(DEFAULT_KEYS);
+  const keysRef = useRef(buildKeyMap(loadKeyBindings().solo));
   const prevPlacedRef = useRef(0);
   const stateRef = useRef("select");
   const settingsRef = useRef(settings);
@@ -92,99 +63,9 @@ export default function Sprint({ settings, onBack }) {
   const render = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#0a0a0a";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "#1a1a1a";
-    ctx.lineWidth = 1;
-    for (let r = 1; r < ROWS; r++) {
-      ctx.beginPath();
-      ctx.moveTo(0, r * CELL + 0.5);
-      ctx.lineTo(COLS * CELL, r * CELL + 0.5);
-      ctx.stroke();
-    }
-    for (let c = 1; c < COLS; c++) {
-      ctx.beginPath();
-      ctx.moveTo(c * CELL + 0.5, 0);
-      ctx.lineTo(c * CELL + 0.5, ROWS * CELL);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = "#222";
-    for (let r = 1; r < ROWS; r++) {
-      for (let c = 1; c < COLS; c++) {
-        const cx = c * CELL,
-          cy = r * CELL;
-        ctx.beginPath();
-        ctx.moveTo(cx - 3, cy + 0.5);
-        ctx.lineTo(cx + 3, cy + 0.5);
-        ctx.moveTo(cx + 0.5, cy - 3);
-        ctx.lineTo(cx + 0.5, cy + 3);
-        ctx.stroke();
-      }
-    }
-
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        if (engine.matrix[r][c] !== 0) {
-          drawBlock(ctx, c, r, engine.matrix[r][c]);
-        }
-      }
-    }
-
-    if (
-      engine.currentId &&
-      (engine.playing || engine.completed || engine.gameOver)
-    ) {
-      const shape = getShape(engine.currentId, engine.currentRot);
-      const size = shape.length;
-      for (let r = 0; r < size; r++) {
-        for (let c = 0; c < size; c++) {
-          if (shape[r][c]) {
-            const gy = engine.ghostY + r;
-            if (gy >= 0)
-              drawBlock(ctx, engine.currentX + c, gy, engine.currentId, 1, true);
-          }
-        }
-      }
-      if (engine.playing) {
-        for (let r = 0; r < size; r++) {
-          for (let c = 0; c < size; c++) {
-            if (shape[r][c]) {
-              const py = engine.currentY + r;
-              if (py >= 0)
-                drawBlock(ctx, engine.currentX + c, py, engine.currentId);
-            }
-          }
-        }
-      }
-    }
-
-    ctx.strokeStyle = "#444";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, COLS * CELL - 2, ROWS * CELL - 2);
-
-    const hCanvas = holdRef.current;
-    if (hCanvas) {
-      const hctx = hCanvas.getContext("2d");
-      hctx.clearRect(0, 0, hCanvas.width, hCanvas.height);
-      if (engine.hold !== null) {
-        drawPiecePreview(hctx, engine.hold, 4, 6, 16);
-      }
-    }
-
-    const qCanvas = queueRef.current;
-    if (qCanvas) {
-      const qctx = qCanvas.getContext("2d");
-      qctx.clearRect(0, 0, qCanvas.width, qCanvas.height);
-      for (let i = 0; i < Math.min(5, engine.queue.length); i++) {
-        drawPiecePreview(qctx, engine.queue[i], 4, 6 + i * 50, 16);
-      }
-    }
+    drawBoard(canvasRef.current, engine, { dead: engine.gameOver });
+    drawHold(holdRef.current, engine.hold, engine.holdUsed);
+    drawQueue(queueRef.current, engine.queue);
   }, []);
 
   // ─── END STATS ───
@@ -300,9 +181,9 @@ export default function Sprint({ settings, onBack }) {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
     setPhase("countdown");
-    setCountdownText("READY");
+    setCountdownText("Ready");
     countdownRef.current = setTimeout(() => {
-      setCountdownText("START!");
+      setCountdownText("Go");
       countdownRef.current = setTimeout(() => {
         launchGame();
       }, 500);
@@ -313,15 +194,15 @@ export default function Sprint({ settings, onBack }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.repeat) return;
-      const action = keysRef.current[e.key];
+      const action = keysRef.current[e.code];
 
-      if (e.key === "f" || e.key === "F" || e.key === "\u3139") {
+      if (e.code === "KeyF") {
         if (phase === "playing" || phase === "gameover" || phase === "completed") {
           startGame();
           return;
         }
       }
-      if (e.key === "c" || e.key === "C" || e.key === "\u314A") {
+      if (e.code === "KeyC") {
         if ((phase === "completed" || phase === "gameover") && stats?.replayText) {
           navigator.clipboard
             .writeText(stats.replayText)
@@ -344,7 +225,8 @@ export default function Sprint({ settings, onBack }) {
           return;
         }
       }
-      if (e.key === "Enter" && phase === "select") {
+      if (e.code === "Enter" && phase === "select") {
+        e.preventDefault();
         startGame();
         return;
       }
@@ -354,7 +236,7 @@ export default function Sprint({ settings, onBack }) {
       engineRef.current?.onKeyDown(action, performance.now());
     };
     const handleKeyUp = (e) => {
-      const action = keysRef.current[e.key];
+      const action = keysRef.current[e.code];
       if (!action) return;
       engineRef.current?.onKeyUp(action);
     };
@@ -366,6 +248,13 @@ export default function Sprint({ settings, onBack }) {
     };
   }, [phase, startGame, stats, onBack]);
 
+  // Reload bindings whenever entering select (settings may have been edited)
+  useEffect(() => {
+    if (phase === "select") {
+      keysRef.current = buildKeyMap(loadKeyBindings().solo);
+    }
+  }, [phase]);
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -374,363 +263,144 @@ export default function Sprint({ settings, onBack }) {
     };
   }, []);
 
-  const isGame = phase === "playing" || phase === "completed" || phase === "gameover" || phase === "countdown";
+  const copyReplay = async () => {
+    if (!stats?.replayText) return;
+    try {
+      await navigator.clipboard.writeText(stats.replayText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error("Copy failed:", e);
+    }
+  };
 
   // ─── SELECT SCREEN ───
   if (phase === "select") {
     return (
-      <div style={{ textAlign: "center", zIndex: 10 }}>
-        <div
-          style={{
-            fontSize: 36,
-            fontWeight: 700,
-            letterSpacing: -1,
-            marginBottom: 8,
-            color: "#fff",
-          }}
-        >
-          <span style={{ color: "#00f0f0" }}>SPRINT</span>
+      <div className="page" style={{ "--accent": "#41b6e6" }}>
+        <h1 className="title">Sprint</h1>
+        <p className="lede">Clear the lines as fast as you can. The clock starts on the first piece.</p>
+        <div className="opts">
+          <div className="opt focus">
+            <div className="k">Lines</div>
+            <Segmented
+              label="Lines"
+              options={SPRINT_OPTIONS.map((n) => ({ id: n, label: String(n) }))}
+              value={sprintLines}
+              onChange={setSprintLines}
+            />
+          </div>
+          <div className="opt">
+            <div className="k">Handling</div>
+            <div className="dim small">
+              DAS {settings.das} ms · ARR {settings.arr} ms · SDF {settings.sdf === 100 ? "∞" : settings.sdf}
+            </div>
+          </div>
         </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "#555",
-            marginBottom: 40,
-            letterSpacing: 2,
-          }}
-        >
-          SELECT LINE COUNT
+        <div className="actions">
+          <button className="btn primary" onClick={startGame}>
+            Start
+          </button>
+          <button className="btn ghost" onClick={onBack}>
+            Back
+          </button>
+          <KeyHints items={[[["Enter"], "start"], [["Esc"], "back"]]} />
         </div>
-
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            justifyContent: "center",
-            marginBottom: 24,
-          }}
-        >
-          {SPRINT_OPTIONS.map((n) => (
-            <button
-              key={n}
-              onClick={() => setSprintLines(n)}
-              style={{
-                padding: "8px 20px",
-                border: "1px solid",
-                fontSize: 14,
-                fontFamily: "inherit",
-                cursor: "pointer",
-                borderColor: sprintLines === n ? "#00f0f0" : "#333",
-                background:
-                  sprintLines === n ? "rgba(0,240,240,0.1)" : "transparent",
-                color: sprintLines === n ? "#00f0f0" : "#888",
-                transition: "all 0.15s",
-              }}
-            >
-              {n}L
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={startGame}
-          style={{
-            padding: "14px 56px",
-            background: "#00f0f0",
-            color: "#000",
-            border: "none",
-            fontSize: 16,
-            fontWeight: 700,
-            fontFamily: "inherit",
-            cursor: "pointer",
-            letterSpacing: 2,
-            transition: "all 0.15s",
-          }}
-        >
-          START
-        </button>
-        <div style={{ fontSize: 11, color: "#555", marginTop: 12 }}>
-          or press ENTER
-        </div>
-
-        <button
-          onClick={onBack}
-          style={{
-            marginTop: 32,
-            padding: "8px 24px",
-            background: "transparent",
-            border: "1px solid #333",
-            color: "#888",
-            fontSize: 12,
-            fontFamily: "inherit",
-            cursor: "pointer",
-            letterSpacing: 1,
-          }}
-        >
-          BACK
-        </button>
       </div>
     );
   }
 
+  const linesColor = displayLines <= 5 ? "var(--bad)" : undefined;
+
   // ─── GAME VIEW ───
   return (
     <>
-      {/* Title badge */}
-      <div
-        style={{
-          position: "absolute",
-          top: 16,
-          left: 24,
-          fontSize: 13,
-          fontWeight: 700,
-          letterSpacing: 4,
-          color: "#00f0f0",
-          textTransform: "uppercase",
-          opacity: 0.7,
-          zIndex: 20,
-        }}
-      >
-        {sprintLines}L SPRINT
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          gap: 16,
-          alignItems: "flex-start",
-          zIndex: 10,
-        }}
-      >
-        {/* Left panel: Hold + Stats */}
-        <div style={{ width: 90, textAlign: "center" }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "#666", marginBottom: 4 }}>HOLD</div>
-          <canvas
-            ref={holdRef}
-            width={80}
-            height={48}
-            style={{ border: "1px solid #222", background: "#0a0a0a", display: "block", margin: "0 auto 16px" }}
-          />
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "#666", marginBottom: 2 }}>TIME</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: "#fff", marginBottom: 12 }}>{displayTime}</div>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "#666", marginBottom: 2 }}>LINES</div>
-          <div
-            style={{
-              fontSize: 28,
-              fontWeight: 700,
-              marginBottom: 12,
-              color: displayLines <= 5 ? "#f00" : displayLines <= 10 ? "#f0a000" : "#00f0f0",
-            }}
-          >
-            {displayLines}
+      <div className="mode-label">Sprint · {sprintLines} lines</div>
+      <div className="play" style={{ zoom }}>
+        <div className="side">
+          <div>
+            <div className="k">Hold</div>
+            <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
           </div>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "#666", marginBottom: 2 }}>PPS</div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: "#aaa", marginBottom: 12 }}>{displayPPS}</div>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "#666", marginBottom: 2 }}>ATK</div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: "#f0a000" }}>{displayAttack}</div>
+          <Stat k="Time" v={displayTime} big />
+          <div className="stat">
+            <div className="k">Lines left</div>
+            <div className="v big" style={{ color: linesColor }}>
+              {displayLines}
+            </div>
+          </div>
+          <Stat k="PPS" v={displayPPS} />
+          <Stat k="Attack" v={displayAttack} />
         </div>
 
-        {/* Main board */}
-        <div style={{ position: "relative" }}>
-          <canvas
-            ref={canvasRef}
-            width={COLS * CELL}
-            height={ROWS * CELL}
-            style={{ display: "block", border: "2px solid #333" }}
-          />
+        <div className="board-wrap">
+          <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
 
-          {/* Countdown overlay */}
-          {phase === "countdown" && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,0.75)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 30,
-              }}
-            >
-              <div
-                key={countdownText}
-                style={{
-                  fontSize: countdownText === "START!" ? 42 : 36,
-                  fontWeight: 700,
-                  color: countdownText === "START!" ? "#00f0f0" : "#fff",
-                  letterSpacing: 6,
-                  textShadow: "0 0 24px rgba(0,240,240,0.6)",
-                  animation: "countPulse 0.4s ease-out",
-                }}
-              >
-                {countdownText}
-              </div>
-            </div>
-          )}
+          {phase === "countdown" && <Countdown text={countdownText} />}
 
           {displayAction && (
-            <div
-              key={actionKey}
-              style={{
-                position: "absolute",
-                top: 40,
-                left: 0,
-                right: 0,
-                textAlign: "center",
-                fontSize: 14,
-                fontWeight: 700,
-                color: "#fff",
-                textShadow: "0 0 12px rgba(0,240,240,0.8), 0 2px 4px rgba(0,0,0,0.8)",
-                pointerEvents: "none",
-                animation: "fadeUp 1s ease-out forwards",
-              }}
-            >
+            <div key={actionKey} className="action-pop">
               {displayAction}
             </div>
           )}
 
-          {/* Completed overlay */}
           {phase === "completed" && stats && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,0.85)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <div style={{ fontSize: 24, fontWeight: 700, color: "#00f0f0", marginBottom: 8 }}>
-                {sprintLines}L SPRINT CLEAR
-              </div>
-              <div style={{ fontSize: 36, fontWeight: 700, color: "#fff", marginBottom: 20 }}>
+            <div className="veil">
+              <div className="k">{sprintLines} lines cleared</div>
+              <div className="title">
                 {formatTime(stats.time)}
               </div>
-              <div style={{ fontSize: 12, color: "#888", lineHeight: 2, textAlign: "center" }}>
-                <span style={{ color: "#aaa" }}>{stats.blocks} blocks</span> &middot;{" "}
-                <span style={{ color: "#f0a000" }}>{stats.pps.toFixed(2)} PPS</span> &middot;{" "}
-                <span style={{ color: "#00f0f0" }}>{stats.attack} ATK</span>
-                <br />
-                Quads: {stats.quads} &middot; T-Spins: {stats.tspins} &middot; PCs: {stats.pcs}
-                <br />
-                Max Combo: {stats.maxCombo} &middot; B2Bs: {stats.b2bs}
+              <div className="grid2">
+                <Stat k="Pieces" v={stats.blocks} />
+                <Stat k="PPS" v={stats.pps.toFixed(2)} />
+                <Stat k="Attack" v={stats.attack} />
+                <Stat k="Quads" v={stats.quads} />
+                <Stat k="T-spins" v={stats.tspins} />
+                <Stat k="Max combo" v={stats.maxCombo} />
               </div>
-              <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
-                <button
-                  onClick={() => {
-                    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-                    startGame();
-                  }}
-                  style={{
-                    width: 160, padding: "10px 0", fontSize: 13, fontWeight: 700,
-                    color: "#000", background: "#00f0f0", border: "none", borderRadius: 4,
-                    cursor: "pointer", letterSpacing: 1.5, boxShadow: "0 0 16px rgba(0,240,240,0.4)",
-                  }}
-                >
-                  NEW GAME
+              <div className="row-btns">
+                <button className="btn primary" onClick={startGame}>
+                  Again
                 </button>
-                <button
-                  onClick={() => {
-                    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-                    onBack();
-                  }}
-                  style={{
-                    width: 160, padding: "8px 0", fontSize: 12, fontWeight: 600,
-                    color: "#666", background: "transparent", border: "1px solid #333",
-                    borderRadius: 4, cursor: "pointer", letterSpacing: 1,
-                  }}
-                >
-                  MAIN MENU
+                <button className="btn" onClick={copyReplay}>
+                  {copied ? "Copied" : "Copy log"}
                 </button>
-                {stats.replayText && (
-                  <button
-                    title="Copy replay"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(stats.replayText);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      } catch (e) {
-                        console.error("Copy failed:", e);
-                      }
-                    }}
-                    style={{
-                      width: 160, padding: "8px 0", display: "flex", alignItems: "center",
-                      justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 600,
-                      color: copied ? "#00f0f0" : "#555", background: "transparent",
-                      border: "none", borderRadius: 4, cursor: "pointer", letterSpacing: 1,
-                    }}
-                  >
-                    <span style={{ fontSize: 14 }}>{copied ? "\u2713" : "\u29C9"}</span>
-                    {copied ? "COPIED" : "COPY LOG"}
-                  </button>
-                )}
-              </div>
-              <div style={{ marginTop: 16, fontSize: 11, color: "#555", lineHeight: 1.6, textAlign: "center" }}>
-                F = new game<br />C = copy<br />ESC = menu
+                <button className="btn ghost" onClick={onBack}>
+                  Menu
+                </button>
               </div>
             </div>
           )}
 
-          {/* Game over overlay */}
           {phase === "gameover" && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,0.85)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <div style={{ fontSize: 24, fontWeight: 700, color: "#f00", marginBottom: 16 }}>
-                TOP OUT
-              </div>
-              <div style={{ fontSize: 13, color: "#888" }}>
+            <div className="veil">
+              <div className="k">Top out</div>
+              <div className="title">
                 {stats?.lines || 0} lines in {formatTime(stats?.time || 0)}
               </div>
-              {stats?.replayText && (
-                <button
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(stats.replayText);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    } catch (e) {
-                      console.error("Copy failed:", e);
-                    }
-                  }}
-                  style={{
-                    marginTop: 16, padding: "8px 18px", fontSize: 12, fontWeight: 600,
-                    color: copied ? "#000" : "#00f0f0", background: copied ? "#00f0f0" : "transparent",
-                    border: "1px solid #00f0f0", borderRadius: 4, cursor: "pointer", letterSpacing: 1,
-                  }}
-                >
-                  {copied ? "COPIED!" : "COPY REPLAY"}
+              <div className="row-btns">
+                <button className="btn primary" onClick={startGame}>
+                  Again
                 </button>
-              )}
-              <div style={{ marginTop: 20, fontSize: 11, color: "#555", lineHeight: 1.6, textAlign: "center" }}>
-                F = new game<br />C = copy<br />ESC = menu
+                {stats?.replayText && (
+                  <button className="btn" onClick={copyReplay}>
+                    {copied ? "Copied" : "Copy log"}
+                  </button>
+                )}
+                <button className="btn ghost" onClick={onBack}>
+                  Menu
+                </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Right panel: Queue */}
-        <div style={{ width: 90, textAlign: "center" }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "#666", marginBottom: 4 }}>NEXT</div>
-          <canvas
-            ref={queueRef}
-            width={80}
-            height={260}
-            style={{ border: "1px solid #222", background: "#0a0a0a", display: "block", margin: "0 auto" }}
-          />
-          <div style={{ marginTop: 16, fontSize: 10, letterSpacing: 2, color: "#666", marginBottom: 2 }}>DAS/ARR</div>
-          <div style={{ fontSize: 12, color: "#555" }}>{settings.das}/{settings.arr}</div>
+        <div className="side right">
+          <div>
+            <div className="k">Next</div>
+            <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
+          </div>
+          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[[["F"], "restart"], [["Esc"], "setup"]]} />
         </div>
       </div>
     </>
