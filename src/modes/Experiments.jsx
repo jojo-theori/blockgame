@@ -112,7 +112,32 @@ const groupsFor = (kit) => [
     // Each step is one placement; they are played half a second apart.
     items: [
       { label: "Combo 1 to 15", steps: Array.from({ length: 15 }, (_, i) => ({ lines: 1, combo: i + 1 })) },
-      { label: "Combo with doubles and triples", steps: [1, 2, 1, 3, 2, 4].map((lines, i) => ({ lines, combo: i + 1 })) },
+      { label: "Combo with doubles, triples and quads", steps: [1, 2, 3, 4, 2, 4, 3, 1].map((lines, i) => ({ lines, combo: i + 1 })) },
+      {
+        label: "Combo with T-spins",
+        steps: [
+          { lines: 1, spin: true },
+          { lines: 2, spin: true, b2b: true },
+          { lines: 3, spin: true, b2b: true },
+          { lines: 1, spin: true, mini: true, b2b: true },
+          { lines: 2, spin: true, b2b: true },
+        ].map((step, i) => ({ ...step, combo: i + 1 })),
+      },
+      {
+        label: "Everything mixed",
+        steps: [
+          { lines: 1 },
+          { lines: 2 },
+          { lines: 4 },
+          { lines: 2, spin: true, b2b: true },
+          { lines: 3 },
+          { lines: 1, spin: true },
+          { lines: 4, b2b: true },
+          { lines: 3, spin: true, b2b: true },
+          { lines: 1, spin: true, mini: true, b2b: true },
+          { lines: 1 },
+        ].map((step, i) => ({ ...step, combo: i + 1 })),
+      },
       { label: "Four quads back to back", steps: [{ lines: 4 }, { lines: 4, b2b: true }, { lines: 4, b2b: true }, { lines: 4, b2b: true }] },
       { label: "Quad, T-spin double, T-spin triple", steps: [{ lines: 4 }, { lines: 2, spin: true, b2b: true }, { lines: 3, spin: true, b2b: true }] },
       { label: "Back-to-back inside a combo", steps: [{ lines: 4 }, { lines: 4, b2b: true, combo: 1 }, { lines: 2, spin: true, b2b: true, combo: 2 }, { lines: 1, combo: 3 }] },
