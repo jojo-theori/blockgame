@@ -5,7 +5,7 @@ import { ROWS, CELL, BlockEngine, buildLogText } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
 import { BotPlayer } from "../bots/player.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
-import { drawBoard, drawHold, drawQueue, prep, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
+import { drawBoard, drawHold, drawQueue, prep, boardTone, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { SetupInfo, Countdown, KeyHints, Dropdown, Stepper, EngineLog, KeyStrokes } from "../ui.jsx";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { useFit } from "../fit.js";
@@ -152,16 +152,16 @@ function PlayerBoard({ engineRef, label, sub, result, mirror, log, logMode, isCp
         const m = meterRef.current;
         if (m) {
           const ctx = prep(m, METER_W, BOARD_H);
-          ctx.fillStyle = "#141414";
+          ctx.fillStyle = boardTone().meter;
           ctx.fillRect(0, 0, METER_W, BOARD_H);
           // Ready garbage (will rise on the next drop) is solid; garbage that
           // is still charging sits above it, dimmed.
           const { ready, charging } = engine.garbageCounts();
           const r = Math.min(ready, ROWS);
           const ch = Math.min(charging, ROWS - r);
-          ctx.fillStyle = r >= 4 ? "#e8505b" : "#ebebeb";
+          ctx.fillStyle = r >= 4 ? "#e8505b" : boardTone().mark;
           ctx.fillRect(0, BOARD_H - r * CELL, METER_W, r * CELL);
-          ctx.fillStyle = "rgba(235, 235, 235, 0.28)";
+          ctx.fillStyle = boardTone().charge;
           ctx.fillRect(0, BOARD_H - (r + ch) * CELL, METER_W, ch * CELL);
         }
       }

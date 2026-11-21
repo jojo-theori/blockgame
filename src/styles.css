@@ -36,10 +36,12 @@
   --shadow: rgba(0, 0, 0, 0.6);
   --grid: #fff;
   --stroke: rgba(255, 255, 255, 0.07);
+  --veil: rgba(0, 0, 0, 0.88);
+  --glow: rgba(0, 0, 0, 0.9);
   color-scheme: dark;
 }
 
-/* Light theme: page and controls go light; the play boards stay dark. */
+/* Light theme. The board canvases follow it too (TONES in render.js). */
 :root[data-theme="light"] {
   --bg: #f3f3f1;
   --fg: #161616;
@@ -60,6 +62,8 @@
   --shadow: rgba(0, 0, 0, 0.12);
   --grid: #000;
   --stroke: rgba(0, 0, 0, 0.08);
+  --veil: rgba(251, 251, 250, 0.9);
+  --glow: rgba(255, 255, 255, 0.9);
   color-scheme: light;
 }
 
@@ -335,7 +339,7 @@ canvas { display: block; }
   position: absolute;
   inset: 0;
   padding: 48px 36px 40px;
-  background: rgba(0, 0, 0, 0.88);
+  background: var(--veil);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -363,7 +367,7 @@ canvas { display: block; }
   justify-content: center;
   /* No dimming layer: it read as a black box over the boards before the start. */
   pointer-events: none;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.9);
+  text-shadow: 0 2px 24px var(--glow);
   font-size: var(--t7);
   font-weight: 500;
   letter-spacing: -0.04em;

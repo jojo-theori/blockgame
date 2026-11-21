@@ -35,6 +35,14 @@ export function setSkin(name) {
 // The thin gap between neighbouring cells. Off, cells meet edge to edge and a
 // piece reads as one shape.
 let gaps = true;
+// Board colours per page theme.
+const TONES = {
+  dark: { bg: "#050505", grid: "#141414", mark: "#ebebeb", dead: "#333", block: "#2a2a2a", meter: "#141414", charge: "rgba(235, 235, 235, 0.28)" },
+  light: { bg: "#fbfbfa", grid: "#e8e8e5", mark: "#161616", dead: "#c6c6c2", block: "#d0d0cc", meter: "#e2e2df", charge: "rgba(22, 22, 22, 0.25)" },
+};
+let tone = TONES.dark;
+export function setBoardTheme(name) { tone = TONES[name] || TONES.dark; }
+export function boardTone() { return tone; }
 export function setCellLines(on) {
   gaps = !!on;
 }
@@ -140,11 +148,11 @@ export function drawBoard(canvas, engine, opts = {}) {
   if (!canvas) return;
   const ctx = prep(canvas, BOARD_W, BOARD_H);
 
-  ctx.fillStyle = "#050505";
+  ctx.fillStyle = tone.bg;
   ctx.fillRect(0, 0, BOARD_W, BOARD_H);
 
   // hairline grid
-  ctx.strokeStyle = "#141414";
+  ctx.strokeStyle = tone.grid;
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let r = 1; r < ROWS; r++) {
@@ -186,7 +194,7 @@ export function drawBoard(canvas, engine, opts = {}) {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const v = engine.matrix[r][c];
-      if (v) cell(ctx, c * CELL, r * CELL, CELL, dead ? "#333" : COLORS[v]);
+      if (v) cell(ctx, c * CELL, r * CELL, CELL, dead ? tone.dead : COLORS[v]);
     }
   }
 
@@ -214,7 +222,7 @@ export function drawBoard(canvas, engine, opts = {}) {
   // mark: cells ringed in the text colour (the newest piece of a shown line)
   if (opts.mark) {
     for (const [r, c] of opts.mark) {
-      if (r >= 0) outline(ctx, c * CELL, r * CELL, CELL, "#ebebeb", 0.9, 1);
+      if (r >= 0) outline(ctx, c * CELL, r * CELL, CELL, tone.mark, 0.9, 1);
     }
   }
 
@@ -277,12 +285,12 @@ export function drawPicture(canvas, grid, size = 12) {
   if (!canvas) return;
   const rows = grid.length;
   const ctx = prep(canvas, COLS * size, rows * size);
-  ctx.fillStyle = "#050505";
+  ctx.fillStyle = tone.bg;
   ctx.fillRect(0, 0, COLS * size, rows * size);
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < COLS; c++) {
       const v = grid[r][c];
-      if (v === -1) cell(ctx, c * size, r * size, size, "#2a2a2a");
+      if (v === -1) cell(ctx, c * size, r * size, size, tone.block);
       else if (v) cell(ctx, c * size, r * size, size, COLORS[v]);
     }
   }

@@ -4,7 +4,7 @@ import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
 import { useDevProfiles } from "./dev.js";
 import { Background } from "./bg.jsx";
-import { setSkin, setCellLines } from "./render.js";
+import { setSkin, setCellLines, setBoardTheme } from "./render.js";
 import { selectKey, backKey, keyLabel } from "./keys.js";
 import Sprint from "./modes/Sprint.jsx";
 import Battle from "./modes/Battle.jsx";
@@ -73,6 +73,7 @@ export default function App() {
   // The skin is read by the canvas drawing code, so it is set before anything draws.
   setSkin(skin);
   setCellLines(cellLines);
+  setBoardTheme(theme);
   // Language is read by t() during render, so set it before children render.
   setLang(lang);
 
@@ -156,7 +157,7 @@ export default function App() {
 
   // Dev: typing "lizzy" / "jojo" swaps the solo key profile (see dev.js).
   const [devProfile, keysVersion] = useDevProfiles();
-  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}` };
+  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${theme}` };
   const goMenu = () => {
     setSettingsOpen(false);
     setView("menu");
