@@ -73,6 +73,36 @@ export const SCALES = {
   wholeTone: [0, 2, 4, 6, 8, 10],
   chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 };
+// How a line clear says how many lines went. All three use the same four
+// notes, C4 G4 C5 G5 (root and fifth, no third, so they sit under any combo
+// scale): one note a line.
+//   hits      the lines counted out on one note
+//   arpeggio  the notes one after another, climbing
+//   chord     the notes together: the more lines, the fuller the sound
+export const CLEAR_STYLES = ["arpeggio", "chord", "hits"];
+const CLEAR_NOTES = [261.63, 392, 523.25, 783.99];
+const STYLE_KEY = "jbl-clear-style";
+let clearStyle = "arpeggio";
+try {
+  const saved = localStorage.getItem(STYLE_KEY);
+  if (CLEAR_STYLES.includes(saved)) clearStyle = saved;
+} catch {
+  // no storage: the default style
+}
+export const getClearStyle = () => clearStyle;
+export function setClearStyle(name) {
+  if (!CLEAR_STYLES.includes(name)) return;
+  clearStyle = name;
+  try {
+    localStorage.setItem(STYLE_KEY, name);
+  } catch {
+    // not kept, still used for this visit
+  }
+}
+// Seconds from the placement to the end of the clear's own notes, which is
+// where the combo note comes in.
+const clearSpan = (lines) => (clearStyle === "chord" ? 0.07 : Math.min(lines, 4) * CLEAR_STEP + 0.02);
+
 const SCALE_KEY = "jbl-combo-scale";
 let comboScale = "major";
 try {
@@ -101,12 +131,14 @@ export const sfx = {
   hold: () => tone({ freq: 440, type: "sine", dur: 0.09, vol: 0.07, slide: 330 }),
   drop: () => tone({ freq: 800, type: "sine", dur: 0.08, vol: 0.12 }),
   // results of a placement
-  // A line clear is counted out: one hit a line, all on the same note (G4),
-  // so the pitch is left to the combo. A quad ends on a fifth above.
+  // A line clear: one note a line, in the chosen style (see CLEAR_STYLES).
   clear: (lines) => {
     const n = Math.min(Math.max(lines, 1), 4);
-    for (let i = 0; i < n; i++) tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: i * CLEAR_STEP });
-    if (n === 4) tone({ freq: 587, type: "sine", dur: 0.16, vol: 0.06, delay: 3 * CLEAR_STEP });
+    for (let i = 0; i < n; i++) {
+      if (clearStyle === "hits") tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: i * CLEAR_STEP });
+      else if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: 0.2 + 0.03 * n, vol: 0.09 - 0.012 * n });
+      else tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: i === n - 1 ? 0.18 : 0.08, vol: 0.09, delay: i * CLEAR_STEP });
+    }
   },
   spin: (lines) => {
     [880, 1109, 1319].slice(0, Math.max(1, lines)).forEach((f, i) =>
@@ -122,11 +154,12 @@ export const sfx = {
     tone({ freq: 330, type: "square", dur: 0.08, vol: 0.06, slide: 294 });
     tone({ freq: 233, type: "square", dur: 0.13, vol: 0.06, slide: 196, delay: 0.09 });
   },
-  // Back-to-back: a low note answered an octave up, under the clear sound.
+  // Back-to-back: the same clear with weight under it. A held C, an octave
+  // and two below the clear's root, starting with it.
   b2b: () => {
     if (!opts.b2b) return;
-    tone({ freq: 392, type: "square", dur: 0.09, vol: 0.035, delay: 0.1 });
-    tone({ freq: 784, type: "square", dur: 0.14, vol: 0.035, delay: 0.18 });
+    tone({ freq: 130.81, type: "square", dur: 0.3, vol: 0.04 });
+    tone({ freq: 261.63, type: "square", dur: 0.3, vol: 0.03 });
   },
   // Combo: one short note that climbs the chosen scale with every clear in a
   // row, from C5 (combo 1) up two octaves to C7, where it stays.
@@ -136,7 +169,7 @@ export const sfx = {
     const scale = SCALES[comboScale];
     const step = Math.min(Math.max(n, 1), 2 * scale.length + 1) - 1;
     const semitones = 12 * Math.floor(step / scale.length) + scale[step % scale.length];
-    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: Math.min(lines, 4) * CLEAR_STEP + 0.02 });
+    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: clearSpan(lines) });
   },
   garbage: () => noise({ dur: 0.14, vol: 0.18, freq: 300 }),
   // flow

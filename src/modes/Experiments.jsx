@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { t } from "../i18n.js";
-import { sfx, SCALES, getComboScale, setComboScale } from "../sound.js";
+import { sfx, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle } from "../sound.js";
 import { Dropdown } from "../ui.jsx";
 
 const ACCENT = "#f2cb4c";
@@ -72,6 +72,9 @@ const SCALE_NAMES = {
 };
 const SCALE_OPTIONS = Object.keys(SCALES).map((id) => ({ id, label: SCALE_NAMES[id] }));
 
+const STYLE_NAMES = { arpeggio: "Arpeggio: a note a line, climbing", chord: "Chord: a note a line, together", hits: "Hits: a tap a line, one note" };
+const STYLE_OPTIONS = CLEAR_STYLES.map((id) => ({ id, label: STYLE_NAMES[id] }));
+
 const GROUPS = [
   {
     label: "Line clears",
@@ -128,6 +131,11 @@ function SoundTest({ onBack }) {
   const timers = useRef([]);
   const [playing, setPlaying] = useState(null);
   const [scale, setScale] = useState(getComboScale);
+  const [style, setStyle] = useState(getClearStyle);
+  const pickStyle = (id) => {
+    setClearStyle(id);
+    setStyle(id);
+  };
   const pickScale = (id) => {
     setComboScale(id);
     setScale(id);
@@ -152,6 +160,12 @@ function SoundTest({ onBack }) {
       <p className="lede">{t("Each button plays what the game would play. Sounds switched off in Settings stay silent here too.")}</p>
       <div className="mid">
         <div className="snd">
+          <div className="snd-row">
+            <div className="k">{t("Line clear")}</div>
+            <div className="snd-scale wide">
+              <Dropdown label={t("Line clear")} value={style} options={STYLE_OPTIONS} onChange={pickStyle} />
+            </div>
+          </div>
           <div className="snd-row">
             <div className="k">{t("Combo scale")}</div>
             <div className="snd-scale">

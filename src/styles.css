@@ -847,6 +847,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .snd-btns .btn { height: 36px; padding: 0 14px; }
 .snd-scale { display: flex; align-items: center; gap: 12px; }
 .snd-scale .dd { width: 200px; }
+.snd-scale.wide .dd { width: 320px; }
 .snd-btns.tight { gap: 4px; flex-wrap: nowrap; }
 .snd-btns.tight .btn { width: 34px; padding: 0; font-variant-numeric: tabular-nums; }
 /* Help on the scores: a question mark at the end of the row, its text on hover. */
