@@ -82,21 +82,21 @@ export const SCALES = {
   wholeTone: [0, 2, 4, 6, 8, 10],
   chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 };
-// A clear says how hard it hits: one note, and one more for every line it
-// sends (before back-to-back and combo), from C4 G4 C5 G5 C6 G6 C7 (root and
-// fifth, no third, so they sit under any combo scale). Three ways to play
-// the notes:
+// A clear says how hard it hits: the attacks in the game come in five sizes
+// (0, 1, 2, 4 or 6 lines sent, before back-to-back and combo), and each size
+// is one note more than the last, from C4 G4 C5 G5 C6 (root and fifth, no
+// third, so they sit under any combo scale). Three ways to play the notes:
 //   hits      counted out on one note
 //   arpeggio  one after another, climbing
 //   chord     together: the stronger the clear, the fuller the sound
 export const CLEAR_STYLES = ["arpeggio", "chord", "hits"];
-const CLEAR_NOTES = [261.63, 392, 523.25, 783.99, 1046.5, 1567.98, 2093];
-// Notes for a clear: one more than the lines it sends in the game's attack
-// table (game.js). Single 1, double 2, triple 3, quad 5; T-spin single 3,
-// double 5, triple 7; a mini 1.
+const CLEAR_NOTES = [261.63, 392, 523.25, 783.99, 1046.5];
+// Notes for a clear, by the size of its attack in the game's table (game.js):
+// single 1, double 2, triple 3, quad 4; T-spin single 3 (as much as a
+// triple), double 4 (as much as a quad), triple 5; a mini 1.
 export function attackNotes(lines, spin = false, mini = false) {
-  if (spin) return 1 + (mini ? 0 : [0, 2, 4, 6][Math.min(lines, 3)]);
-  return 1 + [0, 0, 1, 2, 4][Math.min(lines, 4)];
+  if (spin) return mini ? 1 : [1, 3, 4, 5][Math.min(lines, 3)];
+  return [1, 1, 2, 3, 4][Math.min(lines, 4)];
 }
 const STYLE_KEY = "jbl-clear-style";
 let clearStyle = "arpeggio";
@@ -159,7 +159,7 @@ export const sfx = {
   hold: () => tone({ freq: 440, type: "sine", dur: 0.09, vol: 0.07, slide: 330 }),
   drop: () => tone({ freq: 800, type: "sine", dur: 0.08, vol: 0.12 }),
   // results of a placement
-  // A line clear: a note, plus one a line sent, in the chosen style (see CLEAR_STYLES).
+  // A line clear: one to four notes by its attack, in the chosen style (see CLEAR_STYLES).
   clear: (lines) => clearNotes(attackNotes(lines)),
   // A T-spin is the same thing after a quick upward twist, which marks the
   // spin: a T-spin double sounds as full as a quad, a triple fuller still.
