@@ -829,7 +829,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 @media (prefers-reduced-motion: reduce) { .lab-wait, .lab-loading > i::after { animation: none; } }
 
 /* Review: scores, then the comment on the move the replay is on */
-.lab-scores { display: flex; gap: 18px; }
+.lab-scores { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
 .lab-scores .v { margin-top: 4px; font-size: var(--t6); font-variant-numeric: tabular-nums; color: var(--fg); }
 .lab-moment { display: flex; flex-direction: column; gap: 14px; }
 /* The bubble fills its slot, so it is one size for every comment. */
@@ -847,7 +847,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .lab-badge svg .solid { fill: currentColor; stroke: none; }
 .lab-kind { margin-left: auto; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; background: var(--on-fg); color: var(--fg); }
 .lab-kind-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-.lab-score-k { display: flex; align-items: center; gap: 2px; }
+.lab-score-k { display: flex; align-items: center; gap: 2px; letter-spacing: 0.02em; white-space: nowrap; }
 .lab-score-k .lab-kind-icon { width: 13px; height: 13px; }
 .lab-bubble p { margin: 0; font-size: var(--t3); line-height: 1.55; }
 /* Typing caret: takes no room, so the text never jumps when it goes. */
