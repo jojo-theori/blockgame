@@ -8,6 +8,55 @@ export function _web_worker_entry_point(scope) {
 }
 
 /**
+ * Like cc_move, for analysis: every move Cold Clear weighed at this position,
+ * one per line, as
+ *   hold|piece|x,y;x,y;x,y;x,y|value|spike|lines|attack|tspin
+ * (cells count rows from the bottom, 0 first). Before them come the move it
+ * would play, prefixed "best ", and the line it expects after it, one move
+ * per line prefixed "plan ". Empty string if dead.
+ * @param {string} field
+ * @param {string} queue
+ * @param {string} hold
+ * @param {boolean} b2b
+ * @param {number} combo
+ * @param {number} incoming
+ * @param {number} nodes
+ * @param {boolean} use_hold
+ * @returns {string}
+ */
+export function cc_eval(field, queue, hold, b2b, combo, incoming, nodes, use_hold) {
+    let deferred9_0;
+    let deferred9_1;
+    try {
+        const val4 = +b2b;
+        const val5 = +combo;
+        const val6 = +incoming;
+        const val7 = +nodes;
+        const val8 = +use_hold;
+        let ptr0, len0, ptr1, len1, ptr2, len2;
+        try {
+            ptr0 = passStringToWasm0(field, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            len0 = WASM_VECTOR_LEN;
+            ptr1 = passStringToWasm0(queue, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            len1 = WASM_VECTOR_LEN;
+            ptr2 = passStringToWasm0(hold, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            len2 = WASM_VECTOR_LEN;
+        } catch (e) {
+            if (ptr2) { wasm.__wbindgen_free(ptr2, len2 * 1, 1); }
+            if (ptr1) { wasm.__wbindgen_free(ptr1, len1 * 1, 1); }
+            if (ptr0) { wasm.__wbindgen_free(ptr0, len0 * 1, 1); }
+            throw e;
+        }
+        const ret = wasm.cc_eval(ptr0, len0, ptr1, len1, ptr2, len2, val4, val5, val6, val7, val8);
+        deferred9_0 = ret[0];
+        deferred9_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred9_0, deferred9_1, 1);
+    }
+}
+
+/**
  * field: 400 chars '0'/'1', 40 rows from the BOTTOM up, 10 columns each.
  * queue: current piece first, then the next pieces. hold: letter or ' '.
  * Returns "h" if it holds first, then inputs: l r c (cw) z (ccw) D (sonic drop),
@@ -165,7 +214,7 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_generic_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("Event")], shim_idx: 72, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [NamedExternref("Event")], shim_idx: 77, ret: Unit, inner_ret: Some(Unit) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen_80c5bdea12fccc2f___convert__closures_____invoke___web_sys_842a7127ab629594___features__gen_Event__Event______true_);
             return ret;
         },

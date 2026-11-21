@@ -3,6 +3,7 @@ import { t } from "../i18n.js";
 import { formatTime, getShape } from "../game.js";
 import { parseLog, buildFrames, logMode } from "../replay.js";
 import { analyze, bestLine } from "../analysis.js";
+import { evalPosition } from "../bots/review.js";
 import { sampleLog } from "../sample.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { Stat, KeyHints, ReplayLog, Kbd, PauseMenu } from "../ui.jsx";
@@ -374,7 +375,7 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
       };
       requestAnimationFrame(tick);
     });
-    Promise.all([analyze(replay), staged]).then(([result]) => {
+    Promise.all([analyze(replay, undefined, evalPosition), staged]).then(([result]) => {
       // It opens on the summary of the whole run; the moments come after.
       setReview(result);
     });
@@ -398,7 +399,13 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   const showLine = () => {
     const ids = [LETTER_ID[events[step].type], ...dealt.slice(frames[step].dealtCount, frames[step].dealtCount + LINE_AHEAD)];
     setPlaying(false);
-    setLine({ step, moves: bestLine(frames[step].matrix, ids, replay.mode.mode, moment?.first), shown: 1 });
+    // A move that clears lines takes two beats: the piece on the board with
+    // the rows still full, then the board after they are gone.
+    // An engine moment brings its own line; the others are worked out here.
+    const moves = (moment?.line || bestLine(frames[step].matrix, ids, replay.mode.mode, moment?.first)).flatMap((m, n) =>
+      m.cleared && m.placed ? [{ ...m, piece: n + 1, matrix: m.placed, cleared: 0 }, { ...m, piece: n + 1 }] : [{ ...m, piece: n + 1 }],
+    );
+    setLine({ step, moves, shown: 1 });
   };
   // One more piece of the line every beat. Once it is all on the board it
   // stays a moment, then goes away by itself, back to the real game.
@@ -444,6 +451,13 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
     setPlaying(false);
     setIntro(true);
     seek(0);
+  };
+
+  const firstMoment = () => {
+    stopRush();
+    setPlaying(false);
+    setIntro(false);
+    seek(moments[0].step);
   };
 
   const toggle = useCallback(() => {
@@ -517,7 +531,7 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
       const last = shownLine.moves[n - 1];
       drawBoard(canvasRef.current, { matrix: last.matrix, currentId: 0 }, { mark: last.cleared ? null : last.cells });
       drawHold(holdRef.current, frame.hold);
-      drawQueue(queueRef.current, dealt.slice(frame.dealtCount + n - 1));
+      drawQueue(queueRef.current, dealt.slice(frame.dealtCount + last.piece - 1));
       return;
     }
     if (moment && !playing && next?.kind === "place") {
@@ -699,9 +713,9 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                     ) : (
                       <>
                         <IconButton icon="prev" label="Previous" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
-                        {/* After the last moment it leads back to the start (and the summary).
+                        {/* After the last moment it leads back to the first one.
                             Both labels are laid out, so the button keeps one width. */}
-                        <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : restart()))} disabled={!moments.length}>
+                        <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
                           <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next moment")}</span>
                           <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Back to start")}</span>
                         </button>

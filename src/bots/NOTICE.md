@@ -5,7 +5,8 @@ Battle CPUs other than Stacker run third-party bots compiled to WebAssembly.
 ## Cold Clear — `cc/`
 
 - Source: https://github.com/MinusKelvin/cold-clear (MinusKelvin), licensed under the Mozilla Public License 2.0.
-- `cc/jbl_cc_bg.wasm` and `cc/jbl_cc.js` are built from an unmodified Cold Clear plus a small wrapper crate (`jbl-cc`, MPL-2.0) that exposes one synchronous call, `cc_move`. The wrapper source is in `src/` (`jbl_cc_lib.rs`, `jbl_cc_Cargo.toml`).
+- `cc/jbl_cc_bg.wasm` and `cc/jbl_cc.js` are built from Cold Clear (commit 279edd7) with a one-line change that exports `MoveCandidate` (`src/cold-clear.patch`), plus a small wrapper crate (`jbl-cc`, MPL-2.0) that exposes two synchronous calls: `cc_move` (the move to play, for the Battle CPU) and `cc_eval` (every move it weighed with its value, for the replay analysis). The wrapper source is in `src/` (`jbl_cc_lib.rs`, `jbl_cc_Cargo.toml`).
+- Build: clone Cold Clear beside the wrapper crate, apply the patch, then `wasm-pack build --release --target web --out-name jbl_cc`.
 - MPL-2.0 text: https://www.mozilla.org/MPL/2.0/
 
 ## MisaMino — `misa.js`

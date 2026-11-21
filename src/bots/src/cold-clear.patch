@@ -1,0 +1,12 @@
+diff --git a/bot/src/lib.rs b/bot/src/lib.rs
+index b93257e..398d3e9 100644
+--- a/bot/src/lib.rs
++++ b/bot/src/lib.rs
+@@ -17,6 +17,7 @@ use libtetris::*;
+ pub use web::Interface;
+ 
+ pub use crate::modes::normal::{BotState, ThinkResult, Thinker};
++pub use crate::dag::MoveCandidate;
+ pub use crate::modes::pcloop::PcPriority;
+ 
+ #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

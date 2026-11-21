@@ -91,7 +91,8 @@ function settle(m, id, rot, x, y) {
   const kept = out.filter((row) => row.some((v) => v === EMPTY));
   const cleared = ROWS - kept.length;
   while (kept.length < ROWS) kept.unshift(new Array(COLS).fill(EMPTY));
-  return { matrix: kept, cleared, cells };
+  // placed: the board with the piece on it, before any full rows go.
+  return { matrix: kept, cleared, cells, placed: out };
 }
 function bestDrop(m, id, mode) {
   let best = null;
@@ -105,10 +106,17 @@ function bestDrop(m, id, mode) {
       if (!done) continue;
       const f = features(done.matrix);
       const c = cost(f, done.cleared, mode);
-      if (!best || c < best.cost) best = { cost: c, f, cleared: done.cleared, cells: done.cells, matrix: done.matrix };
+      if (!best || c < best.cost) best = { cost: c, f, cleared: done.cleared, cells: done.cells, matrix: done.matrix, placed: done.placed };
     }
   }
   return best;
+}
+
+// A board with a piece painted on these cells, full rows left in place.
+export function paint(matrix, id, cells) {
+  const out = matrix.map((row) => row.slice());
+  for (const [r, c] of cells) if (r >= 0 && r < ROWS) out[r][c] = id;
+  return out;
 }
 
 // The best continuation from a board: each piece in turn at its best straight
@@ -120,10 +128,84 @@ export function bestLine(matrix, ids, mode, first = null) {
   for (const id of first ? ids.slice(1) : ids) {
     const best = bestDrop(m, id, mode);
     if (!best) break;
-    line.push({ id, cells: best.cells, cleared: best.cleared, matrix: best.matrix });
+    line.push({ id, cells: best.cells, cleared: best.cleared, matrix: best.matrix, placed: best.placed });
     m = best.matrix;
   }
   return line;
+}
+
+// ── The engine's view (Battle) ──
+// Cold Clear looks at the position before every piece (before a hold, if the
+// player held) and says what each move was worth to it. The loss of a move is
+// the engine's best value less the value of the move played.
+const ID_LETTER = " ITLJSZO";
+const ENGINE_NODES = 2500;
+// In the engine's own units. Measured on solo runs: Cold Clear replaying its
+// own play loses about 40 a move, a plain stacker 150, a careless one 850.
+const ENGINE_GRADES = { inaccuracy: 150, mistake: 300, blunder: 600 };
+const ENGINE_CAP = 800; // one disaster should not sink the whole score
+const ENGINE_SCALE = 350;
+const cellKey = (cells) => cells.map(([r, c]) => r * 10 + c).sort((x, y) => x - y).join(",");
+// A line of moves ({ id, cells }, each on the board the one before left)
+// played out: the board after each, and with the piece still on it.
+export function playLine(matrix, raw) {
+  const line = [];
+  let m = matrix;
+  for (const mv of raw) {
+    const placed = paint(m, mv.id, mv.cells);
+    const kept = placed.filter((row) => row.some((v) => v === EMPTY));
+    const cleared = ROWS - kept.length;
+    while (kept.length < ROWS) kept.unshift(new Array(COLS).fill(EMPTY));
+    line.push({ id: mv.id, cells: mv.cells, cleared, matrix: kept, placed });
+    m = kept;
+  }
+  return line;
+}
+// → Map(step of a placement → { loss, best, mine, line }); mine is null when
+// the engine never considered the spot that was played.
+export async function engineMacro({ events, frames, dealt }, evaluate, onProgress = () => {}) {
+  const out = new Map();
+  let combo = 0;
+  let b2b = false;
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    if (ev.kind !== "place") continue;
+    const s = i > 0 && events[i - 1].kind === "hold" ? i - 1 : i;
+    const f = frames[s];
+    const res = await evaluate(
+      {
+        rows: f.matrix.map((row) => row.map((v) => (v === EMPTY ? "0" : "1")).join("")),
+        cur: events[s].type,
+        queue: dealt.slice(f.dealtCount, f.dealtCount + 5).map((id) => ID_LETTER[id]).join(""),
+        hold: f.hold ? ID_LETTER[f.hold] : "",
+        canHold: true,
+        b2b,
+        combo,
+        incoming: 0,
+      },
+      ENGINE_NODES,
+    );
+    const id = LETTER_ID[ev.type];
+    const shape = getShape(id, ev.rot);
+    const cells = [];
+    for (let r = 0; r < shape.length; r++) for (let c = 0; c < shape.length; c++) if (shape[r][c]) cells.push([ev.placed[1] + r, ev.placed[0] + c]);
+    if (res) {
+      const key = cellKey(cells);
+      const mine = res.moves.filter((m) => m.id === id && m.key === key).sort((p, q) => q.value - p.value)[0] || null;
+      // The plan is the line after the best move, when it starts with it.
+      const plan = res.plan.length && cellKey(res.plan[0].cells) === res.best.key ? res.plan : [res.best];
+      out.set(i, { loss: mine ? Math.max(0, res.best.value - mine.value) : null, best: res.best, mine, line: playLine(f.matrix, plan.slice(0, 4)) });
+    }
+    const cleared = frames[i + 1].lines - frames[i].lines;
+    if (cleared) {
+      combo++;
+      b2b = /quad|spin/i.test(ev.action || "");
+    } else {
+      combo = 0;
+    }
+    onProgress(i / events.length);
+  }
+  return out;
 }
 
 // ── T-spins the board offered ──
@@ -190,8 +272,19 @@ const median = (a) => {
 
 // events, frames: from parseLog / buildFrames. onProgress(0..1) is called as
 // it goes; the work is cut into slices so the page stays responsive.
-export async function analyze({ events, frames, mode: played }, onProgress = () => {}) {
+// evaluate: asks the engine about a position (review.js's evalPosition). With
+// it, a Battle is judged by Cold Clear; without it (or if it fails) and in
+// every other mode, by the stack evaluator above.
+export async function analyze({ events, frames, dealt, mode: played }, onProgress = () => {}, evaluate = null) {
   const mode = played?.mode;
+  let engine = null;
+  if (mode === "battle" && evaluate && dealt) {
+    try {
+      engine = await engineMacro({ events, frames, dealt }, evaluate, (p) => onProgress(p * 0.9));
+    } catch (err) {
+      console.error("Engine review failed:", err);
+    }
+  }
   const found = []; // candidate moments
   const places = [];
   let regret = 0; // summed macro loss
@@ -211,8 +304,43 @@ export async function analyze({ events, frames, mode: played }, onProgress = () 
     prevT = ev.t;
     places.push({ i, ev, dt });
 
-    // Macro: how much worse than the best straight drop.
-    if (best) {
+    const seen = engine?.get(i);
+    if (seen) {
+      // Macro by the engine: what its best move was worth, less this one.
+      // A spot it never weighed is left alone.
+      if (seen.loss !== null) {
+        regret += Math.min(seen.loss, ENGINE_CAP);
+        const special = /spin|quad|perfect/i.test(ev.action || "") || ev.pc;
+        if (seen.loss >= ENGINE_GRADES.inaccuracy && !special) {
+          const b = seen.best;
+          const bf = features(seen.line[0].matrix);
+          const text =
+            b.tspin && b.cleared && !/spin/i.test(ev.action || "")
+              ? [b.cleared >= 3 ? "Missed a T-spin triple." : b.cleared === 2 ? "Missed a T-spin double." : "Missed a T-spin single.", {}]
+              : b.cleared > cleared
+                ? cleared === 0
+                  ? ["Missed a chance to clear {b} lines.", { b: b.cleared }]
+                  : ["Missed a bigger clear: {b} lines, not {a}.", { a: cleared, b: b.cleared }]
+                : b.id !== id
+                  ? ["{piece} was the piece to play here, keeping this one for later.", { piece: ID_LETTER[b.id] }]
+                  : f.gaps > bf.gaps
+                    ? bf.gaps === 0
+                      ? ["Missed a chance to place it without a gap. {a} cells are covered now.", { a: f.gaps }]
+                      : ["Missed a cleaner spot. {a} cells are covered now; it could have been {b}.", { a: f.gaps, b: bf.gaps }]
+                    : ["The engine puts it elsewhere, which leaves it more to work with.", {}];
+          found.push({
+            step: i,
+            kind: "macro",
+            grade: seen.loss >= ENGINE_GRADES.blunder ? "blunder" : seen.loss >= ENGINE_GRADES.mistake ? "mistake" : "inaccuracy",
+            weight: seen.loss / 20,
+            text,
+            best: { id: b.id, cells: b.cells },
+            line: seen.line,
+          });
+        }
+      }
+    } else if (best) {
+      // Macro: how much worse than the best straight drop.
       const loss = mine - best.cost;
       regret += Math.max(0, loss);
       const special = /spin|quad|perfect/i.test(ev.action || "") || ev.pc;
@@ -238,7 +366,7 @@ export async function analyze({ events, frames, mode: played }, onProgress = () 
     }
     // Battle: a T-spin double or triple that was there and not taken. (In a
     // Sprint it would only cost time, so it is not held against the player.)
-    if (mode === "battle" && id === 2 && !/spin/i.test(ev.action || "")) {
+    if (!seen && mode === "battle" && id === 2 && !/spin/i.test(ev.action || "")) {
       const spin = tSpins(before)
         .filter((c) => !c.mini && c.cleared >= 2)
         .sort((p, q) => q.cleared - p.cleared)[0];
@@ -252,7 +380,7 @@ export async function analyze({ events, frames, mode: played }, onProgress = () 
           text: [spin.cleared >= 3 ? "Missed a T-spin triple." : "Missed a T-spin double.", {}],
           best: { id, cells: spin.cells },
           // "Show best" starts from the spin itself, which no straight drop makes.
-          first: { id, cells: spin.cells, cleared: spin.cleared, matrix: spin.matrix },
+          first: { id, cells: spin.cells, cleared: spin.cleared, matrix: spin.matrix, placed: paint(before, id, spin.cells) },
         });
       }
     }
@@ -308,10 +436,11 @@ export async function analyze({ events, frames, mode: played }, onProgress = () 
   onProgress(1);
   return {
     scores: {
-      macro: places.length ? round(100 * Math.exp(-regret / places.length / 5)) : 0,
+      macro: places.length ? round(100 * Math.exp(-regret / places.length / (engine ? ENGINE_SCALE : 5))) : 0,
       dexterity: round(100 * (1 - Math.exp(-pps / 1.5))),
       finesse: used ? round((100 * need) / used) : 100,
     },
+    engine: !!engine,
     facts: { pps, kps: total > 0 ? keys / total : 0, usual, pieces: places.length },
     moments,
   };

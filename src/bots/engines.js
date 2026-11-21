@@ -30,14 +30,23 @@ async function misaMove(s, { level, style = 2 }) {
 }
 
 let cc = null;
-async function ccMove(s, { nodes }, wasmInput) {
+async function loadCc(wasmInput) {
   if (!cc) {
     const mod = await import("./cc/jbl_cc.js");
     await mod.default(wasmInput ? { module_or_path: wasmInput } : undefined);
     cc = mod;
   }
-  // Cold Clear wants 40 rows from the bottom up.
-  const field = s.rows.slice().reverse().join("") + "0".repeat(200);
+}
+// Cold Clear wants 40 rows from the bottom up.
+const ccField = (s) => s.rows.slice().reverse().join("") + "0".repeat(200);
+// For analysis: every move it weighed at this position (see review.js).
+async function ccEval(s, { nodes }, wasmInput) {
+  await loadCc(wasmInput);
+  return cc.cc_eval(ccField(s), s.cur + s.queue, s.hold || " ", s.b2b, s.combo, s.incoming, nodes, s.canHold);
+}
+async function ccMove(s, { nodes }, wasmInput) {
+  await loadCc(wasmInput);
+  const field = ccField(s);
   const out = cc.cc_move(field, s.cur + s.queue, s.hold || " ", s.b2b, s.combo, s.incoming, nodes, s.canHold);
   if (!out) return "";
   const [moves] = out.split("|");
@@ -47,5 +56,6 @@ async function ccMove(s, { nodes }, wasmInput) {
 export async function botMove(bot, state, opts, wasmInput) {
   if (bot === "misa") return misaMove(state, opts);
   if (bot === "cc") return ccMove(state, opts, wasmInput);
+  if (bot === "cc-eval") return ccEval(state, opts, wasmInput);
   return "";
 }
