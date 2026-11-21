@@ -417,6 +417,10 @@ export default function Opening({ settings, onBack }) {
   });
 
   const settingsOpen = !!settings.settingsOpen;
+  // A new skin shows at once, even on a paused board.
+  useEffect(() => {
+    render();
+  }, [settings.look, render]);
   useSettingsDialog(settings, {
     pause,
     apply: () => {

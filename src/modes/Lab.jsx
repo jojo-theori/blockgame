@@ -86,7 +86,7 @@ export default function Lab({ settings, onBack }) {
     };
   }, [open, settingsOpen, onBack, take]);
 
-  if (open && replay) return <Viewer replay={replay} keysOff={settingsOpen} onClose={() => setOpen(false)} onMenu={onBack} />;
+  if (open && replay) return <Viewer replay={replay} look={settings.look} keysOff={settingsOpen} onClose={() => setOpen(false)} onMenu={onBack} />;
 
   const last = replay?.frames[replay.frames.length - 1];
   return (
@@ -294,7 +294,7 @@ function CountUp({ to }) {
   return n;
 }
 
-function Viewer({ replay, keysOff, onClose, onMenu }) {
+function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   const { events, frames, dealt } = replay;
   const total = events.length;
   // Wide enough for the log on the left and the review on the right.
@@ -510,7 +510,7 @@ function Viewer({ replay, keysOff, onClose, onMenu }) {
     }
     drawHold(holdRef.current, frame.hold);
     drawQueue(queueRef.current, dealt.slice(frame.dealtCount));
-  }, [events, dealt, frame, step, moment, shownLine, playing]);
+  }, [events, dealt, frame, step, moment, shownLine, playing, look]);
 
   const held = step > 0 && events[step - 1].kind === "hold";
   const shown = useMemo(() => events.slice(Math.max(0, step - 40), step), [events, step]);

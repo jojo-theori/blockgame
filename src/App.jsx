@@ -4,7 +4,7 @@ import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
 import { useDevProfiles } from "./dev.js";
 import { Background } from "./bg.jsx";
-import { setSkin } from "./render.js";
+import { setSkin, setCellLines } from "./render.js";
 import { selectKey, backKey, keyLabel } from "./keys.js";
 import Sprint from "./modes/Sprint.jsx";
 import Battle from "./modes/Battle.jsx";
@@ -65,12 +65,14 @@ export default function App() {
   // Sounds that have their own switch: finesse faults, back-to-back, combo.
   const [soundOpts, setSoundOpts] = useState(() => ({ fault: true, b2b: true, combo: true, ...loadSettings().soundOpts }));
   const [skin, setSkinName] = useState(() => loadSettings().skin ?? "flat");
+  const [cellLines, setCellLinesOn] = useState(() => loadSettings().cellLines ?? true);
   const [showLog, setShowLog] = useState(() => loadSettings().showLog ?? true);
   const [showKeys, setShowKeys] = useState(() => loadSettings().showKeys ?? false);
   const [lang, setLangState] = useState(() => loadSettings().lang ?? (navigator.language?.startsWith("ko") ? "ko" : "en"));
   const [theme, setTheme] = useState(() => loadSettings().theme ?? "dark");
   // The skin is read by the canvas drawing code, so it is set before anything draws.
   setSkin(skin);
+  setCellLines(cellLines);
   // Language is read by t() during render, so set it before children render.
   setLang(lang);
 
@@ -86,8 +88,8 @@ export default function App() {
 
   useEffect(() => {
     const prev = loadSettings();
-    saveSettings({ ...prev, das, arr, sdf, soundEnabled, soundOpts, skin, showLog, showKeys, lang, theme });
-  }, [das, arr, sdf, soundEnabled, soundOpts, skin, showLog, showKeys, lang, theme]);
+    saveSettings({ ...prev, das, arr, sdf, soundEnabled, soundOpts, skin, cellLines, showLog, showKeys, lang, theme });
+  }, [das, arr, sdf, soundEnabled, soundOpts, skin, cellLines, showLog, showKeys, lang, theme]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -154,7 +156,7 @@ export default function App() {
 
   // Dev: typing "lizzy" / "jojo" swaps the solo key profile (see dev.js).
   const [devProfile, keysVersion] = useDevProfiles();
-  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion };
+  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}` };
   const goMenu = () => {
     setSettingsOpen(false);
     setView("menu");
@@ -183,18 +185,17 @@ export default function App() {
       <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} onSettings={openSettings} />
       {settingsOpen && (
         <Settings
-          das={das}
-          setDas={setDas}
-          arr={arr}
-          setArr={setArr}
-          sdf={sdf}
-          setSdf={setSdf}
-          soundEnabled={soundEnabled}
-          soundOpts={soundOpts}
-          setSoundOpts={setSoundOpts}
-          skin={skin}
-          setSkin={setSkinName}
-          setSoundEnabled={setSoundEnabled}
+          values={{ das, arr, sdf, soundEnabled, soundOpts, skin, cellLines }}
+          onSave={(v) => {
+            setDas(v.das);
+            setArr(v.arr);
+            setSdf(v.sdf);
+            setSoundEnabled(v.soundEnabled);
+            setSoundOpts(v.soundOpts);
+            setSkinName(v.skin);
+            setCellLinesOn(v.cellLines);
+            setSettingsOpen(false);
+          }}
           onClose={closeSettings}
         />
       )}

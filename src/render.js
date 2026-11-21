@@ -32,6 +32,12 @@ let skin = "flat";
 export function setSkin(name) {
   skin = SKINS.includes(name) ? name : "flat";
 }
+// The thin gap between neighbouring cells. Off, cells meet edge to edge and a
+// piece reads as one shape.
+let gaps = true;
+export function setCellLines(on) {
+  gaps = !!on;
+}
 
 // A colour moved towards white (amount > 0) or black (amount < 0), 0..1.
 function shade(color, amount) {
@@ -45,10 +51,11 @@ function shade(color, amount) {
 
 // One cell. `as` paints it in a given skin (the settings previews); see-through
 // cells (guides, hints) are always flat, whatever the skin.
-export function cell(ctx, x, y, size, color, alpha = 1, as = skin) {
+export function cell(ctx, x, y, size, color, alpha = 1, as, lines = gaps) {
   ctx.globalAlpha = alpha;
-  const [l, t, s] = [x + 0.5, y + 0.5, size - 1];
-  const style = alpha < 0.8 ? "flat" : as;
+  const [l, t, s] = lines ? [x + 0.5, y + 0.5, size - 1] : [x, y, size];
+  // Faint cells (guides) stay flat unless a skin is asked for by name.
+  const style = as ?? (alpha < 0.8 ? "flat" : skin);
   ctx.fillStyle = color;
   if (style === "bevel") {
     // Lit from the top left: light top and left edges, dark bottom and right.
@@ -172,7 +179,7 @@ export function drawBoard(canvas, engine, opts = {}) {
       for (let c = 0; c < shape.length; c++) {
         if (!shape[r][c]) continue;
         const gy = engine.ghostY + r;
-        if (gy >= 0) outline(ctx, (engine.currentX + c) * CELL, gy * CELL, CELL, color, 0.6);
+        if (gy >= 0) cell(ctx, (engine.currentX + c) * CELL, gy * CELL, CELL, color, 0.3, skin);
       }
     }
     if (engine.playing) {

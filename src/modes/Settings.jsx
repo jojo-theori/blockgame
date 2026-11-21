@@ -36,26 +36,17 @@ const ACTION_NAMES = {
   restart: "Restart",
 };
 
-export default function Settings({
-  das,
-  setDas,
-  arr,
-  setArr,
-  sdf,
-  setSdf,
-  soundEnabled,
-  setSoundEnabled,
-  soundOpts,
-  setSoundOpts,
-  skin,
-  setSkin,
-  onClose,
-}) {
-  // Key edits are a draft until Save; leaving without saving drops them.
-  const [saved, setSaved] = useState(() => loadKeyBindings());
+export default function Settings({ values, onSave, onClose }) {
+  // Every edit is a draft until Save; leaving without saving drops it.
+  const [draft, setDraft] = useState(values);
+  const put = (key) => (v) => setDraft((d) => ({ ...d, [key]: typeof v === "function" ? v(d[key]) : v }));
+  const { das, arr, sdf, soundEnabled, soundOpts, skin, cellLines } = draft;
+  const [setDas, setArr, setSdf, setSoundEnabled, setSoundOpts, setSkin, setCellLines] = ["das", "arr", "sdf", "soundEnabled", "soundOpts", "skin", "cellLines"].map(put);
+  const [saved] = useState(() => loadKeyBindings());
   const [bindings, setBindings] = useState(saved);
   const [confirmReset, setConfirmReset] = useState(false);
-  const dirty = JSON.stringify(saved) !== JSON.stringify(bindings);
+  const keysDirty = JSON.stringify(saved) !== JSON.stringify(bindings);
+  const dirty = keysDirty || JSON.stringify(values) !== JSON.stringify(draft);
   const [activeProfile, setActiveProfile] = useState("solo");
   const [recording, setRecording] = useState(null); // { profile, action }
   const [error, setError] = useState("");
@@ -135,14 +126,20 @@ export default function Settings({
     setError("");
   };
   const save = () => {
-    saveKeyBindings(bindings);
-    setSaved(bindings);
+    if (keysDirty) saveKeyBindings(bindings);
+    onSave(draft);
+  };
+  const discard = () => {
+    setDraft(values);
+    setBindings(saved);
+    setRecording(null);
+    setError("");
   };
   const profileLabel = PROFILE_LIST.find((p) => p.id === activeProfile).label;
   const atDefault = JSON.stringify(bindings[activeProfile]) === JSON.stringify(DEFAULT_BINDINGS[activeProfile]);
 
   return (
-    // A click outside closes it, unless key edits would be lost.
+    // A click outside closes it, unless edits would be lost.
     <div className="dialog-back" onPointerDown={(e) => e.target === e.currentTarget && !dirty && onClose()}>
     <div className="dialog settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title" style={{ "--accent": "var(--fg)" }}>
       <div className="settings-head">
@@ -215,6 +212,7 @@ export default function Settings({
         )}
 
         {section === "skin" && (
+          <>
           <div className="skin-list" role="radiogroup" aria-label={t("Skin")}>
             {SKINS.map((name) => (
               <button
@@ -230,10 +228,28 @@ export default function Settings({
                 }}
               >
                 <span className="k">{t(SKIN_NAMES[name])}</span>
-                <SkinPreview name={name} />
+                <SkinPreview name={name} lines={cellLines} />
               </button>
             ))}
           </div>
+          <div className="opts" style={{ marginTop: 14 }}>
+            <div className="opt wide">
+              <div>
+                <div className="k" style={{ color: "var(--fg)" }}>{t("Cell lines")}</div>
+                <div className="k small hint">{t("The thin gap between the cells of a piece")}</div>
+              </div>
+              <Segmented
+                label="Cell lines"
+                options={[
+                  { id: true, label: "On" },
+                  { id: false, label: "Off" },
+                ]}
+                value={cellLines}
+                onChange={setCellLines}
+              />
+            </div>
+          </div>
+          </>
         )}
 
         {section === "keys" && (
@@ -258,7 +274,7 @@ export default function Settings({
               {t("Keys follow the physical key, so the 한/영 toggle never changes them.")}
             </p>
             <div className="key-msg">
-              {error ? <span className="err">{t(error)}</span> : dirty ? <span>{t("Unsaved changes. Save to keep them.")}</span> : null}
+              {error ? <span className="err">{t(error)}</span> : keysDirty ? <span>{t("Unsaved changes. Save to keep them.")}</span> : null}
             </div>
             <div className="opts" style={{ marginTop: 0 }}>
               {[...KEY_ORDER, ...EXTRA_ACTIONS[activeProfile]].map((action) => {
@@ -297,14 +313,12 @@ export default function Settings({
         }}
       />
       <div className="settings-foot">
-        <button className="btn ghost" onClick={onClose}>
-          {t(section === "keys" && dirty ? "Discard and close" : "Close")}
+        <button className="btn ghost" onClick={discard} disabled={!dirty}>
+          {t("Discard changes")}
         </button>
-        {section === "keys" && (
-          <button className="btn primary" onClick={save} disabled={!dirty}>
-            {t(dirty ? "Save" : "Saved")}
-          </button>
-        )}
+        <button className="btn primary" onClick={save}>
+          {t("Save")}
+        </button>
       </div>
     </div>
     </div>
@@ -314,13 +328,13 @@ export default function Settings({
 // The seven pieces' colours and the garbage grey, one cell each, in a skin.
 const SKIN_NAMES = { flat: "Flat", bevel: "Bevel", gloss: "Gloss", outline: "Outline", inset: "Inset" };
 const PREVIEW_CELL = 24;
-function SkinPreview({ name }) {
+function SkinPreview({ name, lines }) {
   const ref = useRef(null);
   useEffect(() => {
     const ids = [6, 3, 7, 5, 1, 4, 2, 8];
     const ctx = prep(ref.current, ids.length * PREVIEW_CELL, PREVIEW_CELL);
-    ids.forEach((id, i) => cell(ctx, i * PREVIEW_CELL, 0, PREVIEW_CELL, COLORS[id], 1, name));
-  }, [name]);
+    ids.forEach((id, i) => cell(ctx, i * PREVIEW_CELL, 0, PREVIEW_CELL, COLORS[id], 1, name, lines));
+  }, [name, lines]);
   return <canvas ref={ref} width={8 * PREVIEW_CELL} height={PREVIEW_CELL} />;
 }
 
