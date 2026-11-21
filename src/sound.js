@@ -73,14 +73,20 @@ export const SCALES = {
   wholeTone: [0, 2, 4, 6, 8, 10],
   chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 };
-// How a line clear says how many lines went. All three use the same four
-// notes, C4 G4 C5 G5 (root and fifth, no third, so they sit under any combo
-// scale): one note a line.
-//   hits      the lines counted out on one note
-//   arpeggio  the notes one after another, climbing
-//   chord     the notes together: the more lines, the fuller the sound
+// A clear says how hard it hits: one note for every line it sends (before
+// back-to-back and combo), from C4 G4 C5 G5 C6 G6 (root and fifth, no third,
+// so they sit under any combo scale). A clear that sends nothing is one soft
+// note. Three ways to play the notes:
+//   hits      counted out on one note
+//   arpeggio  one after another, climbing
+//   chord     together: the stronger the clear, the fuller the sound
 export const CLEAR_STYLES = ["arpeggio", "chord", "hits"];
-const CLEAR_NOTES = [261.63, 392, 523.25, 783.99];
+const CLEAR_NOTES = [261.63, 392, 523.25, 783.99, 1046.5, 1567.98];
+// Lines sent, as in the game's attack table (game.js).
+export function attackNotes(lines, spin = false, mini = false) {
+  if (spin) return mini ? 0 : [0, 2, 4, 6][Math.min(lines, 3)];
+  return [0, 0, 1, 2, 4][Math.min(lines, 4)];
+}
 const STYLE_KEY = "jbl-clear-style";
 let clearStyle = "arpeggio";
 try {
@@ -101,7 +107,7 @@ export function setClearStyle(name) {
 }
 // Seconds from the placement to the end of the clear's own notes, which is
 // where the combo note comes in.
-const clearSpan = (lines) => (clearStyle === "chord" ? 0.07 : Math.min(lines, 4) * CLEAR_STEP + 0.02);
+const clearSpan = (notes) => (clearStyle === "chord" ? 0.07 : Math.max(notes, 1) * CLEAR_STEP + 0.02);
 
 const SCALE_KEY = "jbl-combo-scale";
 let comboScale = "major";
@@ -123,13 +129,15 @@ export function setComboScale(name) {
 }
 
 const SPIN_LEAD = 0.06; // length of the twist before a T-spin's notes
-// One note a line: times (octave shift as a frequency multiplier), after (seconds to wait first).
-function clearNotes(lines, times = 1, after = 0) {
-  const n = Math.min(Math.max(lines, 1), 4);
+// One note a line sent. after: seconds to wait first.
+function clearNotes(notes, after = 0) {
+  // Nothing sent: a single soft, short note.
+  if (notes <= 0) return tone({ freq: CLEAR_NOTES[0], type: "sine", dur: 0.07, vol: 0.05, delay: after });
+  const n = Math.min(notes, CLEAR_NOTES.length);
   for (let i = 0; i < n; i++) {
-    if (clearStyle === "hits") tone({ freq: 392 * times, type: "triangle", dur: 0.07, vol: 0.1, delay: after + i * CLEAR_STEP });
-    else if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[i] * times, type: "triangle", dur: 0.2 + 0.03 * n, vol: 0.09 - 0.012 * n, delay: after });
-    else tone({ freq: CLEAR_NOTES[i] * times, type: "triangle", dur: i === n - 1 ? 0.18 : 0.08, vol: 0.09, delay: after + i * CLEAR_STEP });
+    if (clearStyle === "hits") tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: after + i * CLEAR_STEP });
+    else if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: 0.2 + 0.03 * n, vol: 0.1 / Math.sqrt(n), delay: after });
+    else tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: i === n - 1 ? 0.18 : 0.08, vol: 0.09, delay: after + i * CLEAR_STEP });
   }
 }
 
@@ -142,13 +150,15 @@ export const sfx = {
   hold: () => tone({ freq: 440, type: "sine", dur: 0.09, vol: 0.07, slide: 330 }),
   drop: () => tone({ freq: 800, type: "sine", dur: 0.08, vol: 0.12 }),
   // results of a placement
-  // A line clear: one note a line, in the chosen style (see CLEAR_STYLES).
-  clear: (lines) => clearNotes(lines),
-  // A T-spin is the same clear said an octave up, after a quick upward
-  // twist: the count reads the same way, and the twist marks the spin.
-  spin: (lines) => {
-    tone({ freq: 523.25, type: "sine", dur: SPIN_LEAD, vol: 0.07, slide: 1046.5 });
-    clearNotes(lines, 2, SPIN_LEAD);
+  // A line clear: one note a line sent, in the chosen style (see CLEAR_STYLES).
+  clear: (lines) => clearNotes(attackNotes(lines)),
+  // A T-spin is the same thing after a quick upward twist, which marks the
+  // spin: a T-spin double sounds as full as a quad, a triple fuller still.
+  // A mini gets a smaller twist: quieter, and up a fifth, not an octave.
+  spin: (lines, mini = false) => {
+    if (mini) tone({ freq: 523.25, type: "sine", dur: SPIN_LEAD, vol: 0.04, slide: 783.99 });
+    else tone({ freq: 523.25, type: "sine", dur: SPIN_LEAD, vol: 0.07, slide: 1046.5 });
+    clearNotes(attackNotes(lines, true, mini), SPIN_LEAD);
   },
   perfect: () => {
     [523, 659, 784, 1047, 1319, 2093].forEach((f, i) => tone({ freq: f, type: "triangle", dur: 0.22, vol: 0.08, delay: i * 0.06 }));
@@ -167,8 +177,8 @@ export const sfx = {
   },
   // Combo: one short note that climbs the chosen scale with every clear in a
   // row, from C5 (combo 1) up two octaves to C7, then comes back down.
-  // lines, spin: what was cleared, so the note lands after the clear's own notes.
-  combo: (n, lines = 1, spin = false) => {
+  // notes, spin: what the clear played, so the combo note lands after it.
+  combo: (n, notes = 1, spin = false) => {
     if (!opts.combo) return;
     const scale = SCALES[comboScale];
     // Up two octaves to C7, then back down the same way, and up again.
@@ -176,7 +186,7 @@ export const sfx = {
     const at = (Math.max(n, 1) - 1) % (2 * top);
     const step = at > top ? 2 * top - at : at;
     const semitones = 12 * Math.floor(step / scale.length) + scale[step % scale.length];
-    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: clearSpan(lines) + (spin ? SPIN_LEAD : 0) });
+    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: clearSpan(notes) + (spin ? SPIN_LEAD : 0) });
   },
   garbage: () => noise({ dur: 0.14, vol: 0.18, freq: 300 }),
   // flow
@@ -221,7 +231,7 @@ export function trackSfx(engine, { topout = true, fault = true } = {}) {
     const lines = now.lines - prev.lines;
     const action = engine.lastAction || "";
     if (/Perfect/i.test(action)) sfx.perfect();
-    else if (/Spin/i.test(action) && lines > 0) sfx.spin(lines);
+    else if (/Spin/i.test(action) && lines > 0) sfx.spin(lines, /Mini/i.test(action));
     else if (lines > 0) sfx.clear(lines);
     else sfx.drop();
     // The last placement in the log says how it went.
@@ -231,7 +241,8 @@ export function trackSfx(engine, { topout = true, fault = true } = {}) {
     if (fault && log[last]?.finesseFault > 0) sfx.miss();
     if (lines > 0) {
       if (log[last]?.b2b) sfx.b2b();
-      if (engine.combo >= 1) sfx.combo(engine.combo, lines, /Spin/i.test(action));
+      const spun = /Spin/i.test(action);
+      if (engine.combo >= 1) sfx.combo(engine.combo, attackNotes(lines, spun, /Mini/i.test(action)), spun);
     }
   }
   if (now.garbage > prev.garbage) sfx.garbage();

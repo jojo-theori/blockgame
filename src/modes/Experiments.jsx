@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { t } from "../i18n.js";
-import { sfx, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle } from "../sound.js";
+import { sfx, attackNotes, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle } from "../sound.js";
 import { Dropdown } from "../ui.jsx";
 
 const ACCENT = "#f2cb4c";
@@ -49,13 +49,13 @@ export default function Experiments({ settings, onBack }) {
 
 // One placement, the way the game sounds it (see trackSfx in sound.js): the
 // clear, spin or perfect clear, then back-to-back and combo on top.
-function place({ lines = 0, spin = false, perfect = false, b2b = false, combo = 0 }) {
+function place({ lines = 0, spin = false, mini = false, perfect = false, b2b = false, combo = 0 }) {
   if (perfect) sfx.perfect();
-  else if (spin && lines) sfx.spin(lines);
+  else if (spin && lines) sfx.spin(lines, mini);
   else if (lines) sfx.clear(lines);
   else sfx.drop();
   if (lines && b2b) sfx.b2b();
-  if (lines && combo >= 1) sfx.combo(combo, lines, spin);
+  if (lines && combo >= 1) sfx.combo(combo, attackNotes(lines, spin, mini), spin);
 }
 
 const SCALE_NAMES = {
@@ -72,7 +72,7 @@ const SCALE_NAMES = {
 };
 const SCALE_OPTIONS = Object.keys(SCALES).map((id) => ({ id, label: SCALE_NAMES[id] }));
 
-const STYLE_NAMES = { arpeggio: "Arpeggio: a note a line, climbing", chord: "Chord: a note a line, together", hits: "Hits: a tap a line, one note" };
+const STYLE_NAMES = { arpeggio: "Arpeggio: a note a line sent, climbing", chord: "Chord: a note a line sent, together", hits: "Hits: a tap a line sent, one note" };
 const STYLE_OPTIONS = CLEAR_STYLES.map((id) => ({ id, label: STYLE_NAMES[id] }));
 
 const GROUPS = [
@@ -82,7 +82,10 @@ const GROUPS = [
   },
   {
     label: "T-spins",
-    items: [1, 2, 3].map((n) => ({ label: ["T-spin single", "T-spin double", "T-spin triple"][n - 1], run: () => place({ lines: n, spin: true }) })),
+    items: [
+      { label: "T-spin mini", run: () => place({ lines: 1, spin: true, mini: true }) },
+      ...[1, 2, 3].map((n) => ({ label: ["T-spin single", "T-spin double", "T-spin triple"][n - 1], run: () => place({ lines: n, spin: true }) })),
+    ],
   },
   {
     label: "Back-to-back",
