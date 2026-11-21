@@ -34,6 +34,17 @@ const STAGES = ["Reading the log…", "Weighing every placement…", "Timing the
 const stageOf = (p) => Math.min(STAGES.length - 1, Math.floor(p * STAGES.length));
 const LINE_AHEAD = 3; // pieces of the queue the better line goes on for
 const KIND_NAMES = { macro: "Macro", dexterity: "Dexterity", finesse: "Finesse" };
+// The run as a whole, in a few short sentences: how it went, where the most
+// was lost, and how many moments there are to go through.
+function summary(review) {
+  const kinds = Object.keys(KIND_NAMES);
+  const avg = kinds.reduce((sum, k) => sum + review.scores[k], 0) / kinds.length;
+  const worst = kinds.reduce((a, b) => (review.scores[b] < review.scores[a] ? b : a));
+  const lines = [[avg >= 85 ? "A clean run." : avg >= 65 ? "A solid run on the whole." : avg >= 45 ? "An uneven run." : "A run with a lot to tidy up."]];
+  lines.push(review.scores[worst] >= 85 ? ["All three areas held up."] : ["{kind} cost the most.", { kind: KIND_NAMES[worst] }]);
+  if (review.moments.length) lines.push(["{n} moments to go through.", { n: review.moments.length }]);
+  return lines;
+}
 const MAX_LINES = 400; // lines of a pasted log shown on the input page
 
 // ─── Lab: watch a run again from its copied piece log ───
@@ -358,8 +369,8 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
       requestAnimationFrame(tick);
     });
     Promise.all([analyze(replay), staged]).then(([result]) => {
+      // It opens on the summary of the whole run; the moments come after.
       setReview(result);
-      if (result.moments.length) seek(result.moments[0].step);
     });
   };
   // Runs once, when the replay opens.
@@ -372,7 +383,11 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   }, []);
   const moments = review && typeof review === "object" ? review.moments : NO_MOMENTS;
   const momentAt = moments.findIndex((m) => m.step === step);
-  const moment = momentAt >= 0 ? moments[momentAt] : null;
+  // The start of the replay shows the summary: always when nothing happened
+  // on the first move, and until Next is pressed when something did.
+  const [intro, setIntro] = useState(true);
+  const overview = step === 0 && !playing && (intro || momentAt < 0);
+  const moment = momentAt >= 0 && !overview ? moments[momentAt] : null;
   const shownLine = line && line.step === step ? line : null;
   const showLine = () => {
     const ids = [LETTER_ID[events[step].type], ...dealt.slice(frames[step].dealtCount, frames[step].dealtCount + LINE_AHEAD)];
@@ -398,6 +413,9 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   useEffect(() => stopRush, [stopRush]);
   const jump = useCallback(
     (d) => {
+      setIntro(false);
+      // From the summary, Next first shows what happened on the opening move.
+      if (d > 0 && overview && momentAt >= 0) return;
       const target = d > 0 ? moments.find((m) => m.step > step) : [...moments].reverse().find((m) => m.step < step);
       if (!target) return;
       stopRush();
@@ -411,8 +429,16 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
         if (at >= target.step) stopRush();
       }, 55);
     },
-    [moments, step, seek, stopRush],
+    [moments, step, seek, stopRush, overview, momentAt],
   );
+
+  const hasNext = moments.some((m) => m.step > step || (overview && m.step === step));
+  const restart = () => {
+    stopRush();
+    setPlaying(false);
+    setIntro(true);
+    seek(0);
+  };
 
   const toggle = useCallback(() => {
     stopRush();
@@ -643,6 +669,15 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                           <Typed text={t(moment.text[0], moment.text[1])} instant={playing} />
                         </p>
                       </div>
+                    ) : overview ? (
+                      <div className="lab-bubble summary">
+                        <div className="lab-bubble-head">
+                          <b>{t("Summary")}</b>
+                        </div>
+                        <p>
+                          <Typed text={summary(review).map(([key, vars]) => t(key, vars && { ...vars, kind: vars.kind && t(vars.kind) })).join(" ")} />
+                        </p>
+                      </div>
                     ) : (
                       <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
                     )}
@@ -651,8 +686,11 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                       them on the right when there is a better line to show. */}
                   <div className="lab-moment-nav">
                     <IconButton icon="prev" label="Previous" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
-                    <button type="button" className="btn primary compact" onClick={blur(() => jump(1))} disabled={!moments.some((m) => m.step > step)}>
-                      {t("Next moment")}
+                    {/* After the last moment it leads back to the start (and the summary).
+                        Both labels are laid out, so the button keeps one width. */}
+                    <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : restart()))} disabled={!moments.length}>
+                      <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next moment")}</span>
+                      <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Back to start")}</span>
                     </button>
                     {moment?.best && (
                       <button type="button" className="btn compact lab-best" onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
