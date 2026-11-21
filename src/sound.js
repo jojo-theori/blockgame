@@ -86,8 +86,14 @@ export const sfx = {
     tone({ freq: 392, type: "square", dur: 0.09, vol: 0.035, delay: 0.1 });
     tone({ freq: 784, type: "square", dur: 0.14, vol: 0.035, delay: 0.18 });
   },
-  // Combo: one short note that climbs a semitone with every clear in a row.
-  combo: (n) => opts.combo && tone({ freq: 660 * 2 ** (Math.min(n, 14) / 12), type: "sine", dur: 0.09, vol: 0.07, delay: 0.12 }),
+  // Combo: one short note that climbs the C major scale with every clear in
+  // a row, from C5 (combo 1) up two octaves to C7 (combo 15 and beyond).
+  combo: (n) => {
+    if (!opts.combo) return;
+    const step = Math.min(Math.max(n, 1), 15) - 1;
+    const semitones = 12 * Math.floor(step / 7) + [0, 2, 4, 5, 7, 9, 11][step % 7];
+    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.09, vol: 0.07, delay: 0.12 });
+  },
   garbage: () => noise({ dur: 0.14, vol: 0.18, freq: 300 }),
   // flow
   ready: () => tone({ freq: 440, type: "sine", dur: 0.1, vol: 0.08 }),

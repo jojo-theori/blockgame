@@ -76,13 +76,13 @@ const GROUPS = [
   },
   {
     label: "Combo",
-    items: [1, 2, 3, 4, 5, 6, 8, 10, 12, 14].map((n) => ({ label: String(n), run: () => place({ lines: 1, combo: n }) })),
+    items: [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15].map((n) => ({ label: String(n), run: () => place({ lines: 1, combo: n }) })),
   },
   {
     label: "Runs",
     // Each step is one placement; they are played half a second apart.
     items: [
-      { label: "Combo 1 to 10", steps: Array.from({ length: 10 }, (_, i) => ({ lines: 1, combo: i + 1 })) },
+      { label: "Combo 1 to 15", steps: Array.from({ length: 15 }, (_, i) => ({ lines: 1, combo: i + 1 })) },
       { label: "Four quads back to back", steps: [{ lines: 4 }, { lines: 4, b2b: true }, { lines: 4, b2b: true }, { lines: 4, b2b: true }] },
       { label: "Quad, T-spin double, T-spin triple", steps: [{ lines: 4 }, { lines: 2, spin: true, b2b: true }, { lines: 3, spin: true, b2b: true }] },
       { label: "Back-to-back inside a combo", steps: [{ lines: 4 }, { lines: 4, b2b: true, combo: 1 }, { lines: 2, spin: true, b2b: true, combo: 2 }, { lines: 1, combo: 3 }] },
