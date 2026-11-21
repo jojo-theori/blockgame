@@ -14,8 +14,8 @@ import {
   SLOT,
 } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyStrokes, EngineLog } from "../ui.jsx";
-import { useDisplayToggles } from "../display.js";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyStrokes, EngineLog, PauseMenu } from "../ui.jsx";
+import { useDisplayToggles, usePause } from "../display.js";
 import { useFit } from "../fit.js";
 import {
   OPENERS,
@@ -384,6 +384,17 @@ export default function Opening({ settings, onBack }) {
     setPhase("select");
   }, []);
 
+  const { pause, resume, focusLost } = usePause({
+    phase,
+    setPhase,
+    rafRef,
+    countdownRef,
+    lastTimeRef,
+    loopRef,
+    engineRef,
+    restart: () => startGame(),
+  });
+
   // ─── KEYS ───
   useEffect(() => {
     const onDown = (e) => {
@@ -410,7 +421,11 @@ export default function Opening({ settings, onBack }) {
         }
         return;
       }
-      if (e.code === "Escape") return stop();
+      if (e.code === "Escape") {
+        if (phase === "playing" || phase === "countdown") return pause();
+        if (phase === "paused") return resume();
+        return stop();
+      }
       if (e.repeat) return;
       if (e.code === "KeyF" && phase !== "countdown") {
         e.preventDefault();
@@ -446,7 +461,7 @@ export default function Opening({ settings, onBack }) {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
     };
-  }, [phase, onBack, startGame, stop]);
+  }, [phase, onBack, startGame, stop, pause, resume]);
 
 
   useEffect(
@@ -637,6 +652,7 @@ export default function Opening({ settings, onBack }) {
           <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
 
           {phase === "countdown" && <Countdown text={countdownText} />}
+          {phase === "paused" && <PauseMenu focusLost={focusLost} onResume={resume} onRestart={() => startGame()} onSetup={stop} onMenu={onBack} />}
 
           {phase === "playing" && st.lastAction && (
             <div key={st.actionKey} className="action-pop">
@@ -705,7 +721,7 @@ export default function Opening({ settings, onBack }) {
               [["N"], `auto next ${autoNext === "all" ? "on" : "off"}`],
               [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
             [["K"], `input ${settings.showKeys ? "on" : "off"}`],
-              [["Esc"], "exit"],
+              [["Esc"], phase === "paused" ? "resume" : "pause"],
             ]} />
         </div>
       </div>

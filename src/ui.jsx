@@ -194,8 +194,36 @@ export function Advanced({ open, onToggle, changed = [], children }) {
 // moment it's clicked (optimistic). Esc or a click outside closes it.
 export function Dropdown({ label, value, options, onChange }) {
   const [open, setOpen] = useState(false);
-  const [up, setUp] = useState(false);
+  // The list opens over the button with the current item sitting right on it
+  // (like a native select), then shifts to stay inside the visible area.
+  const [place, setPlace] = useState({ top: 0, origin: 0 });
   const ref = useRef(null);
+  const menuRef = useRef(null);
+  const measure = () => {
+    const dd = ref.current;
+    const menu = menuRef.current;
+    if (!dd || !menu) return;
+    const r = dd.getBoundingClientRect();
+    const idx = Math.max(0, options.findIndex((o) => o.id === value));
+    const li = menu.children[idx];
+    if (!li) return;
+    let top = -li.offsetTop + (r.height - li.offsetHeight) / 2;
+    // Keep it inside the window and any clipping ancestor.
+    let ceil = 0;
+    let floor = window.innerHeight;
+    for (let el = dd.parentElement; el; el = el.parentElement) {
+      const o = getComputedStyle(el);
+      if (o.overflowY !== "visible" || o.overflowX !== "visible") {
+        const b = el.getBoundingClientRect();
+        ceil = Math.max(ceil, b.top);
+        floor = Math.min(floor, b.bottom);
+      }
+    }
+    const h = menu.offsetHeight;
+    if (r.top + top + h > floor - 8) top -= r.top + top + h - (floor - 8);
+    if (r.top + top < ceil + 8) top += ceil + 8 - (r.top + top);
+    setPlace({ top, origin: li.offsetTop + li.offsetHeight / 2 });
+  };
   useEffect(() => {
     if (!open) return;
     const onDown = (e) => {
@@ -208,7 +236,7 @@ export function Dropdown({ label, value, options, onChange }) {
   return (
     <div
       ref={ref}
-      className={"dd" + (open ? " open" : "") + (up ? " up" : "")}
+      className={"dd" + (open ? " open" : "")}
       onKeyDown={(e) => {
         if (e.key === "Escape" && open) {
           e.stopPropagation();
@@ -224,18 +252,7 @@ export function Dropdown({ label, value, options, onChange }) {
         aria-label={label}
         onClick={() => {
           sfx.tick();
-          // Open upward when the list wouldn't fit below the button.
-          if (!open && ref.current) {
-            const r = ref.current.getBoundingClientRect();
-            const need = options.length * 34 + 16;
-            // The list can be clipped by a scrolling/clipping ancestor, not only the window.
-            let floor = window.innerHeight;
-            for (let el = ref.current.parentElement; el; el = el.parentElement) {
-              const o = getComputedStyle(el);
-              if (o.overflowY !== "visible" || o.overflowX !== "visible") floor = Math.min(floor, el.getBoundingClientRect().bottom);
-            }
-            setUp(floor - r.bottom < need && r.top > need);
-          }
+          if (!open) measure();
           setOpen((o) => !o);
         }}
       >
@@ -244,7 +261,7 @@ export function Dropdown({ label, value, options, onChange }) {
           <path d="M8 10l4 4 4-4" />
         </svg>
       </button>
-      <ul className="dd-menu" role="listbox" aria-label={label}>
+      <ul ref={menuRef} className="dd-menu" role="listbox" aria-label={label} style={{ top: place.top, transformOrigin: `50% ${place.origin}px` }}>
         {options.map((o, i) => (
           <li key={String(o.id)} style={{ "--i": i }}>
             <button
@@ -363,8 +380,8 @@ export function ReplayLog({ events, total }) {
           const fault = ev.kind === "place" && ev.finesseFault > 0;
           return (
             <li key={n} className="rlog-row">
-              <span className="rlog-n">{String(n).padStart(2, "0")}</span>
-              <span className="rlog-t">{ev.t.toFixed(2)}</span>
+              <span className="rlog-n">#{n}</span>
+              <span className="rlog-t">{ev.t.toFixed(2)}s</span>
               <span className="rlog-p">
                 <i style={{ background: PIECE_COLOR[ev.type] }} />
                 {ev.type}
@@ -523,4 +540,109 @@ export function EngineLog({ engineRef }) {
     return () => clearInterval(id);
   }, [engineRef]);
   return <ReplayLog events={log.events} total={log.total} />;
+}
+
+// Pause overlay for solo modes (Esc). `extra` adds mode-specific buttons.
+export function PauseMenu({ onResume, onRestart, onSetup, onMenu, extra, focusLost }) {
+  return (
+    <div className="veil pause">
+      <div className="title">{t("Paused")}</div>
+      {/* Always rendered so the buttons never move */}
+      <p className={"pause-note" + (focusLost ? " on" : "")}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3.5 22 20.5H2Z" />
+          <path d="M12 10v4.5M12 17.2v.3" />
+        </svg>
+        {t("The window lost focus, so the game paused.")}
+      </p>
+      <div className="row-btns">
+        <button className="btn primary" onClick={onResume}>
+          {t("Resume")}
+        </button>
+        <button className="btn" onClick={onRestart}>
+          {t("Restart")}
+        </button>
+        {extra}
+        <button className="btn" onClick={onSetup}>
+          {t("Change setup")}
+        </button>
+        <button className="btn ghost" onClick={onMenu}>
+          {t("Menu")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Stepper: − value + for small number ranges. Buttons go dim at the limits.
+export function Stepper({ value, onChange, min, max, label, format = (v) => String(v) }) {
+  const step = (d) => (e) => {
+    e.currentTarget.blur();
+    const v = Math.min(max, Math.max(min, value + d));
+    if (v === value) return;
+    sfx.tick();
+    onChange(v);
+  };
+  return (
+    <div className="stepper" role="group" aria-label={label}>
+      <button type="button" className="step-btn" onClick={step(-1)} disabled={value <= min} aria-label={t("Less")}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 12h10" />
+        </svg>
+      </button>
+      <span className="step-v" aria-live="polite">
+        {format(value)}
+      </span>
+      <button type="button" className="step-btn" onClick={step(1)} disabled={value >= max} aria-label={t("More")}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 12h10M12 7v10" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// Confirm dialog for destructive actions. Esc or the backdrop cancels; Enter
+// confirms. Focus starts on Cancel so a stray Enter/Space never destroys.
+export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCancel }) {
+  const cancelRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    cancelRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open, onCancel]);
+  if (!open) return null;
+  return (
+    <div className="dialog-back" onPointerDown={(e) => e.target === e.currentTarget && onCancel()}>
+      <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlg-title">
+        <div id="dlg-title" className="dialog-title">
+          {tr(title)}
+        </div>
+        {body && <p className="dialog-body">{tr(body)}</p>}
+        <div className="dialog-actions">
+          <button ref={cancelRef} type="button" className="btn" onClick={onCancel}>
+            {t("Cancel")}
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            onClick={() => {
+              sfx.select();
+              onConfirm();
+            }}
+          >
+            {tr(confirmLabel)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

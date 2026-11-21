@@ -1,11 +1,12 @@
 import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
+import { useFocusLoss } from "../display.js";
 import { ROWS, CELL, BlockEngine } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
 import { BotPlayer } from "../bots/player.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, prep, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
-import { Countdown, KeyHints, Dropdown } from "../ui.jsx";
+import { Countdown, KeyHints, Dropdown, Stepper } from "../ui.jsx";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { useFit } from "../fit.js";
 
@@ -31,8 +32,6 @@ const BOTS = [
 const botName = (id) => BOTS.find((b) => b.id === id)?.label ?? "CPU";
 const makeCpu = (engine, bot, level) => (bot === "stacker" ? new CPUPlayer(engine, level === "max" ? "hard" : level) : new BotPlayer(engine, bot, level));
 // Handicap: lines added to (or taken from) every attack this seat sends.
-// Lines added to (+) or taken from (−) every attack this seat sends.
-const HANDICAPS = [3, 2, 1, 0, -1, -2, -3].map((h) => ({ id: h, label: h === 0 ? "0" : `${h > 0 ? "+" : "−"}${Math.abs(h)}` }));
 const SEAT_COLOR = { p1: "#41b6e6", p2: "#e8505b", cpu: "#8a8a8a" };
 
 // A seat in the match: who plays it, and the CPU level when it's the CPU.
@@ -66,9 +65,14 @@ function SeatCard({ seat, seats, humans }) {
         </div>
         <div className="seat-hc">
           <span className="k" title={t("Lines added to or taken from every attack")}>{t("Handicap")}</span>
-          <div className="seat-hc-dd">
-            <Dropdown label={t("Seat {n} handicap", { n: seat.n })} value={seat.handicap} options={HANDICAPS} onChange={seat.setHandicap} />
-          </div>
+          <Stepper
+            label={t("Seat {n} handicap", { n: seat.n })}
+            value={seat.handicap}
+            onChange={seat.setHandicap}
+            min={-3}
+            max={3}
+            format={(v) => (v > 0 ? `+${v}` : v < 0 ? `−${-v}` : "0")}
+          />
         </div>
       </div>
     </div>
@@ -320,6 +324,7 @@ export default function Battle({ settings, onBack, onSettings }) {
   // Pause (Esc). A match is shared, so nothing restarts from a single key:
   // rematch and exit live in the pause menu.
   const pausedFromRef = useRef(null);
+  const [focusLost, setFocusLost] = useState(false);
   const pause = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
@@ -333,6 +338,7 @@ export default function Battle({ settings, onBack, onSettings }) {
     setPhase("paused");
   }, []);
   const resume = useCallback(() => {
+    setFocusLost(false);
     if (pausedFromRef.current === "countdown") {
       runCountdown();
       return;
@@ -342,6 +348,11 @@ export default function Battle({ settings, onBack, onSettings }) {
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(loopRef.current);
   }, [runCountdown]);
+  // Without focus no key reaches the game: pause and say why.
+  useFocusLoss(phase === "playing" || phase === "countdown", () => {
+    pause();
+    setFocusLost(true);
+  });
   const toSetup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
@@ -535,6 +546,13 @@ export default function Battle({ settings, onBack, onSettings }) {
         {phase === "paused" && (
           <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "transparent" }}>
             <div className="title">{t("Paused")}</div>
+            <p className={"pause-note" + (focusLost ? " on" : "")}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3.5 22 20.5H2Z" />
+                <path d="M12 10v4.5M12 17.2v.3" />
+              </svg>
+              {t("The window lost focus, so the game paused.")}
+            </p>
             <div className="row-btns" style={{ width: 220 }}>
               <button className="btn primary" onClick={resume}>
                 {t("Resume")}

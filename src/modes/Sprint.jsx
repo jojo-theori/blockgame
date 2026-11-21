@@ -4,8 +4,8 @@ import { BlockEngine, formatTime, buildReplayText } from "../game.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Stat, Countdown, KeyHints, ReplayLog, KeyStrokes } from "../ui.jsx";
-import { useDisplayToggles } from "../display.js";
+import { Stat, Countdown, KeyHints, ReplayLog, KeyStrokes, PauseMenu } from "../ui.jsx";
+import { useDisplayToggles, usePause } from "../display.js";
 import { useFit } from "../fit.js";
 
 const SPRINT_OPTIONS = [1, 20, 40, 100, 1000];
@@ -29,11 +29,12 @@ export default function Sprint({ settings, onBack }) {
   // select | countdown | playing | completed | gameover
   const [phase, setPhase] = useState("select");
   const [countdownText, setCountdownText] = useState("");
-  const [displayTime, setDisplayTime] = useState("0:00.000");
+  const [displayTime, setDisplayTime] = useState("0:00.00");
   const [displayLines, setDisplayLines] = useState(40);
   const [displayPPS, setDisplayPPS] = useState("0.00");
   const [displayAction, setDisplayAction] = useState("");
   const [actionKey, setActionKey] = useState(0);
+  const actionPieceRef = useRef(-1);
   const [displayAttack, setDisplayAttack] = useState(0);
   const [stats, setStats] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -137,8 +138,13 @@ export default function Sprint({ settings, onBack }) {
           ? (engine.placedBlocks / engine.clock).toFixed(2)
           : "0.00";
       setDisplayPPS(pps);
-      setDisplayAction(engine.lastAction);
-      setActionKey((k) => k + 1);
+      // Pop the clear text once per clear (re-keying every frame would restart
+      // its animation forever, so it only showed after the loop stopped).
+      if (engine.lastAction && engine.placedBlocks !== actionPieceRef.current) {
+        actionPieceRef.current = engine.placedBlocks;
+        setDisplayAction(engine.lastAction);
+        setActionKey((k) => k + 1);
+      }
       setDisplayAttack(engine.totalAttack);
       if (engine.replay.length !== logLenRef.current) {
         logLenRef.current = engine.replay.length;
@@ -192,6 +198,8 @@ export default function Sprint({ settings, onBack }) {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
     setPhase("countdown");
+    setDisplayAction("");
+    actionPieceRef.current = -1;
     setCountdownText("Ready");
     countdownRef.current = setTimeout(() => {
       setCountdownText("Go");
@@ -201,6 +209,22 @@ export default function Sprint({ settings, onBack }) {
     }, 700);
   }, [launchGame]);
 
+  const { pause, resume, focusLost } = usePause({
+    phase,
+    setPhase,
+    rafRef,
+    countdownRef,
+    lastTimeRef,
+    loopRef: gameLoopRef,
+    engineRef,
+    restart: startGame,
+  });
+  const toSetup = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (countdownRef.current) clearTimeout(countdownRef.current);
+    setPhase("select");
+  };
+
   // ─── KEY HANDLING ───
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -208,7 +232,7 @@ export default function Sprint({ settings, onBack }) {
       const action = keysRef.current[e.code];
 
       if (e.code === "KeyF") {
-        if (phase === "playing" || phase === "gameover" || phase === "completed") {
+        if (phase === "playing" || phase === "paused" || phase === "gameover" || phase === "completed") {
           startGame();
           return;
         }
@@ -226,9 +250,10 @@ export default function Sprint({ settings, onBack }) {
         }
       }
       if (e.key === "Escape") {
-        if (phase === "playing" || phase === "gameover" || phase === "completed") {
-          if (rafRef.current) cancelAnimationFrame(rafRef.current);
-          setPhase("select");
+        if (phase === "playing" || phase === "countdown") return pause();
+        if (phase === "paused") return resume();
+        if (phase === "gameover" || phase === "completed") {
+          toSetup();
           return;
         }
         if (phase === "select") {
@@ -268,7 +293,7 @@ export default function Sprint({ settings, onBack }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [phase, startGame, stats, onBack, sprintLines]);
+  }, [phase, startGame, stats, onBack, sprintLines, pause, resume]);
 
   // Reload bindings whenever entering select (settings may have been edited)
   useEffect(() => {
@@ -374,6 +399,7 @@ export default function Sprint({ settings, onBack }) {
           <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
 
           {phase === "countdown" && <Countdown text={countdownText} />}
+          {phase === "paused" && <PauseMenu focusLost={focusLost} onResume={resume} onRestart={startGame} onSetup={toSetup} onMenu={onBack} />}
 
           {displayAction && (
             <div key={actionKey} className="action-pop">
@@ -459,7 +485,7 @@ export default function Sprint({ settings, onBack }) {
             [["F"], "restart"],
             [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
             [["K"], `input ${settings.showKeys ? "on" : "off"}`],
-            [["Esc"], "exit"],
+            [["Esc"], phase === "paused" ? "resume" : "pause"],
           ]} />
         </div>
       </div>

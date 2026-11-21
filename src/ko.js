@@ -22,7 +22,7 @@ export default {
   "Place each piece in the fewest key presses.": "가장 적은 키 입력으로 블록을 놓으세요.",
   "Solve set positions.": "정해진 판을 풉니다.",
   "Daily goals.": "매일 바뀌는 목표.",
-  "Handling, display and key bindings.": "조작감, 표시, 키 설정.",
+  "Handling and key bindings.": "조작감과 키 설정.",
 
   // Top bar
   "Light mode": "라이트 모드",
@@ -106,6 +106,19 @@ export default {
   "Swap with seat {n}": "{n}번 자리와 바꾸기",
   "Swap seats": "자리 바꾸기",
   Handicap: "핸디캡",
+  "The window lost focus, so the game paused.": "창의 포커스가 벗어나서 게임을 멈췄습니다.",
+  "Practice mode": "연습 모드",
+  "Shows each fault and repeats the piece. Off: faults count toward a final score":
+    "실수를 알려 주고 그 블록을 다시 놓게 합니다. 끄면 실수는 횟수로만 세고 마지막에 점수가 나옵니다",
+  "End run": "여기서 끝내기",
+  "Reset {profile} keys?": "{profile} 키를 초기화할까요?",
+  "Every {profile} key goes back to its default. Other profiles stay as they are. Save to keep it.":
+    "{profile}의 모든 키가 기본값으로 돌아갑니다. 다른 프로필은 그대로입니다. 저장해야 적용됩니다.",
+  Reset: "초기화",
+  Restart: "다시 시작",
+  Less: "줄이기",
+  More: "늘리기",
+  Cancel: "취소",
   "Lines added to or taken from every attack": "공격할 때마다 더하거나 빼는 줄 수",
   "Seat {n} handicap": "{n}번 자리 핸디캡",
   "Seat {n} bot": "{n}번 자리 봇",

@@ -9,7 +9,7 @@ import {
   FORBIDDEN_CODES,
 } from "../keys.js";
 
-import { Segmented, KeyName, Switch } from "../ui.jsx";
+import { Segmented, KeyName, ConfirmDialog } from "../ui.jsx";
 
 const PROFILE_LIST = [
   { id: "solo", label: "Solo" },
@@ -40,16 +40,13 @@ export default function Settings({
   setSdf,
   soundEnabled,
   setSoundEnabled,
-  showLog,
-  setShowLog,
-  showKeys,
-  setShowKeys,
   onBack,
 }) {
   // Key edits are a draft until Save; leaving without saving drops them.
   const [saved, setSaved] = useState(() => loadKeyBindings());
   const [bindings, setBindings] = useState(saved);
   const [notice, setNotice] = useState("");
+  const [confirmReset, setConfirmReset] = useState(false);
   const dirty = JSON.stringify(saved) !== JSON.stringify(bindings);
   const [activeProfile, setActiveProfile] = useState("solo");
   const [recording, setRecording] = useState(null); // { profile, action }
@@ -154,7 +151,6 @@ export default function Settings({
           label="Section"
           options={[
             { id: "game", label: "Handling" },
-            { id: "display", label: "Display" },
             { id: "keys", label: "Keys" },
           ]}
           value={section}
@@ -201,23 +197,6 @@ export default function Settings({
           </div>
         )}
 
-        {section === "display" && (
-          <div className="opts switches">
-            <Switch
-              checked={showLog}
-              onChange={setShowLog}
-              label="Show piece log"
-              hint="The record of each piece, beside the board. J in game"
-            />
-            <Switch
-              checked={showKeys}
-              onChange={setShowKeys}
-              label="Show key input"
-              hint="Your game keys light up while held. K in game"
-            />
-          </div>
-        )}
-
         {section === "keys" && (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12, flexWrap: "nowrap" }}>
@@ -230,7 +209,8 @@ export default function Settings({
                   setError("");
                 }}
               />
-              <button className="btn ghost compact" onClick={resetProfile} disabled={atDefault} title={t("Only {profile} goes back to its defaults", { profile: t(profileLabel) })}>
+              {/* Hidden (space kept, so the row never shifts) while there's nothing to reset. */}
+              <button className="btn danger compact" onClick={() => setConfirmReset(true)} disabled={atDefault} style={{ visibility: atDefault ? "hidden" : "visible" }} title={t("Only {profile} goes back to its defaults", { profile: t(profileLabel) })}>
                 {t("Reset {profile}", { profile: t(profileLabel) })}
               </button>
             </div>
@@ -267,6 +247,17 @@ export default function Settings({
         )}
       </div>
       </div>
+      <ConfirmDialog
+        open={confirmReset}
+        title={t("Reset {profile} keys?", { profile: t(profileLabel) })}
+        body={t("Every {profile} key goes back to its default. Other profiles stay as they are. Save to keep it.", { profile: t(profileLabel) })}
+        confirmLabel="Reset"
+        onCancel={() => setConfirmReset(false)}
+        onConfirm={() => {
+          resetProfile();
+          setConfirmReset(false);
+        }}
+      />
       <div className="actions">
         {section === "keys" && (
           <button className="btn primary" onClick={save} disabled={!dirty}>

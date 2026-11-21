@@ -35,7 +35,7 @@ const MODES = [
   { id: "finesse", label: "Finesse", color: "#5cc45c", desc: "Place each piece in the fewest key presses.", ready: true },
   { id: "puzzle", label: "Puzzle", color: "#f2913d", desc: "Solve set positions.", ready: false },
   { id: "challenge", label: "Challenge", color: "#f2cb4c", desc: "Daily goals.", ready: false },
-  { id: "settings", label: "Settings", color: "#8a8a8a", desc: "Handling, display and key bindings.", ready: true },
+  { id: "settings", label: "Settings", color: "#8a8a8a", desc: "Handling and key bindings.", ready: true },
 ];
 
 // ─── APP ───
@@ -169,10 +169,6 @@ export default function App() {
             setSdf={setSdf}
             soundEnabled={soundEnabled}
             setSoundEnabled={setSoundEnabled}
-            showLog={showLog}
-            setShowLog={setShowLog}
-            showKeys={showKeys}
-            setShowKeys={setShowKeys}
             onBack={goMenu}
           />
         )}

@@ -4,8 +4,8 @@ import { ROWS, COLS, COLORS, BlockEngine, formatTime } from "../game.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, BOARD_W, BOARD_H } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyName, MultiSelect, Switch, KeyStrokes, EngineLog } from "../ui.jsx";
-import { useDisplayToggles } from "../display.js";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyName, MultiSelect, Switch, KeyStrokes, EngineLog, PauseMenu } from "../ui.jsx";
+import { useDisplayToggles, usePause } from "../display.js";
 import { useFit } from "../fit.js";
 import { placements, bestPaths, sameCells } from "../finesse.js";
 
@@ -303,6 +303,17 @@ export default function Finesse({ settings, onBack }) {
     setPhase("select");
   }, [goal]);
 
+  const { pause, resume, focusLost } = usePause({
+    phase,
+    setPhase,
+    rafRef,
+    countdownRef,
+    lastTimeRef,
+    loopRef,
+    engineRef,
+    restart: () => startGame(),
+  });
+
   // ─── KEYS ───
   useEffect(() => {
     const onDown = (e) => {
@@ -321,7 +332,11 @@ export default function Finesse({ settings, onBack }) {
         }
         return;
       }
-      if (e.code === "Escape") return phase === "done" ? setPhase("select") : stop();
+      if (e.code === "Escape") {
+        if (phase === "playing" || phase === "countdown") return pause();
+        if (phase === "paused") return resume();
+        return setPhase("select");
+      }
       if (e.repeat) return;
       if (e.code === "KeyF" && phase !== "countdown") {
         e.preventDefault();
@@ -344,7 +359,7 @@ export default function Finesse({ settings, onBack }) {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
     };
-  }, [phase, onBack, startGame, stop]);
+  }, [phase, onBack, startGame, stop, pause, resume]);
 
   useEffect(
     () => () => {
@@ -372,13 +387,19 @@ export default function Finesse({ settings, onBack }) {
               onChange={setGoal}
             />
           </div>
+          <div className="opt switches">
+            <Switch
+              label="Practice mode"
+              hint="Shows each fault and repeats the piece. Off: faults count toward a final score"
+              checked={onFault === "retry"}
+              onChange={(on) => setOnFault(on ? "retry" : "continue")}
+            />
+          </div>
           <Advanced
             open={advOpen}
             onToggle={() => setAdvOpen((o) => !o)}
             changed={[
               pieces.length === PIECES.length ? null : `${t("Pieces")} ${pieces.map((id) => PIECES.find((p) => p.id === id).label).join(" ")}`,
-              allow180 ? null : "No 180",
-              onFault === "retry" ? null : "Keep going",
             ].filter(Boolean)}
           >
           <div className="opts">
@@ -398,12 +419,6 @@ export default function Finesse({ settings, onBack }) {
               hint="Counts the 180 key when working out the best input"
               checked={allow180}
               onChange={setAllow180}
-            />
-            <Switch
-              label="Retry on a fault"
-              hint="Repeat the piece until it's placed cleanly"
-              checked={onFault === "retry"}
-              onChange={(on) => setOnFault(on ? "retry" : "continue")}
             />
           </div>
           </div>
@@ -449,6 +464,7 @@ export default function Finesse({ settings, onBack }) {
         <div className="board-wrap">
           <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
           {phase === "countdown" && <Countdown text={countdownText} />}
+          {phase === "paused" && <PauseMenu focusLost={focusLost} onResume={resume} onRestart={() => startGame()} onSetup={() => setPhase("select")} onMenu={onBack} extra={!goal && <button className="btn" onClick={() => { run.current.finished = true; loopRef.current?.(performance.now()); }}>{t("End run")}</button>} />}
           {phase === "done" && result && (
             <div className="veil">
               <div className="k">{result.pieces} pieces</div>
@@ -497,7 +513,7 @@ export default function Finesse({ settings, onBack }) {
             [["F"], "restart"],
             [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
             [["K"], `input ${settings.showKeys ? "on" : "off"}`],
-            [["Esc"], "exit"],
+            [["Esc"], phase === "paused" ? "resume" : "pause"],
           ]} />
         </div>
       </div>

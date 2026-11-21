@@ -38,16 +38,16 @@ export const DEFAULT_BINDINGS = {
     rotate180: "KeyA",
     hold: "KeyC",
   },
-  // P1 on the left of the keyboard: WASD to move (W rotates), 1/2 rotate,
+  // P1 on the left of the keyboard: A/S/D to move, 1 ccw, 2 cw, Q 180,
   // 3 hold, left Shift hard drop.
   p1: {
     left: "KeyA",
     right: "KeyD",
     softdrop: "KeyS",
     harddrop: "ShiftLeft",
-    rotateCW: "KeyW",
+    rotateCW: "Digit2",
     rotateCCW: "Digit1",
-    rotate180: "Digit2",
+    rotate180: "KeyQ",
     hold: "Digit3",
   },
   // P2 on the right: arrows (up rotates), M / K rotate, period hold,
@@ -66,19 +66,17 @@ export const DEFAULT_BINDINGS = {
 
 const STORAGE_KEY = "jbl-keybindings";
 // v3 set the solo defaults to X/Z rotate, A 180, C hold; v4 set new Battle
-// P1/P2 defaults. Profiles saved before a change are dropped once so the new
-// defaults take effect.
-const VERSION = 4;
+// P1/P2 defaults; v5 moved P1 rotations to 1/2 and 180 to Q. Profiles saved
+// before a change are dropped once so the new defaults take effect.
+const VERSION = 5;
 
 export function loadKeyBindings() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
     const v = saved.v ?? 1;
     if (v < 3) delete saved.solo;
-    if (v < 4) {
-      delete saved.p1;
-      delete saved.p2;
-    }
+    if (v < 4) delete saved.p2;
+    if (v < 5) delete saved.p1;
     return {
       solo: { ...DEFAULT_BINDINGS.solo, ...(saved.solo || {}) },
       p1: { ...DEFAULT_BINDINGS.p1, ...(saved.p1 || {}) },

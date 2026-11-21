@@ -466,10 +466,12 @@ export function getShape(id, rot) {
   return SHAPES[id][rot];
 }
 
+// m:ss.cc — hundredths are enough to read; truncated so it never shows 60.00.
 export function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toFixed(3).padStart(6, "0")}`;
+  const cs = Math.floor(seconds * 100 + 1e-6);
+  const m = Math.floor(cs / 6000);
+  const s = (cs % 6000) / 100;
+  return `${m}:${s.toFixed(2).padStart(5, "0")}`;
 }
 
 // ─── GAME ENGINE ───

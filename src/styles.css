@@ -687,9 +687,9 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .dd-menu {
   position: absolute;
   z-index: 50;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
+  top: 0;
+  left: -4px;
+  right: -4px;
   margin: 0;
   padding: 4px;
   list-style: none;
@@ -697,13 +697,12 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   background: var(--menu);
   box-shadow: 0 12px 32px var(--shadow);
   opacity: 0;
-  transform: translateY(-4px);
+  transform: scale(0.96);
   pointer-events: none;
-  transition: opacity 0.18s var(--out), transform 0.22s var(--out);
+  transition: opacity 0.16s var(--out), transform 0.22s var(--out);
 }
 .dd.open .dd-menu { opacity: 1; transform: none; pointer-events: auto; }
-.dd.up .dd-menu { top: auto; bottom: calc(100% + 6px); }
-.dd-menu li { opacity: 0; transform: translateY(-3px); transition: opacity 0.18s var(--out), transform 0.22s var(--out); }
+.dd-menu li { opacity: 0; transform: none; transition: opacity 0.18s var(--out), transform 0.22s var(--out); }
 .dd.open .dd-menu li { opacity: 1; transform: none; transition-delay: calc(var(--i, 0) * 30ms); }
 .dd-menu button {
   width: 100%;
@@ -962,7 +961,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .rlog-row {
   flex: none;
   display: grid;
-  grid-template-columns: 18px 36px 22px 32px 1fr;
+  grid-template-columns: 26px 46px 22px 32px 1fr;
   align-items: center;
   height: 22px;
   font-size: 10px;
@@ -973,6 +972,8 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   animation: rlog-in 0.2s var(--out) both;
 }
 .rlog-n, .rlog-t, .rlog-dim { color: var(--faint); }
+/* The piece number is smaller and dimmer so it never reads as part of the time. */
+.rlog-n { font-size: 9px; opacity: 0.7; }
 .rlog-p { display: inline-flex; align-items: center; gap: 5px; color: var(--fg, #eee); }
 .rlog-p i { width: 6px; height: 6px; border-radius: 1.5px; display: block; }
 .rlog-keys.bad { color: var(--bad); }
@@ -1036,9 +1037,68 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 html, body { transition: background-color 0.25s var(--out), color 0.25s var(--out); }
 .seat-row { display: flex; flex-direction: column; gap: 8px; }
 .seat-hc { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; padding-left: 4px; }
-.seat-hc-dd { width: 96px; flex: none; }
-.seat-hc-dd .dd-note { display: none; }
 
 /* Dropdowns carry a faint hairline (inset, so sizes don't change). */
 .dd-btn { box-shadow: inset 0 0 0 1px var(--stroke); }
 .dd-menu { box-shadow: inset 0 0 0 1px var(--stroke), 0 12px 32px var(--shadow); }
+.veil.pause .row-btns { flex-direction: column; align-items: stretch; }
+
+/* ─── Stepper (− value +) ─── */
+.stepper { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; background: var(--fill); }
+.step-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.step-btn:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.step-btn:disabled { color: var(--muted); cursor: default; }
+.step-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.step-v { min-width: 30px; text-align: center; font-size: var(--t3); font-variant-numeric: tabular-nums; color: var(--fg); }
+
+/* ─── Danger button (flat, red) ─── */
+.btn.danger { background: rgba(232, 80, 91, 0.1); border-color: transparent; color: var(--bad); }
+.btn.danger:hover, .btn.danger:focus-visible { background: rgba(232, 80, 91, 0.18); color: var(--bad); }
+.btn.danger:disabled { background: var(--fill); color: var(--muted); }
+
+/* ─── Confirm dialog ─── */
+.dialog-back {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+  animation: fadeIn 0.18s var(--out) both;
+}
+.dialog {
+  width: min(360px, 100%);
+  padding: 26px 24px 22px;
+  border-radius: 18px;
+  background: var(--menu);
+  box-shadow: inset 0 0 0 1px var(--stroke), 0 24px 60px var(--shadow);
+  animation: dialog-in 0.24s var(--out) both;
+}
+.dialog-title { font-size: var(--t4); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg); }
+.dialog-body { margin: 10px 0 0; font-size: var(--t2); line-height: 1.6; color: var(--dim); }
+.dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+.dialog-actions .btn { height: 40px; }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) { .dialog, .dialog-back { animation: none; } }
+/* Fixed line boxes: Latin and Hangul names (or "CPU") must give the same height. */
+.seat-name, .seat .seat-name { line-height: 1.1; height: 1.1em; white-space: nowrap; overflow: visible; }
+.seat-sub, .seat .seat-sub { line-height: 16px; height: 16px; white-space: nowrap; }
+/* The note under the seats is either a warning (with icon) or a sentence; give
+   it one fixed line box so the seats above never change height. */
+.slot-note { height: 20px; min-height: 0; line-height: 20px; white-space: nowrap; }
+.slot-note .warn { vertical-align: top; height: 20px; }
+.pause-note { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; font-size: var(--t2); line-height: 1.5; color: #f2cb4c; visibility: hidden; }
+.pause-note.on { visibility: visible; }
+.pause-note svg { flex: none; width: 14px; height: 14px; margin-top: 2px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
