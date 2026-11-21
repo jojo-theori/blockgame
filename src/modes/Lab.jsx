@@ -141,15 +141,15 @@ export default function Lab({ settings, onBack }) {
                   {t("Paste from clipboard")}
                 </button>
               )}
+              {/* For a look without a log of your own: a made-up 40-line run. */}
+              <button className="btn ghost" onClick={() => take(sampleLog())}>
+                {t("Try a sample")}
+              </button>
               <div className="lab-keys">
                 <Kbd>{PASTE_MOD}</Kbd>
                 <Kbd>V</Kbd>
                 <span>{t(canRead ? "also pastes" : "to paste the log")}</span>
               </div>
-              {/* Under them, for a look without a log of your own: a made-up 40-line run. */}
-              <button className="btn ghost" onClick={() => take(sampleLog())}>
-                {t("Try a sample")}
-              </button>
             </div>
           ) : (
             // Long lines are cut short, so the box never scrolls sideways.
