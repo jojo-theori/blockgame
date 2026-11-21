@@ -1,0 +1,19 @@
+[package]
+name = "jbl-cc"
+version = "0.1.0"
+edition = "2018"
+license = "MPL-2.0"
+description = "Cold Clear (MinusKelvin/cold-clear, MPL-2.0) wrapped for JBL as a synchronous WebAssembly call."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+cold-clear = { path = "../cold-clear/bot" }
+libtetris = { path = "../cold-clear/libtetris" }
+wasm-bindgen = "0.2"
+enumset = "1.0.4"
+
+[profile.release]
+lto = true
+opt-level = 3

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { t } from "../i18n.js";
 import { ROWS, COLS, COLORS, BlockEngine, formatTime } from "../game.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, BOARD_W, BOARD_H } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyName, MultiSelect, Switch, KeyStrokes } from "../ui.jsx";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyName, MultiSelect, Switch, KeyStrokes, EngineLog } from "../ui.jsx";
+import { useDisplayToggles } from "../display.js";
 import { useFit } from "../fit.js";
 import { placements, bestPaths, sameCells } from "../finesse.js";
 
@@ -90,8 +92,8 @@ function BestInputs({ paths, bind }) {
 // Key caps for one optimal path, using the player's own bindings.
 function PathCaps({ path, bind }) {
   const cap = (a) => {
-    if (a === "dasLeft") return <><KeyName code={bind.left} /> hold</>;
-    if (a === "dasRight") return <><KeyName code={bind.right} /> hold</>;
+    if (a === "dasLeft") return <><KeyName code={bind.left} /> {t("hold")}</>;
+    if (a === "dasRight") return <><KeyName code={bind.right} /> {t("hold")}</>;
     return <KeyName code={bind[a]} />;
   };
   return (
@@ -104,6 +106,8 @@ function PathCaps({ path, bind }) {
 }
 
 export default function Finesse({ settings, onBack }) {
+  // In-game display toggles (K key input); they change the saved setting.
+  useDisplayToggles(settings);
   const zoom = useFit(700, 600);
   const prefs = loadPrefs();
   const [phase, setPhase] = useState("select"); // select | countdown | playing | done
@@ -354,17 +358,16 @@ export default function Finesse({ settings, onBack }) {
   if (phase === "select") {
     return (
       <div className="page" style={{ "--accent": ACCENT }}>
-        <h1 className="title">Finesse</h1>
+        <h1 className="title">{t("Finesse")}</h1>
         <p className="lede">
-          Fill the gap with as few key presses as possible. Holding left or right to the
-          wall counts as one press.
+          {t("Fill the gap with as few key presses as possible. Holding left or right to the wall counts as one press.")}
         </p>
         <div className="opts">
           <div className="opt">
-            <div className="k">Pieces</div>
+            <div className="k">{t("Pieces")}</div>
             <Segmented
               label="Pieces"
-              options={GOALS.map((g) => ({ id: g, label: g ? String(g) : "Endless" }))}
+              options={GOALS.map((g) => ({ id: g, label: g ? String(g) : t("Endless") }))}
               value={goal}
               onChange={setGoal}
             />
@@ -373,14 +376,14 @@ export default function Finesse({ settings, onBack }) {
             open={advOpen}
             onToggle={() => setAdvOpen((o) => !o)}
             changed={[
-              pieces.length === PIECES.length ? null : `Pieces ${pieces.map((id) => PIECES.find((p) => p.id === id).label).join(" ")}`,
+              pieces.length === PIECES.length ? null : `${t("Pieces")} ${pieces.map((id) => PIECES.find((p) => p.id === id).label).join(" ")}`,
               allow180 ? null : "No 180",
               onFault === "retry" ? null : "Keep going",
             ].filter(Boolean)}
           >
           <div className="opts">
           <div className="opt">
-            <div className="k">Piece types</div>
+            <div className="k">{t("Piece types")}</div>
             <MultiSelect
               label="Piece types"
               all
@@ -408,10 +411,10 @@ export default function Finesse({ settings, onBack }) {
         </div>
         <div className="actions">
           <button className="btn primary" onClick={startGame}>
-            Start
+            {t("Start")}
           </button>
           <button className="btn ghost" onClick={onBack}>
-            Back
+            {t("Back")}
           </button>
         </div>
       </div>
@@ -429,11 +432,12 @@ export default function Finesse({ settings, onBack }) {
     <>
       <div className="mode-label">Finesse · {goal ? `${goal} pieces` : "Endless"}</div>
       <div className="play" style={{ zoom }}>
+        {settings.showLog !== false && <EngineLog engineRef={engineRef} />}
         <div className="side" style={{ width: 150 }}>
           <Stat k="Time" v={formatTime(hud.clock)} big />
           <Stat k="Pieces" v={goal ? `${st.done} / ${goal}` : st.done} />
           <div className="stat">
-            <div className="k">Faults</div>
+            <div className="k">{t("Faults")}</div>
             <div key={faultFlash} className={"v" + (faultFlash ? " flash" : "")}>
               {st.faults}
             </div>
@@ -449,7 +453,7 @@ export default function Finesse({ settings, onBack }) {
             <div className="veil">
               <div className="k">{result.pieces} pieces</div>
               <div className="title">
-                {result.faults === 0 ? "Clean" : `${result.faults} faults`}
+                {result.faults === 0 ? t("Clean") : t("{n} faults", { n: result.faults })}
               </div>
               <div className="grid2">
                 <Stat k="Time" v={formatTime(result.time)} />
@@ -459,7 +463,7 @@ export default function Finesse({ settings, onBack }) {
               </div>
               <div className="row-btns">
                 <button className="btn primary" onClick={startGame}>
-                  Again
+                  {t("Again")}
                 </button>
                 <button className="btn ghost" onClick={() => setPhase("select")}>
                   Setup
@@ -472,13 +476,13 @@ export default function Finesse({ settings, onBack }) {
         <div className="side right" style={{ width: 180 }}>
           <div>
             <div className="k" style={{ marginBottom: 8 }}>
-              Last piece
+              {t("Last piece")}
             </div>
-            {!last && <div className="note">Best input appears here after each piece.</div>}
+            {!last && <div className="note">{t("Best input appears here after each piece.")}</div>}
             {last && (
               <div key={`${hud.done}-${hud.faults}`} className={"last" + (last.ok ? " ok" : " bad")}>
                 <div className="v xs">
-                  {last.spot ? "Wrong spot" : last.ok ? "Clean" : `+${last.keys - last.best.count} keys`}
+                  {last.spot ? t("Wrong spot") : last.ok ? t("Clean") : t("+{n} keys", { n: last.keys - last.best.count })}
                 </div>
                 {!last.spot && (
                   <div className="note" style={{ margin: "4px 0 10px" }}>
@@ -489,7 +493,12 @@ export default function Finesse({ settings, onBack }) {
               </div>
             )}
           </div>
-          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[[["F"], "restart"], [["Esc"], "exit"]]} />
+          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[
+            [["F"], "restart"],
+            [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
+            [["K"], `input ${settings.showKeys ? "on" : "off"}`],
+            [["Esc"], "exit"],
+          ]} />
         </div>
       </div>
     </>

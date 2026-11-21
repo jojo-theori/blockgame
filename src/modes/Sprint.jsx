@@ -1,14 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { t } from "../i18n.js";
 import { BlockEngine, formatTime, buildReplayText } from "../game.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { Stat, Countdown, KeyHints, ReplayLog, KeyStrokes } from "../ui.jsx";
+import { useDisplayToggles } from "../display.js";
 import { useFit } from "../fit.js";
 
 const SPRINT_OPTIONS = [1, 20, 40, 100, 1000];
 
 export default function Sprint({ settings, onBack }) {
+  // In-game display toggles (L log, K key input); they change the saved setting.
+  useDisplayToggles(settings);
   const zoom = useFit(640, 600);
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
@@ -296,11 +300,11 @@ export default function Sprint({ settings, onBack }) {
   if (phase === "select") {
     return (
       <div className="page" style={{ "--accent": "#41b6e6" }}>
-        <h1 className="title">Sprint</h1>
-        <p className="lede">Clear the lines as fast as you can. The clock starts on the first piece.</p>
+        <h1 className="title">{t("Sprint")}</h1>
+        <p className="lede">{t("Clear the lines as fast as you can. The clock starts on the first piece.")}</p>
         <div className="opts center">
           <div className="opt">
-            <div className="k">Lines</div>
+            <div className="k">{t("Lines")}</div>
             {/* Plenty of room here, so the choices are big buttons in a column */}
             <div className="choice-list" role="radiogroup" aria-label="Lines">
               {SPRINT_OPTIONS.map((n) => (
@@ -323,7 +327,7 @@ export default function Sprint({ settings, onBack }) {
             </div>
           </div>
           <div className="opt">
-            <div className="k">Handling</div>
+            <div className="k">{t("Handling")}</div>
             <div className="dim small">
               DAS {settings.das} ms · ARR {settings.arr} ms · SDF {settings.sdf === 100 ? "∞" : settings.sdf}
             </div>
@@ -331,10 +335,10 @@ export default function Sprint({ settings, onBack }) {
         </div>
         <div className="actions">
           <button className="btn primary" onClick={startGame}>
-            Start
+            {t("Start")}
           </button>
           <button className="btn ghost" onClick={onBack}>
-            Back
+            {t("Back")}
           </button>
         </div>
       </div>
@@ -351,12 +355,12 @@ export default function Sprint({ settings, onBack }) {
         {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} />}
         <div className="side">
           <div>
-            <div className="k">Hold</div>
+            <div className="k">{t("Hold")}</div>
             <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
           </div>
           <Stat k="Time" v={displayTime} big />
           <div className="stat">
-            <div className="k">Lines left</div>
+            <div className="k">{t("Lines left")}</div>
             <div className="v big" style={{ color: linesColor }}>
               {displayLines}
             </div>
@@ -393,7 +397,7 @@ export default function Sprint({ settings, onBack }) {
               </div>
               <div className="row-btns">
                 <button className="btn primary" onClick={startGame}>
-                  Again
+                  {t("Again")}
                 </button>
                 <button className="btn" onClick={copyReplay}>
                   {copied ? (
@@ -401,14 +405,14 @@ export default function Sprint({ settings, onBack }) {
                       <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M5 12.5l4.5 4.5L19 7.5" />
                       </svg>
-                      Copied
+                      {t("Copied")}
                     </>
                   ) : (
-                    "Copy log"
+                    t("Copy log")
                   )}
                 </button>
                 <button className="btn ghost" onClick={onBack}>
-                  Menu
+                  {t("Menu")}
                 </button>
               </div>
             </div>
@@ -416,13 +420,13 @@ export default function Sprint({ settings, onBack }) {
 
           {phase === "gameover" && (
             <div className="veil">
-              <div className="k">Top out</div>
+              <div className="k">{t("Top out")}</div>
               <div className="title">
                 {stats?.lines || 0} lines in {formatTime(stats?.time || 0)}
               </div>
               <div className="row-btns">
                 <button className="btn primary" onClick={startGame}>
-                  Again
+                  {t("Again")}
                 </button>
                 {stats?.replayText && (
                   <button className="btn" onClick={copyReplay}>
@@ -431,15 +435,15 @@ export default function Sprint({ settings, onBack }) {
                       <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M5 12.5l4.5 4.5L19 7.5" />
                       </svg>
-                      Copied
+                      {t("Copied")}
                     </>
                   ) : (
-                    "Copy log"
+                    t("Copy log")
                   )}
                   </button>
                 )}
                 <button className="btn ghost" onClick={onBack}>
-                  Menu
+                  {t("Menu")}
                 </button>
               </div>
             </div>
@@ -448,10 +452,15 @@ export default function Sprint({ settings, onBack }) {
 
         <div className="side right">
           <div>
-            <div className="k">Next</div>
+            <div className="k">{t("Next")}</div>
             <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
           </div>
-          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[[["F"], "restart"], [["Esc"], "exit"]]} />
+          <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[
+            [["F"], "restart"],
+            [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
+            [["K"], `input ${settings.showKeys ? "on" : "off"}`],
+            [["Esc"], "exit"],
+          ]} />
         </div>
       </div>
     </>

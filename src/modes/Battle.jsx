@@ -1,6 +1,8 @@
 import { Fragment, useState, useEffect, useRef, useCallback } from "react";
+import { t } from "../i18n.js";
 import { ROWS, CELL, BlockEngine } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
+import { BotPlayer } from "../bots/player.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, prep, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { Countdown, KeyHints, Dropdown } from "../ui.jsx";
@@ -18,18 +20,30 @@ const LEVELS = [
   { id: "easy", label: "Easy" },
   { id: "normal", label: "Normal" },
   { id: "hard", label: "Hard" },
+  { id: "max", label: "Max" },
 ];
+// Which engine plays the CPU seat. Stacker is JBL's own simple heuristic.
+const BOTS = [
+  { id: "cc", label: "Cold Clear" },
+  { id: "misa", label: "MisaMino" },
+  { id: "stacker", label: "Stacker", note: "Simple" },
+];
+const botName = (id) => BOTS.find((b) => b.id === id)?.label ?? "CPU";
+const makeCpu = (engine, bot, level) => (bot === "stacker" ? new CPUPlayer(engine, level === "max" ? "hard" : level) : new BotPlayer(engine, bot, level));
+// Handicap: lines added to (or taken from) every attack this seat sends.
+// Lines added to (+) or taken from (−) every attack this seat sends.
+const HANDICAPS = [3, 2, 1, 0, -1, -2, -3].map((h) => ({ id: h, label: h === 0 ? "0" : `${h > 0 ? "+" : "−"}${Math.abs(h)}` }));
 const SEAT_COLOR = { p1: "#41b6e6", p2: "#e8505b", cpu: "#8a8a8a" };
 
 // A seat in the match: who plays it, and the CPU level when it's the CPU.
 function SeatCard({ seat, seats, humans }) {
   const isCpu = seat.who === "cpu";
   const name = WHO.find((w) => w.id === seat.who).label;
-  const sub = isCpu ? "Computer" : humans === 1 ? "Solo keys" : `${seat.who === "p1" ? "P1" : "P2"} keys`;
+  const sub = isCpu ? botName(seat.bot) : t(humans === 1 ? "Solo keys" : seat.who === "p1" ? "P1 keys" : "P2 keys");
   // Picking a player who already sits elsewhere swaps the two seats.
   const options = WHO.map((w) => {
     const takenBy = w.id !== "cpu" && seats.find((o) => o !== seat && o.who === w.id);
-    return { ...w, note: takenBy ? `Swap with seat ${takenBy.n}` : null };
+    return { ...w, note: takenBy ? t("Swap with seat {n}", { n: takenBy.n }) : null };
   });
   const choose = (id) => {
     const other = id !== "cpu" && seats.find((o) => o !== seat && o.who === id);
@@ -38,16 +52,23 @@ function SeatCard({ seat, seats, humans }) {
   };
   return (
     <div className="seat" style={{ "--seat": SEAT_COLOR[seat.who] }}>
-      <div className="k">Seat {seat.n}</div>
+      <div className="k">{t("Seat {n}", { n: seat.n })}</div>
       <div className="seat-id">
-        <div className="seat-name">{name}</div>
+        <div className="seat-name">{t(name)}</div>
         <div className="seat-sub">{sub}</div>
       </div>
       <div className="seat-fields">
-        <Dropdown label={`Seat ${seat.n} player`} value={seat.who} options={options} onChange={choose} />
+        <Dropdown label={t("Seat {n} player", { n: seat.n })} value={seat.who} options={options} onChange={choose} />
         {/* Always rendered so switching to/from CPU never shifts the layout */}
-        <div style={{ visibility: isCpu ? "visible" : "hidden" }}>
-          <Dropdown label={`Seat ${seat.n} CPU level`} value={seat.level} options={LEVELS} onChange={seat.setLevel} />
+        <div className="seat-row" style={{ visibility: isCpu ? "visible" : "hidden" }}>
+          <Dropdown label={t("Seat {n} bot", { n: seat.n })} value={seat.bot} options={BOTS} onChange={seat.setBot} />
+          <Dropdown label={t("Seat {n} CPU level", { n: seat.n })} value={seat.level} options={LEVELS} onChange={seat.setLevel} />
+        </div>
+        <div className="seat-hc">
+          <span className="k" title={t("Lines added to or taken from every attack")}>{t("Handicap")}</span>
+          <div className="seat-hc-dd">
+            <Dropdown label={t("Seat {n} handicap", { n: seat.n })} value={seat.handicap} options={HANDICAPS} onChange={seat.setHandicap} />
+          </div>
         </div>
       </div>
     </div>
@@ -62,8 +83,10 @@ function loadBattlePrefs() {
   }
 }
 
-function createEngine(settings) {
+function createEngine(settings, attackBonus = 0, seed) {
   return new BlockEngine({
+    attackBonus,
+    seed,
     das: settings.das,
     arr: settings.arr,
     sdf: settings.sdf,
@@ -110,7 +133,7 @@ function PlayerBoard({ engineRef, label, sub, result, mirror }) {
   const hold = (
     <div className="side" style={{ width: HOLD_W }}>
       <div>
-        <div className="k">Hold</div>
+        <div className="k">{t("Hold")}</div>
         <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
       </div>
       <div>
@@ -123,7 +146,7 @@ function PlayerBoard({ engineRef, label, sub, result, mirror }) {
   const next = (
     <div className="side right" style={{ width: HOLD_W }}>
       <div>
-        <div className="k">Next</div>
+        <div className="k">{t("Next")}</div>
         <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
       </div>
     </div>
@@ -154,6 +177,10 @@ export default function Battle({ settings, onBack, onSettings }) {
   const [right, setRight] = useState(saved.right ?? "cpu");
   const [leftLevel, setLeftLevel] = useState(saved.leftLevel ?? "normal");
   const [rightLevel, setRightLevel] = useState(saved.rightLevel ?? "normal");
+  const [leftBot, setLeftBot] = useState(saved.leftBot ?? "cc");
+  const [rightBot, setRightBot] = useState(saved.rightBot ?? "cc");
+  const [leftHandicap, setLeftHandicap] = useState(saved.leftHandicap ?? 0);
+  const [rightHandicap, setRightHandicap] = useState(saved.rightHandicap ?? 0);
   const [countdownText, setCountdownText] = useState("");
   const [, forceUpdate] = useState(0);
   const [winner, setWinner] = useState(null); // "p1" | "p2"
@@ -181,11 +208,11 @@ export default function Battle({ settings, onBack, onSettings }) {
   }, [settings]);
   useEffect(() => {
     try {
-      localStorage.setItem("jbl-battle", JSON.stringify({ left, right, leftLevel, rightLevel }));
+      localStorage.setItem("jbl-battle", JSON.stringify({ left, right, leftLevel, rightLevel, leftBot, rightBot, leftHandicap, rightHandicap }));
     } catch {
       /* ignore */
     }
-  }, [left, right, leftLevel, rightLevel]);
+  }, [left, right, leftLevel, rightLevel, leftBot, rightBot, leftHandicap, rightHandicap]);
 
   const reloadKeys = useCallback(() => {
     const all = loadKeyBindings();
@@ -247,58 +274,91 @@ export default function Battle({ settings, onBack, onSettings }) {
     };
   }, []);
 
+  // Both boards are replaced at once when a match (re)starts, so the two sides
+  // always begin together; the countdown then starts them.
   const launch = useCallback(() => {
-    const e1 = createEngine(settingsRef.current);
-    const e2 = createEngine(settingsRef.current);
+    const e1 = engine1Ref.current;
+    const e2 = engine2Ref.current;
     e1.start();
     e2.start();
-    engine1Ref.current = e1;
-    engine2Ref.current = e2;
     seatsRef.current = [left, right];
     cpusRef.current = [
-      left === "cpu" ? new CPUPlayer(e1, leftLevel) : null,
-      right === "cpu" ? new CPUPlayer(e2, rightLevel) : null,
+      left === "cpu" ? makeCpu(e1, leftBot, leftLevel) : null,
+      right === "cpu" ? makeCpu(e2, rightBot, rightLevel) : null,
     ].filter(Boolean);
     setWinner(null);
     phaseRef.current = "playing";
     setPhase("playing");
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(loopRef.current);
-  }, [left, right, leftLevel, rightLevel]);
+  }, [left, right, leftLevel, rightLevel, leftBot, rightBot]);
+
+  const runCountdown = useCallback(() => {
+    if (countdownRef.current) clearTimeout(countdownRef.current);
+    setPhase("countdown");
+    setCountdownText("Ready");
+    countdownRef.current = setTimeout(() => {
+      setCountdownText("Go");
+      countdownRef.current = setTimeout(launch, 500);
+    }, 700);
+  }, [launch]);
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
     reloadKeys();
-    setPhase("countdown");
-    setCountdownText("Ready");
-    countdownRef.current = setTimeout(() => {
-      setCountdownText("Go");
-      countdownRef.current = setTimeout(() => {
-        launch();
-      }, 500);
-    }, 700);
-  }, [launch, reloadKeys]);
+    // Same seed on both sides: both players get exactly the same pieces.
+    const seed = Math.floor(Math.random() * 2 ** 31);
+    engine1Ref.current = createEngine(settingsRef.current, leftHandicap, seed);
+    engine2Ref.current = createEngine(settingsRef.current, rightHandicap, seed);
+    for (const c of cpusRef.current) c.dispose?.();
+    cpusRef.current = [];
+    setWinner(null);
+    runCountdown();
+  }, [runCountdown, reloadKeys, leftHandicap, rightHandicap]);
+
+  // Pause (Esc). A match is shared, so nothing restarts from a single key:
+  // rematch and exit live in the pause menu.
+  const pausedFromRef = useRef(null);
+  const pause = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (countdownRef.current) clearTimeout(countdownRef.current);
+    pausedFromRef.current = phaseRef.current;
+    // Let go of every held key so nothing keeps moving after the pause.
+    for (const e of [engine1Ref.current, engine2Ref.current]) {
+      if (!e) continue;
+      for (const a of ["left", "right", "softdrop"]) e.onKeyUp(a);
+    }
+    phaseRef.current = "paused";
+    setPhase("paused");
+  }, []);
+  const resume = useCallback(() => {
+    if (pausedFromRef.current === "countdown") {
+      runCountdown();
+      return;
+    }
+    phaseRef.current = "playing";
+    setPhase("playing");
+    lastTimeRef.current = 0;
+    rafRef.current = requestAnimationFrame(loopRef.current);
+  }, [runCountdown]);
+  const toSetup = useCallback(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (countdownRef.current) clearTimeout(countdownRef.current);
+    setPhase("select");
+  }, []);
 
   // Key handling for in-game.
   useEffect(() => {
     const onDown = (e) => {
       if (e.code === "Escape" || e.key === "Escape") {
-        if (phase === "playing" || phase === "finished" || phase === "countdown") {
-          if (rafRef.current) cancelAnimationFrame(rafRef.current);
-          if (countdownRef.current) clearTimeout(countdownRef.current);
-          setPhase("select");
-        } else if (phase === "select") {
-          onBack();
-        }
+        if (phase === "playing" || phase === "countdown") pause();
+        else if (phase === "paused") resume();
+        else if (phase === "finished") toSetup();
+        else if (phase === "select") onBack();
         return;
       }
       if (phase === "select" && (e.code === "Enter" || e.code === "NumpadEnter")) {
-        e.preventDefault();
-        startGame();
-        return;
-      }
-      if (e.code === "KeyF" && (phase === "playing" || phase === "finished")) {
         e.preventDefault();
         startGame();
         return;
@@ -332,7 +392,7 @@ export default function Battle({ settings, onBack, onSettings }) {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
     };
-  }, [phase, onBack, startGame]);
+  }, [phase, onBack, startGame, pause, resume, toSetup]);
 
   // Cleanup
   useEffect(
@@ -347,16 +407,16 @@ export default function Battle({ settings, onBack, onSettings }) {
   if (phase === "select") {
     // One card per seat. Built from an array so more seats can be added later.
     const seats = [
-      { n: 1, who: left, setWho: setLeft, level: leftLevel, setLevel: setLeftLevel },
-      { n: 2, who: right, setWho: setRight, level: rightLevel, setLevel: setRightLevel },
+      { n: 1, who: left, setWho: setLeft, bot: leftBot, setBot: setLeftBot, level: leftLevel, setLevel: setLeftLevel, handicap: leftHandicap, setHandicap: setLeftHandicap },
+      { n: 2, who: right, setWho: setRight, bot: rightBot, setBot: setRightBot, level: rightLevel, setLevel: setRightLevel, handicap: rightHandicap, setHandicap: setRightHandicap },
     ];
     const bothCpu = left === "cpu" && right === "cpu";
     const humans = [left, right].filter((x) => x !== "cpu").length;
     return (
       <div className="page wide" style={{ "--accent": "#e8505b" }}>
-        <h1 className="title">Battle</h1>
+        <h1 className="title">{t("Battle")}</h1>
         <p className="lede">
-          First to top out loses. Line clears send garbage; clearing while garbage is queued cancels it.
+          {t("First to top out loses. Line clears send garbage; clearing while garbage is queued cancels it.")}
         </p>
         <div className="opts fill">
           <div className="seats">
@@ -367,16 +427,20 @@ export default function Battle({ settings, onBack, onSettings }) {
                     <button
                       type="button"
                       className="swap"
-                      aria-label="Swap seats"
-                      title="Swap seats"
+                      aria-label={t("Swap seats")}
+                      title={t("Swap seats")}
                       onClick={() => {
                         const a = seats[i - 1];
                         const b = seat;
-                        const [aw, al] = [a.who, a.level];
+                        const [aw, al, ah, ab] = [a.who, a.level, a.handicap, a.bot];
                         a.setWho(b.who);
                         a.setLevel(b.level);
+                        a.setBot(b.bot);
+                        b.setBot(ab);
+                        a.setHandicap(b.handicap);
                         b.setWho(aw);
                         b.setLevel(al);
+                        b.setHandicap(ah);
                       }}
                     >
                       <span className="swap-vs" aria-hidden="true">vs</span>
@@ -397,21 +461,21 @@ export default function Battle({ settings, onBack, onSettings }) {
                   <path d="M12 3.5 22 20.5H2Z" />
                   <path d="M12 10v4.5M12 17.2v.3" />
                 </svg>
-                Both sides are CPU, so you&apos;ll be watching.
+                {t("Both sides are CPU, so you'll be watching.")}
               </span>
             ) : humans === 2 ? (
               <>
-                Player 1 and Player 2 use their own keys. Change them in{" "}
+                {t("Player 1 and Player 2 use their own keys. Change them in")}{" "}
                 <button type="button" className="link" onClick={onSettings}>
-                  Settings
+                  {t("Settings")}
                 </button>
                 .
               </>
             ) : (
               <>
-                You play with your solo keys. Change them in{" "}
+                {t("You play with your solo keys. Change them in")}{" "}
                 <button type="button" className="link" onClick={onSettings}>
-                  Settings
+                  {t("Settings")}
                 </button>
                 .
               </>
@@ -420,26 +484,26 @@ export default function Battle({ settings, onBack, onSettings }) {
         </div>
         <div className="actions">
           <button className="btn primary" onClick={startGame}>
-            Start
+            {t("Start")}
           </button>
           <button className="btn ghost" onClick={onBack}>
-            Back
+            {t("Back")}
           </button>
         </div>
       </div>
     );
   }
 
-  const nameOf = (slot) => (slot === "cpu" ? "CPU" : slot === "p1" ? "P1" : "P2");
-  const levelOf = (slot, lv) => (slot === "cpu" ? lv[0].toUpperCase() + lv.slice(1) : null);
-  const nameP1 = nameOf(left);
-  const nameP2 = nameOf(right);
+  const nameOf = (slot, bot) => (slot === "cpu" ? botName(bot) : slot === "p1" ? "P1" : "P2");
+  const levelOf = (slot, lv) => (slot === "cpu" ? t(lv[0].toUpperCase() + lv.slice(1)) : null);
+  const nameP1 = nameOf(left, leftBot);
+  const nameP2 = nameOf(right, rightBot);
   const done = phase === "finished";
 
   return (
     <>
       <div className="mode-label">
-        Battle · {nameP1} vs {nameP2}
+        {t("Battle")} · {nameP1} vs {nameP2}
       </div>
       <div style={{ position: "relative" }}>
         {/* When the match ends the boards fade back instead of being covered by a
@@ -450,7 +514,7 @@ export default function Battle({ settings, onBack, onSettings }) {
             gap: 56,
             alignItems: "flex-start",
             zoom,
-            opacity: done ? 0.12 : 1,
+            opacity: done || phase === "paused" ? 0.12 : 1,
             transition: "opacity 0.35s var(--out)",
           }}
         >
@@ -458,36 +522,55 @@ export default function Battle({ settings, onBack, onSettings }) {
             engineRef={engine1Ref}
             label={nameP1}
             sub={levelOf(left, leftLevel)}
-            result={done ? (winner === "p1" ? "Won" : "Lost") : null}
+            result={done ? t(winner === "p1" ? "Won" : "Lost") : null}
           />
           <PlayerBoard
             engineRef={engine2Ref}
             label={nameP2}
             sub={levelOf(right, rightLevel)}
-            result={done ? (winner === "p2" ? "Won" : "Lost") : null}
+            result={done ? t(winner === "p2" ? "Won" : "Lost") : null}
           />
         </div>
         {phase === "countdown" && <Countdown text={countdownText} />}
+        {phase === "paused" && (
+          <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "transparent" }}>
+            <div className="title">{t("Paused")}</div>
+            <div className="row-btns" style={{ width: 220 }}>
+              <button className="btn primary" onClick={resume}>
+                {t("Resume")}
+              </button>
+              <button className="btn" onClick={startGame}>
+                {t("Rematch")}
+              </button>
+              <button className="btn" onClick={toSetup}>
+                {t("Change setup")}
+              </button>
+              <button className="btn ghost" onClick={onBack}>
+                {t("Menu")}
+              </button>
+            </div>
+          </div>
+        )}
         <KeyHints
           style={{ position: "absolute", left: 0, right: 0, top: "100%", marginTop: 24 }}
-          items={[[["F"], "rematch"], [["Esc"], "exit"]]}
+          items={[[["Esc"], phase === "paused" ? "resume" : "pause"]]}
         />
 
         {done && (
           <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "transparent" }}>
-            <div className="k">{winner === "p1" ? `${nameP2} topped out` : `${nameP1} topped out`}</div>
+            <div className="k">{t("{name} topped out", { name: winner === "p1" ? nameP2 : nameP1 })}</div>
             <div className="title">
-              {winner === "p1" ? `${nameP1} wins` : `${nameP2} wins`}
+              {t("{name} wins", { name: winner === "p1" ? nameP1 : nameP2 })}
             </div>
             <div className="row-btns" style={{ width: 220 }}>
-              <button className="btn primary" onClick={startGame} autoFocus>
-                Rematch
+              <button className="btn primary" onClick={startGame}>
+                {t("Rematch")}
               </button>
               <button className="btn" onClick={() => setPhase("select")}>
                 Change setup
               </button>
               <button className="btn ghost" onClick={onBack}>
-                Menu
+                {t("Menu")}
               </button>
             </div>
           </div>

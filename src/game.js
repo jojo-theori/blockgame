@@ -479,6 +479,8 @@ export class BlockEngine {
     this.arr = settings.arr ?? 10;
     this.sdf = settings.sdf ?? 30;
     this.sprintLines = settings.sprintLines ?? 40;
+    this.attackBonus = settings.attackBonus ?? 0;
+    this.seed = settings.seed;
     // Opening practice: fixed piece order consumed before random bags, and a
     // hook that can reject a placement before it locks in.
     this.sequence = settings.sequence ? settings.sequence.slice() : null;
@@ -493,7 +495,9 @@ export class BlockEngine {
 
   reset() {
     this.matrix = createMatrix();
-    this.rng = mulberry32(Date.now() + Math.floor(Math.random() * 1e9));
+    // A fixed seed gives a repeatable piece order (Battle: both boards share it).
+    const seed = this.seed ?? Date.now() + Math.floor(Math.random() * 1e9);
+    this.rng = mulberry32(seed);
     this.bag = [];
     this.queue = [];
     this.pendingSeq = this.sequence ? this.sequence.slice() : [];
@@ -502,7 +506,7 @@ export class BlockEngine {
     // Jstris: reject banned start sequences (S/Z/O as first pieces in Sprint)
     let attempts = 0;
     while (!this.sequence && this.isBannedStart() && attempts < 1000) {
-      this.rng = mulberry32(Date.now() + ++attempts * 7919);
+      this.rng = mulberry32(seed + ++attempts * 7919);
       this.bag = [];
       this.queue = [];
       this.fillQueue();
@@ -850,7 +854,8 @@ export class BlockEngine {
     this.checkLineClears();
 
     // Battle: cancel incoming with this turn's attack, dump remainder if no clear.
-    let outgoing = this.lastAttack;
+    // Battle handicap: every attack sends this many lines more (or fewer).
+    let outgoing = this.lastAttack > 0 ? Math.max(0, this.lastAttack + this.attackBonus) : 0;
     while (outgoing > 0 && this.garbageQueue.length > 0) {
       const head = this.garbageQueue[0];
       if (head.amount <= outgoing) {

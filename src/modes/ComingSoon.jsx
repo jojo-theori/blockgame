@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { t } from "../i18n.js";
 
 export default function ComingSoon({ label, color, onBack }) {
   useEffect(() => {
@@ -12,10 +13,10 @@ export default function ComingSoon({ label, color, onBack }) {
   return (
     <div className="page" style={{ "--accent": color }}>
       <h1 className="title">{label}</h1>
-      <p className="lede">This mode is still in the lab.</p>
+      <p className="lede">{t("This mode is still in the lab.")}</p>
       <div className="actions">
         <button className="btn" onClick={onBack}>
-          Back
+          {t("Back")}
         </button>
       </div>
     </div>

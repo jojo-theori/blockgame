@@ -1,6 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { keyLabel, loadKeyBindings } from "./keys.js";
 import { sfx } from "./sound.js";
+import { t } from "./i18n.js";
+
+// Shared components translate the plain-string text they are given.
+const tr = (x) => (typeof x === "string" ? t(x) : x);
 
 // ─── SHARED UI ───
 
@@ -63,7 +67,7 @@ export function Segmented({ options, value, onChange, focus = false, label }) {
             onChange(o.id);
           }}
         >
-          {o.label}
+          {tr(o.label)}
         </button>
       ))}
     </div>
@@ -73,7 +77,7 @@ export function Segmented({ options, value, onChange, focus = false, label }) {
 export function Stat({ k, v, big = false, style }) {
   return (
     <div className="stat" style={style}>
-      <div className="k">{k}</div>
+      <div className="k">{tr(k)}</div>
       <div className={"v" + (big ? " big" : "")}>{v}</div>
     </div>
   );
@@ -86,7 +90,7 @@ export function Countdown({ text }) {
   }, [text]);
   return (
     <div className="count">
-      <span key={text}>{text}</span>
+      <span key={text}>{tr(text)}</span>
     </div>
   );
 }
@@ -150,7 +154,7 @@ export function KeyHints({ items, style }) {
           {caps.map((c) => (
             <Kbd key={c}>{c}</Kbd>
           ))}
-          <span>{label}</span>
+          <span>{tr(label)}</span>
         </span>
       ))}
     </div>
@@ -172,12 +176,12 @@ export function Advanced({ open, onToggle, changed = [], children }) {
           onToggle();
         }}
       >
-        <span>Advanced settings</span>
+        <span>{t("Advanced settings")}</span>
         <svg className="adv-chev" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M8 10l4 4 4-4" />
         </svg>
       </button>
-      {!open && changed.length > 0 && <div className="adv-sum">{changed.join(" · ")}</div>}
+      {!open && changed.length > 0 && <div className="adv-sum">{changed.map(tr).join(" · ")}</div>}
       <div className="adv-body" aria-hidden={!open}>
         <div className="adv-inner">{children}</div>
       </div>
@@ -190,6 +194,7 @@ export function Advanced({ open, onToggle, changed = [], children }) {
 // moment it's clicked (optimistic). Esc or a click outside closes it.
 export function Dropdown({ label, value, options, onChange }) {
   const [open, setOpen] = useState(false);
+  const [up, setUp] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return;
@@ -203,7 +208,7 @@ export function Dropdown({ label, value, options, onChange }) {
   return (
     <div
       ref={ref}
-      className={"dd" + (open ? " open" : "")}
+      className={"dd" + (open ? " open" : "") + (up ? " up" : "")}
       onKeyDown={(e) => {
         if (e.key === "Escape" && open) {
           e.stopPropagation();
@@ -219,10 +224,22 @@ export function Dropdown({ label, value, options, onChange }) {
         aria-label={label}
         onClick={() => {
           sfx.tick();
+          // Open upward when the list wouldn't fit below the button.
+          if (!open && ref.current) {
+            const r = ref.current.getBoundingClientRect();
+            const need = options.length * 34 + 16;
+            // The list can be clipped by a scrolling/clipping ancestor, not only the window.
+            let floor = window.innerHeight;
+            for (let el = ref.current.parentElement; el; el = el.parentElement) {
+              const o = getComputedStyle(el);
+              if (o.overflowY !== "visible" || o.overflowX !== "visible") floor = Math.min(floor, el.getBoundingClientRect().bottom);
+            }
+            setUp(floor - r.bottom < need && r.top > need);
+          }
           setOpen((o) => !o);
         }}
       >
-        <span>{current?.label}</span>
+        <span>{tr(current?.label)}</span>
         <svg className="dd-chev" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M8 10l4 4 4-4" />
         </svg>
@@ -248,9 +265,9 @@ export function Dropdown({ label, value, options, onChange }) {
                 <svg className="dd-check" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M5 12.5l4.5 4.5L19 7.5" />
                 </svg>
-                {o.label}
+                {tr(o.label)}
               </span>
-              {o.id === value ? <span className="dd-note">Current</span> : o.note && <span className="dd-note">{o.note}</span>}
+              {o.id === value ? <span className="dd-note">{t("Current")}</span> : o.note && <span className="dd-note">{tr(o.note)}</span>}
             </button>
           </li>
         ))}
@@ -286,7 +303,7 @@ export function MultiSelect({ options, values, onChange, min = 1, all = false, l
             onChange(options.map((o) => o.id));
           }}
         >
-          All
+          {t("All")}
         </button>
       )}
       {options.map((o) => (
@@ -298,7 +315,7 @@ export function MultiSelect({ options, values, onChange, min = 1, all = false, l
           onClick={() => toggle(o.id)}
         >
           {o.color && <i className="chip-dot" style={{ background: o.color }} />}
-          {o.label}
+          {tr(o.label)}
         </button>
       ))}
     </div>
@@ -320,8 +337,8 @@ export function Switch({ checked, onChange, label, hint }) {
       }}
     >
       <span className="switch-text">
-        <span className="switch-label">{label}</span>
-        {hint && <span className="switch-hint">{hint}</span>}
+        <span className="switch-label">{tr(label)}</span>
+        {hint && <span className="switch-hint">{tr(hint)}</span>}
       </span>
       <span className="switch" aria-hidden="true">
         <span className="knob" />
@@ -339,7 +356,7 @@ export function ReplayLog({ events, total }) {
   const first = total - events.length;
   return (
     <div className="rlog" aria-label="Piece log">
-      <div className="k">Log</div>
+      <div className="k">{t("Log")}</div>
       <ol className="rlog-list">
         {events.map((ev, i) => {
           const n = first + i + 1;
@@ -353,7 +370,7 @@ export function ReplayLog({ events, total }) {
                 {ev.type}
               </span>
               {ev.kind === "hold" ? (
-                <span className="rlog-dim">hold</span>
+                <span className="rlog-dim">{t("hold")}</span>
               ) : (
                 <>
                   <span className={"rlog-keys" + (fault ? " bad" : "")}>
@@ -408,7 +425,7 @@ export function KeyStrokes({ profile = "solo" }) {
   }, [bind]);
   return (
     <div className="strokes" aria-hidden="true">
-      <div className="k">Input</div>
+      <div className="k">{t("Input")}</div>
       {STROKE_ROWS.map((row, r) => (
         <div key={r} className="strokes-row">
           {row.map((a) => (
@@ -420,4 +437,90 @@ export function KeyStrokes({ profile = "solo" }) {
       ))}
     </div>
   );
+}
+
+
+// ─── Top bar (always visible, top right): language, theme, full screen ───
+export function TopBar({ lang, setLang, theme, setTheme }) {
+  const [full, setFull] = useState(() => !!document.fullscreenElement);
+  useEffect(() => {
+    const on = () => setFull(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", on);
+    return () => document.removeEventListener("fullscreenchange", on);
+  }, []);
+  const click = (fn) => (e) => {
+    e.currentTarget.blur();
+    sfx.tick();
+    fn();
+  };
+  const canFull = !!document.documentElement.requestFullscreen;
+  return (
+    <div className="topbar">
+      <button
+        type="button"
+        className="top-btn lang"
+        title={lang === "ko" ? "Switch to English" : "한국어로 보기"}
+        aria-label={lang === "ko" ? "Switch to English" : "한국어로 보기"}
+        onClick={click(() => setLang(lang === "ko" ? "en" : "ko"))}
+      >
+        {lang === "ko" ? "한" : "EN"}
+      </button>
+      <button
+        type="button"
+        className="top-btn"
+        title={t(theme === "light" ? "Dark mode" : "Light mode")}
+        aria-label={t(theme === "light" ? "Dark mode" : "Light mode")}
+        onClick={click(() => setTheme(theme === "light" ? "dark" : "light"))}
+      >
+        {theme === "light" ? (
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19.5 14.2A7.5 7.5 0 0 1 9.8 4.5a7.5 7.5 0 1 0 9.7 9.7Z" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.6" />
+            <path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M6 18l1.4-1.4M16.6 7.4 18 6" />
+          </svg>
+        )}
+      </button>
+      {canFull && (
+        <button
+          type="button"
+          className="top-btn"
+          title={t(full ? "Exit full screen" : "Full screen")}
+          aria-label={t(full ? "Exit full screen" : "Full screen")}
+          onClick={click(() => (full ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}))}
+        >
+          {full ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 4.5V9H4.5M15 4.5V9h4.5M9 19.5V15H4.5M15 19.5V15h4.5" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 9V4.5H9M19.5 9V4.5H15M4.5 15v4.5H9M19.5 15v4.5H15" />
+            </svg>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Piece log for modes that don't track it themselves: polls the engine.
+export function EngineLog({ engineRef }) {
+  const [log, setLog] = useState({ events: [], total: 0 });
+  useEffect(() => {
+    let seen = -1;
+    let eng = null;
+    const id = setInterval(() => {
+      const e = engineRef.current;
+      const n = e?.replay?.length ?? 0;
+      if (e === eng && n === seen) return;
+      eng = e;
+      seen = n;
+      setLog({ events: e ? e.replay.slice(-40) : [], total: n });
+    }, 100);
+    return () => clearInterval(id);
+  }, [engineRef]);
+  return <ReplayLog events={log.events} total={log.total} />;
 }

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { t, setLang } from "./i18n.js";
 import Sprint from "./modes/Sprint.jsx";
 import Battle from "./modes/Battle.jsx";
 import Opening from "./modes/Opening.jsx";
 import Finesse from "./modes/Finesse.jsx";
 import Settings from "./modes/Settings.jsx";
 import ComingSoon from "./modes/ComingSoon.jsx";
-import { KeyHints } from "./ui.jsx";
+import { KeyHints, TopBar } from "./ui.jsx";
 import { sfx, setSoundEnabled as setSfxEnabled } from "./sound.js";
 
 // ─── SETTINGS PERSISTENCE ───
@@ -47,14 +48,23 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(() => loadSettings().soundEnabled ?? true);
   const [showLog, setShowLog] = useState(() => loadSettings().showLog ?? true);
   const [showKeys, setShowKeys] = useState(() => loadSettings().showKeys ?? false);
+  const [lang, setLangState] = useState(() => loadSettings().lang ?? (navigator.language?.startsWith("ko") ? "ko" : "en"));
+  const [theme, setTheme] = useState(() => loadSettings().theme ?? "dark");
+  // Language is read by t() during render, so set it before children render.
+  setLang(lang);
 
   const [menuIdx, setMenuIdx] = useState(0);
   const rowRefs = useRef([]);
 
   useEffect(() => {
     const prev = loadSettings();
-    saveSettings({ ...prev, das, arr, sdf, soundEnabled, showLog, showKeys });
-  }, [das, arr, sdf, soundEnabled, showLog, showKeys]);
+    saveSettings({ ...prev, das, arr, sdf, soundEnabled, showLog, showKeys, lang, theme });
+  }, [das, arr, sdf, soundEnabled, showLog, showKeys, lang, theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.querySelector("meta[name=theme-color]")?.setAttribute("content", theme === "light" ? "#f3f3f1" : "#0a0a0a");
+  }, [theme]);
 
   // Every sound follows the Sound setting.
   useEffect(() => {
@@ -105,7 +115,7 @@ export default function App() {
     rowRefs.current[menuIdx]?.focus();
   }, [view, menuIdx]);
 
-  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys };
+  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys };
   const goMenu = () => setView("menu");
   const current = MODES.find((m) => m.id === view);
 
@@ -113,10 +123,12 @@ export default function App() {
     <div className={"app" + (view === "menu" ? " is-home" : "")}>
       <div className="bg-grid" />
       {view !== "menu" && (
-        <button className="wordmark" onClick={goMenu} title="Home">
+        <button className="wordmark" onClick={goMenu} title={t("Home")}>
           JBL
         </button>
       )}
+
+      <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={setTheme} />
 
       <main className="main">
         {view === "menu" && (
@@ -138,8 +150,8 @@ export default function App() {
                   }}
                 >
                   <i className="dot" />
-                  {m.label}
-                  {!m.ready && <span className="tag">Soon</span>}
+                  {t(m.label)}
+                  {!m.ready && <span className="tag">{t("Soon")}</span>}
                 </button>
               ))}
             </div>
@@ -168,19 +180,19 @@ export default function App() {
         {view === "battle" && <Battle settings={settings} onBack={goMenu} onSettings={() => setView("settings")} />}
         {view === "opening" && <Opening settings={settings} onBack={goMenu} />}
         {view === "finesse" && <Finesse settings={settings} onBack={goMenu} />}
-        {current && !current.ready && <ComingSoon label={current.label} color={current.color} onBack={goMenu} />}
+        {current && !current.ready && <ComingSoon label={t(current.label)} color={current.color} onBack={goMenu} />}
       </main>
 
       <footer className="ftr">
-        Inspired by{" "}
+        {t("Inspired by")}{" "}
         <a href="https://jstris.jezevec10.com/" target="_blank" rel="noopener noreferrer">
           Jstris
         </a>{" "}
-        · Openers after{" "}
+        · {t("Openers after")}{" "}
         <a href="https://four.lol/" target="_blank" rel="noopener noreferrer">
           four.lol
         </a>{" "}
-        · Made by{" "}
+        · {t("Made by")}{" "}
         <a href="https://umjo.me" target="_blank" rel="noopener noreferrer">
           umjo.me
         </a>

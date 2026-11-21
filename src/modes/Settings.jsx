@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { t } from "../i18n.js";
 import {
   ACTIONS,
   DEFAULT_BINDINGS,
   loadKeyBindings,
   saveKeyBindings,
   keyLabel,
-  findConflicts,
-  findCrossProfileConflicts,
   FORBIDDEN_CODES,
 } from "../keys.js";
 
@@ -17,6 +16,9 @@ const PROFILE_LIST = [
   { id: "p1", label: "Battle P1" },
   { id: "p2", label: "Battle P2" },
 ];
+
+// Display order: moves, then rotations in Z X A order, then hold.
+const KEY_ORDER = ["left", "right", "softdrop", "harddrop", "rotateCCW", "rotateCW", "rotate180", "hold"];
 
 const ACTION_NAMES = {
   left: "Move left",
@@ -44,7 +46,11 @@ export default function Settings({
   setShowKeys,
   onBack,
 }) {
-  const [bindings, setBindings] = useState(() => loadKeyBindings());
+  // Key edits are a draft until Save; leaving without saving drops them.
+  const [saved, setSaved] = useState(() => loadKeyBindings());
+  const [bindings, setBindings] = useState(saved);
+  const [notice, setNotice] = useState("");
+  const dirty = JSON.stringify(saved) !== JSON.stringify(bindings);
   const [activeProfile, setActiveProfile] = useState("solo");
   const [recording, setRecording] = useState(null); // { profile, action }
   const [error, setError] = useState("");
@@ -55,9 +61,6 @@ export default function Settings({
     recordingRef.current = recording;
   }, [recording]);
 
-  useEffect(() => {
-    saveKeyBindings(bindings);
-  }, [bindings]);
 
   // Capture-key listener
   useEffect(() => {
@@ -75,47 +78,35 @@ export default function Settings({
       if (FORBIDDEN_CODES.has(e.code)) {
         e.preventDefault();
         e.stopPropagation();
-        setError(`${keyLabel(e.code)} cannot be used.`);
+        setError(t("{key} cannot be used.", { key: keyLabel(e.code) }));
         return;
       }
       e.preventDefault();
       e.stopPropagation();
       const code = e.code;
 
-      // Conflict checks
-      const sameProfile = bindings[rec.profile];
-      const localConflicts = findConflicts(sameProfile, code, rec.action);
-      if (localConflicts.length > 0) {
-        setError(
-          `${keyLabel(code)} already used by ${ACTION_NAMES[localConflicts[0]]} in this profile.`,
-        );
-        setRecording(null);
-        return;
-      }
-
-      // Cross-profile only matters for p1/p2 (same physical keyboard).
-      if (rec.profile === "p1" || rec.profile === "p2") {
-        const cross = findCrossProfileConflicts(
-          bindings.p1,
-          bindings.p2,
-          code,
-          rec.profile,
-          rec.action,
-        );
-        if (cross.length > 0) {
-          const c = cross[0];
-          setError(
-            `${keyLabel(code)} already used by ${c.profile.toUpperCase()} ${ACTION_NAMES[c.action].toLowerCase()}. P1/P2 cannot share keys.`,
-          );
-          setRecording(null);
-          return;
+      // A key already in use swaps places with the key being replaced, so
+      // nothing is ever bound twice. P1 and P2 share one keyboard, so a clash
+      // across those two profiles swaps too.
+      const old = bindings[rec.profile][rec.action];
+      const scope = rec.profile === "solo" ? ["solo"] : ["p1", "p2"];
+      let swapped = null;
+      const next = { ...bindings, [rec.profile]: { ...bindings[rec.profile], [rec.action]: code } };
+      for (const p of scope) {
+        for (const a of ACTIONS) {
+          if (p === rec.profile && a === rec.action) continue;
+          if (bindings[p][a] === code) {
+            next[p] = { ...next[p], [a]: old };
+            swapped = { p, a };
+          }
         }
       }
-
-      setBindings((prev) => ({
-        ...prev,
-        [rec.profile]: { ...prev[rec.profile], [rec.action]: code },
-      }));
+      setBindings(next);
+      setNotice(
+        swapped && old !== code
+          ? t("Swapped: {action} now uses {key}.", { action: (swapped.p !== rec.profile ? t(PROFILE_LIST.find((x) => x.id === swapped.p).label) + " " : "") + t(ACTION_NAMES[swapped.a]), key: keyLabel(old) })
+          : "",
+      );
       setError("");
       setRecording(null);
     };
@@ -144,11 +135,19 @@ export default function Settings({
       [activeProfile]: { ...DEFAULT_BINDINGS[activeProfile] },
     }));
     setError("");
+    setNotice("");
   };
+  const save = () => {
+    saveKeyBindings(bindings);
+    setSaved(bindings);
+    setNotice("");
+  };
+  const profileLabel = PROFILE_LIST.find((p) => p.id === activeProfile).label;
+  const atDefault = JSON.stringify(bindings[activeProfile]) === JSON.stringify(DEFAULT_BINDINGS[activeProfile]);
 
   return (
-    <div className="page" style={{ "--accent": "#ebebeb" }}>
-      <h1 className="title">Settings</h1>
+    <div className="page" style={{ "--accent": "var(--fg)" }}>
+      <h1 className="title">{t("Settings")}</h1>
       <div className="mid shrink">
       <div>
         <Segmented
@@ -168,27 +167,27 @@ export default function Settings({
           <div className="opts">
             <div className="opt">
               <div>
-                <div className="k" style={{ color: "var(--fg)" }}>DAS</div>
-                <div className="k small">Delay before auto-repeat</div>
+                <div className="k" style={{ color: "var(--fg)" }}>{t("DAS")}</div>
+                <div className="k small">{t("Delay before auto-repeat")}</div>
               </div>
               <SliderField value={das} setValue={setDas} min={0} max={300} def={133} unit="ms" />
             </div>
             <div className="opt">
               <div>
-                <div className="k" style={{ color: "var(--fg)" }}>ARR</div>
-                <div className="k small">Auto-repeat rate</div>
+                <div className="k" style={{ color: "var(--fg)" }}>{t("ARR")}</div>
+                <div className="k small">{t("Auto-repeat rate")}</div>
               </div>
               <SliderField value={arr} setValue={setArr} min={0} max={100} def={10} unit="ms" />
             </div>
             <div className="opt">
               <div>
-                <div className="k" style={{ color: "var(--fg)" }}>SDF</div>
-                <div className="k small">Soft drop speed</div>
+                <div className="k" style={{ color: "var(--fg)" }}>{t("SDF")}</div>
+                <div className="k small">{t("Soft drop speed")}</div>
               </div>
               <SliderField value={sdf} setValue={setSdf} min={1} max={100} def={30} displayValue={sdf === 100 ? "∞" : `${sdf}×`} />
             </div>
             <div className="opt">
-              <div className="k" style={{ color: "var(--fg)" }}>Sound</div>
+              <div className="k" style={{ color: "var(--fg)" }}>{t("Sound")}</div>
               <Segmented
                 label="Sound"
                 options={[
@@ -208,13 +207,13 @@ export default function Settings({
               checked={showLog}
               onChange={setShowLog}
               label="Show piece log"
-              hint="The Copy log record, beside the board in Sprint"
+              hint="The record of each piece, beside the board. J in game"
             />
             <Switch
               checked={showKeys}
               onChange={setShowKeys}
               label="Show key input"
-              hint="Your game keys light up while held, in solo modes"
+              hint="Your game keys light up while held. K in game"
             />
           </div>
         )}
@@ -231,23 +230,24 @@ export default function Settings({
                   setError("");
                 }}
               />
-              <button className="btn ghost compact" onClick={resetProfile}>
-                Reset
+              <button className="btn ghost compact" onClick={resetProfile} disabled={atDefault} title={t("Only {profile} goes back to its defaults", { profile: t(profileLabel) })}>
+                {t("Reset {profile}", { profile: t(profileLabel) })}
               </button>
             </div>
             <p className="note">
-              {activeProfile === "solo" && "Used in Sprint, Opening and Battle vs CPU."}
-              {activeProfile === "p1" && "Used by P1 in Battle vs Player."}
-              {activeProfile === "p2" && "Used by P2 in Battle vs Player."} Keys follow the physical key, so the
-              한/영 toggle never changes them.
+              {t(activeProfile === "solo" ? "Used in Sprint, Opening and Battle vs CPU." : activeProfile === "p1" ? "Used by P1 in Battle vs Player." : "Used by P2 in Battle vs Player.")}{" "}
+              {t("Keys follow the physical key, so the 한/영 toggle never changes them.")}
             </p>
+            <div className="key-msg">
+              {error ? <span className="err">{t(error)}</span> : notice ? <span>{notice}</span> : dirty ? <span>{t("Unsaved changes. Save to keep them.")}</span> : null}
+            </div>
             <div className="opts" style={{ marginTop: 0 }}>
-              {ACTIONS.map((action) => {
+              {KEY_ORDER.map((action) => {
                 const isRecording =
                   recording && recording.profile === activeProfile && recording.action === action;
                 return (
                   <div key={action} className="opt" style={{ minHeight: 44, padding: "4px 0", gridTemplateColumns: "1fr auto" }}>
-                    <div className="k" style={{ color: "var(--fg)" }}>{ACTION_NAMES[action]}</div>
+                    <div className="k" style={{ color: "var(--fg)" }}>{t(ACTION_NAMES[action])}</div>
                     <button
                       className={"btn keybtn" + (isRecording ? " rec" : "")}
                       onClick={(e) => {
@@ -256,20 +256,25 @@ export default function Settings({
                         setRecording({ profile: activeProfile, action });
                       }}
                     >
-                      {isRecording ? "Press a key…" : <KeyName code={profile[action]} />}
+                      {isRecording ? t("Press a key…") : <KeyName code={profile[action]} />}
                     </button>
                   </div>
                 );
               })}
             </div>
-            {error && <div className="err">{error}</div>}
+
           </div>
         )}
       </div>
       </div>
       <div className="actions">
+        {section === "keys" && (
+          <button className="btn primary" onClick={save} disabled={!dirty}>
+            {t(dirty ? "Save" : "Saved")}
+          </button>
+        )}
         <button className="btn ghost" onClick={onBack}>
-          Back
+          {t(section === "keys" && dirty ? "Discard and back" : "Back")}
         </button>
       </div>
     </div>
@@ -297,7 +302,7 @@ function SliderField({ value, setValue, min, max, def, displayValue, unit }) {
           value={value}
           onChange={(e) => setValue(+e.target.value)}
           onDoubleClick={() => setValue(def)}
-          title={`Double-click to reset to ${def}`}
+          title={t("Double-click to reset to {v}", { v: def })}
         />
         {/* Default position (thumb is 14px, so offset to its centre) */}
         <span
@@ -327,7 +332,7 @@ function SliderField({ value, setValue, min, max, def, displayValue, unit }) {
           <button
             type="button"
             className="num"
-            title="Click to type a value"
+            title={t("Click to type a value")}
             onClick={() => {
               setDraft(String(value));
               setEditing(true);

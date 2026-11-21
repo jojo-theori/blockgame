@@ -24,6 +24,43 @@
   --out: cubic-bezier(0.22, 1, 0.36, 1);
   --edge: 24px;
   --accent: var(--fg);
+  --fg-hi: #fff;
+  --on-fg: #000;
+  --fill: rgba(255, 255, 255, 0.035);
+  --fill-faint: rgba(255, 255, 255, 0.015);
+  --cap: #1c1c1c;
+  --menu: #141414;
+  --muted: #3a3a3a;
+  --track: #262626;
+  --knob-on: #fff;
+  --shadow: rgba(0, 0, 0, 0.6);
+  --grid: #fff;
+  --stroke: rgba(255, 255, 255, 0.07);
+  color-scheme: dark;
+}
+
+/* Light theme: page and controls go light; the play boards stay dark. */
+:root[data-theme="light"] {
+  --bg: #f3f3f1;
+  --fg: #161616;
+  --dim: #6b6b6b;
+  --faint: #9a9a9a;
+  --line: #d9d9d6;
+  --panel: #ffffff;
+  --hover: #e6e6e3;
+  --fg-hi: #000;
+  --on-fg: #fff;
+  --fill: rgba(0, 0, 0, 0.045);
+  --fill-faint: rgba(0, 0, 0, 0.02);
+  --cap: #e2e2df;
+  --menu: #ffffff;
+  --muted: #c2c2bf;
+  --track: #d4d4d1;
+  --knob-on: #fff;
+  --shadow: rgba(0, 0, 0, 0.12);
+  --grid: #000;
+  --stroke: rgba(0, 0, 0, 0.08);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -55,7 +92,7 @@ canvas { display: block; }
   inset: 0;
   opacity: 0.02;
   pointer-events: none;
-  background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 20px 20px;
   /* Drifts slowly on the home screen. Elsewhere it pauses where it is (no jump
      back), and resumes when you come home. One loop = whole cells, so seamless. */
@@ -103,7 +140,7 @@ canvas { display: block; }
   transition: color 0.2s var(--out);
 }
 .group button:not(.on):not(:disabled):hover { color: var(--fg); }
-.group button.on { color: #000; }
+.group button.on { color: var(--on-fg); }
 .group button:disabled { opacity: 0.3; cursor: default; }
 
 /* ─── Buttons ─── */
@@ -112,7 +149,7 @@ canvas { display: block; }
   padding: 0 22px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--fill);
   color: var(--fg);
   font-size: var(--t3);
   cursor: pointer;
@@ -120,8 +157,8 @@ canvas { display: block; }
   transition: background 0.25s var(--out), border-color 0.25s var(--out), color 0.25s var(--out);
 }
 .btn:hover, .btn.focus { background: var(--hover); border-color: var(--dim); }
-.btn.primary { background: var(--fg); border-color: var(--fg); color: #000; }
-.btn.primary:hover, .btn.primary.focus { background: #fff; border-color: #fff; }
+.btn.primary { background: var(--fg); border-color: var(--fg); color: var(--on-fg); }
+.btn.primary:hover, .btn.primary.focus { background: var(--fg-hi); border-color: var(--fg-hi); }
 .btn.ghost { border-color: transparent; color: var(--dim); }
 .btn.ghost:hover { color: var(--fg); background: var(--hover); }
 .btn:focus-visible, .group button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
@@ -155,7 +192,7 @@ canvas { display: block; }
   padding: 0 5px;
   border: 0;
   border-radius: 4px;
-  background: #1c1c1c;
+  background: var(--cap);
   color: var(--dim);
   font: inherit;
   font-size: 10px;
@@ -217,7 +254,7 @@ canvas { display: block; }
   padding: 0 24px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--fill);
   color: var(--dim);
   font-size: var(--t4);
   text-align: left;
@@ -226,9 +263,9 @@ canvas { display: block; }
 }
 .menu .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
 .menu button.on { color: var(--fg); border-color: var(--accent); background: var(--hover); }
-.menu button.soon { color: #3a3a3a; cursor: default; background: rgba(255, 255, 255, 0.015); }
+.menu button.soon { color: var(--muted); cursor: default; background: var(--fill-faint); }
 .menu button.soon .dot { opacity: 0.3; }
-.menu button.soon.on { border-color: var(--line); background: rgba(255, 255, 255, 0.015); color: var(--faint); }
+.menu button.soon.on { border-color: var(--line); background: var(--fill-faint); color: var(--faint); }
 .menu .tag { margin-left: auto; font-size: var(--t1); color: var(--faint); }
 .menu button:focus { outline: none; }
 
@@ -238,7 +275,7 @@ canvas { display: block; }
 .opt > .k { transition: color 0.25s var(--out); }
 .opt.focus > .k { color: var(--fg); } /* keyboard focus shows on the label only; segments stay strokeless */
 .actions { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
-.actions .btn.primary { min-width: 180px; height: 42px; background: var(--accent); border-color: var(--accent); color: #000; font-weight: 500; }
+.actions .btn.primary { min-width: 180px; height: 42px; background: var(--accent); border-color: var(--accent); color: var(--on-fg); font-weight: 500; }
 .actions .btn.primary:hover, .actions .btn.primary.focus { filter: brightness(1.12); background: var(--accent); }
 /* Buttons that sit together share one size; key hints keep a fixed gap below them. */
 .actions .btn { min-width: 180px; height: 42px; }
@@ -397,7 +434,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   padding: 8px 22px;
   border-radius: 14px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--fill);
   color: var(--dim);
   text-align: left;
   cursor: pointer;
@@ -424,7 +461,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   font-size: var(--t2);
   color: var(--dim);
 }
-.chip.done { color: var(--faint); border-color: #1a1a1a; text-decoration: line-through; }
+.chip.done { color: var(--faint); border-color: var(--hover); text-decoration: line-through; }
 .chip.next { color: var(--fg); border-color: var(--dim); }
 .chip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
 .flash { animation: flash 0.5s var(--out); }
@@ -594,7 +631,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   gap: 4px;
   padding: 20px 20px 18px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--fill);
   text-align: left;
 }
 .seat-name { font-size: var(--t6); font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: var(--seat); transition: color 0.3s var(--out); }
@@ -657,14 +694,15 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   padding: 4px;
   list-style: none;
   border-radius: 12px;
-  background: #141414;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  background: var(--menu);
+  box-shadow: 0 12px 32px var(--shadow);
   opacity: 0;
   transform: translateY(-4px);
   pointer-events: none;
   transition: opacity 0.18s var(--out), transform 0.22s var(--out);
 }
 .dd.open .dd-menu { opacity: 1; transform: none; pointer-events: auto; }
+.dd.up .dd-menu { top: auto; bottom: calc(100% + 6px); }
 .dd-menu li { opacity: 0; transform: translateY(-3px); transition: opacity 0.18s var(--out), transform 0.22s var(--out); }
 .dd.open .dd-menu li { opacity: 1; transform: none; transition-delay: calc(var(--i, 0) * 30ms); }
 .dd-menu button {
@@ -687,7 +725,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 }
 .dd-menu button:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
 .dd-menu button.on { color: var(--fg); }
-.dd-menu button:disabled { color: #3a3a3a; cursor: default; }
+.dd-menu button:disabled { color: var(--muted); cursor: default; }
 .dd-note { font-size: var(--t1); color: var(--faint); text-transform: none; letter-spacing: 0.02em; }
 
 /* Battle: the seat cards fill the height between the title and the actions. */
@@ -713,7 +751,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   padding: 8px 10px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--fill);
   color: var(--dim);
   text-align: left;
   cursor: pointer;
@@ -728,9 +766,9 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
    as "not here yet" next to the selectable cards. (Colour, not opacity: the
    entrance animation would override opacity.) */
 .oplist button.off,
-.oplist button.off:hover { cursor: default; background: transparent; border-color: transparent; color: #3c3c3c; }
+.oplist button.off:hover { cursor: default; background: transparent; border-color: transparent; color: var(--muted); }
 .oplist button.off .ds,
-.oplist button.off .nm .small { color: #2e2e2e; }
+.oplist button.off .nm .small { color: var(--muted); }
 .oplist .tag {
   display: inline-flex;
   align-items: center;
@@ -738,7 +776,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   margin-left: 8px;
   padding: 0 8px;
   border-radius: 999px;
-  background: #161616;
+  background: var(--menu);
   font-size: 10px;
   color: var(--faint);
   letter-spacing: 0.08em;
@@ -748,7 +786,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 /* Current choice in a dropdown: check mark, full colour, not clickable */
 .dd-label { display: inline-flex; align-items: center; gap: 8px; }
 .dd-check { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
-.dd-menu button.on:disabled { color: var(--fg); cursor: default; background: rgba(255, 255, 255, 0.04); }
+.dd-menu button.on:disabled { color: var(--fg); cursor: default; background: var(--fill); }
 .dd-menu button.on .dd-check { visibility: visible; }
 
 /* Arrow key glyph inside buttons and key caps */
@@ -813,7 +851,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   padding: 0 20px;
   border: 1px solid transparent;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--fill);
   color: var(--dim);
   cursor: pointer;
   line-height: 44px;
@@ -837,7 +875,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   padding: 0 14px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--fill);
   color: var(--dim);
   font-size: var(--t3);
   letter-spacing: 0.06em;
@@ -846,7 +884,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   transition: background 0.2s var(--out), color 0.2s var(--out);
 }
 .chip-btn:hover { background: var(--hover); color: var(--fg); }
-.chip-btn.on { background: var(--fg); color: #000; }
+.chip-btn.on { background: var(--fg); color: var(--on-fg); }
 .chip-dot { width: 7px; height: 7px; border-radius: 2px; flex: none; }
 
 /* ─── Switch ─── */
@@ -860,7 +898,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   padding: 10px 14px 10px 18px;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--fill);
   color: var(--dim);
   text-align: left;
   cursor: pointer;
@@ -877,7 +915,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   width: 38px;
   height: 22px;
   border-radius: 999px;
-  background: #262626;
+  background: var(--track);
   transition: background 0.25s var(--out);
 }
 .switch .knob {
@@ -891,7 +929,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   transition: transform 0.28s var(--out), background 0.25s var(--out);
 }
 .switch-row.on .switch { background: var(--accent); }
-.switch-row.on .switch .knob { transform: translateX(16px); background: #fff; }
+.switch-row.on .switch .knob { transform: translateX(16px); background: var(--knob-on); }
 .opt.switches { width: 100%; align-items: center; gap: 8px; }
 
 
@@ -901,8 +939,8 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   position: absolute;
   top: 0;
   bottom: 0;
-  right: calc(100% + 48px);
-  width: 210px;
+  right: calc(100% + 28px);
+  width: 168px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -924,7 +962,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .rlog-row {
   flex: none;
   display: grid;
-  grid-template-columns: 22px 44px 26px 36px 1fr;
+  grid-template-columns: 18px 36px 22px 32px 1fr;
   align-items: center;
   height: 22px;
   font-size: 10px;
@@ -940,7 +978,8 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .rlog-keys.bad { color: var(--bad); }
 .rlog-tag { color: var(--fg, #eee); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; }
 @keyframes rlog-in { from { opacity: 0; transform: translateY(4px); } }
-@media (max-width: 1140px) { .rlog { display: none; } }
+/* Needs ~200px beside the play area; narrower windows have no room for it. */
+@media (max-width: 960px) { .rlog { display: none; } }
 @media (prefers-reduced-motion: reduce) { .rlog-row { animation: none; } }
 
 /* ─── Key input display (in-game, bottom of the left column) ─── */
@@ -955,7 +994,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   align-items: center;
   justify-content: center;
   border-radius: 5px;
-  background: #1a1a1a;
+  background: var(--cap);
   color: var(--faint);
   font-size: 9px;
   letter-spacing: 0.04em;
@@ -965,8 +1004,41 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   transition: background 0.12s var(--out), color 0.12s var(--out);
 }
 .stroke.wide { width: 108px; }
-.stroke.on { background: var(--fg); color: #0a0a0a; transition-duration: 0s; }
+.stroke.on { background: var(--fg); color: var(--on-fg); transition-duration: 0s; }
 .stroke .key-arrow .kbd-arrow { width: 7px; height: 7px; }
 
 /* Settings → Display */
 .opts.switches { gap: 8px; }
+.key-msg { min-height: 1.6em; margin: 0 0 8px; font-size: var(--t2); color: var(--dim); }
+.key-msg .err { margin: 0; }
+.actions .btn.primary:disabled { background: var(--cap); border-color: transparent; color: var(--faint); filter: none; cursor: default; }
+
+/* ─── Top bar: language, theme, full screen (always visible) ─── */
+.topbar { position: absolute; z-index: 40; top: 10px; right: calc(var(--edge) - 8px); display: flex; gap: 2px; }
+.top-btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dim);
+  font: inherit;
+  font-size: var(--t1);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.top-btn:hover, .top-btn:focus-visible { background: var(--hover); color: var(--fg); }
+.top-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+html, body { transition: background-color 0.25s var(--out), color 0.25s var(--out); }
+.seat-row { display: flex; flex-direction: column; gap: 8px; }
+.seat-hc { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; padding-left: 4px; }
+.seat-hc-dd { width: 96px; flex: none; }
+.seat-hc-dd .dd-note { display: none; }
+
+/* Dropdowns carry a faint hairline (inset, so sizes don't change). */
+.dd-btn { box-shadow: inset 0 0 0 1px var(--stroke); }
+.dd-menu { box-shadow: inset 0 0 0 1px var(--stroke), 0 12px 32px var(--shadow); }

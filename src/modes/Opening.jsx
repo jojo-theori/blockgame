@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { t } from "../i18n.js";
 import { ROWS, COLS, COLORS, BlockEngine, formatTime } from "../game.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import {
@@ -13,7 +14,8 @@ import {
   SLOT,
 } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyStrokes } from "../ui.jsx";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyStrokes, EngineLog } from "../ui.jsx";
+import { useDisplayToggles } from "../display.js";
 import { useFit } from "../fit.js";
 import {
   OPENERS,
@@ -53,6 +55,8 @@ function StepPicture({ step, size = 12 }) {
 }
 
 export default function Opening({ settings, onBack }) {
+  // In-game display toggles (K key input); they change the saved setting.
+  useDisplayToggles(settings);
   const zoom = useFit(700, 600);
   const prefs = loadPrefs();
   const [phase, setPhase] = useState("select"); // select | countdown | playing | done
@@ -457,9 +461,9 @@ export default function Opening({ settings, onBack }) {
   if (phase === "select") {
     return (
       <div className="page wide" style={{ "--accent": "#b14fd0" }}>
-        <h1 className="title">Opening</h1>
+        <h1 className="title">{t("Opening")}</h1>
         <p className="lede">
-          Build openers piece by piece. Every run has a solution.
+          {t("Build openers piece by piece. Every run has a solution.")}
         </p>
         <div className="mid">
         <div className="openers">
@@ -474,7 +478,7 @@ export default function Opening({ settings, onBack }) {
                 >
                   <span className="nm">
                     {o.name} <span className="small dim">{o.jp}</span>
-                    {o.disabled && <span className="tag">Soon</span>}
+                    {o.disabled && <span className="tag">{t("Soon")}</span>}
                   </span>
                   <span className="ds">{o.desc}</span>
                 </button>
@@ -513,7 +517,7 @@ export default function Opening({ settings, onBack }) {
         >
         <div className="opts inline">
           <div className="opt">
-            <div className="k">Piece order</div>
+            <div className="k">{t("Piece order")}</div>
             <Segmented
               label="Piece order"
               options={[
@@ -525,7 +529,7 @@ export default function Opening({ settings, onBack }) {
             />
           </div>
           <div className="opt">
-            <div className="k">Mirror</div>
+            <div className="k">{t("Mirror")}</div>
             <Segmented
               label="Mirror"
               options={[
@@ -537,7 +541,7 @@ export default function Opening({ settings, onBack }) {
             />
           </div>
           <div className="opt">
-            <div className="k">Guide</div>
+            <div className="k">{t("Guide")}</div>
             <Segmented
               label="Guide"
               options={[
@@ -549,7 +553,7 @@ export default function Opening({ settings, onBack }) {
             />
           </div>
           <div className="opt">
-            <div className="k">Auto next</div>
+            <div className="k">{t("Auto next")}</div>
             <Segmented
               label="Auto next"
               options={[
@@ -565,10 +569,10 @@ export default function Opening({ settings, onBack }) {
         </div>
         <div className="actions">
           <button className="btn primary" onClick={startGame}>
-            Start
+            {t("Start")}
           </button>
           <button className="btn ghost" onClick={onBack}>
-            Back
+            {t("Back")}
           </button>
         </div>
       </div>
@@ -588,34 +592,35 @@ export default function Opening({ settings, onBack }) {
     phase !== "playing" || !guide
       ? ""
       : st.hint === "hold"
-        ? `Hold the ${ID_LETTER[engine?.currentId] || ""}.`
+        ? t("Hold the {p}.", { p: ID_LETTER[engine?.currentId] || "" })
         : st.hint === "stuck"
-          ? "No solution from here. Press F to restart."
+          ? t("No solution from here. Press F to restart.")
           : "";
 
   return (
     <>
       <div className="mode-label">
-        Opening · {opener.name}
-        {runStage != null ? ` · Stage ${runStage + 1}` : ""}
+        {t("Opening")} · {opener.name}
+        {runStage != null ? ` · ${t("Stage {n}", { n: runStage + 1 })}` : ""}
         {opener.mirrored ? " · Mirrored" : ""}
       </div>
       <div className="play" style={{ zoom }}>
+        {settings.showLog !== false && <EngineLog engineRef={engineRef} />}
         <div className="side" style={{ width: 150 }}>
           <div>
-            <div className="k">Hold</div>
+            <div className="k">{t("Hold")}</div>
             <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
           </div>
           <Stat k="Time" v={formatTime(engine?.clock || 0)} big />
           <div className="stat">
-            <div className="k">Misses</div>
+            <div className="k">{t("Misses")}</div>
             <div key={missFlash} className={"v" + (missFlash ? " flash" : "")}>
               {st.misses}
             </div>
           </div>
           <div>
             <div className="k">
-              Step {stepIdx + 1} / {opener.steps.length}
+              {t("Step {n} / {m}", { n: stepIdx + 1, m: opener.steps.length })}
             </div>
             <div className="v xs" style={{ marginTop: 4 }}>
               {step.label}
@@ -643,7 +648,7 @@ export default function Opening({ settings, onBack }) {
             <div className="veil">
               {result ? (
                 <>
-                  <div className="k">{opener.name} built</div>
+                  <div className="k">{t("{name} built", { name: opener.name })}</div>
                   <div className="title">
                     {formatTime(result.time)}
                   </div>
@@ -661,17 +666,17 @@ export default function Opening({ settings, onBack }) {
                 </>
               ) : (
                 <>
-                  <div className="k">Top out</div>
-                  <div className="title">Try again</div>
+                  <div className="k">{t("Top out")}</div>
+                  <div className="title">{t("Try again")}</div>
                   <div style={{ height: 24 }} />
                 </>
               )}
               <div className="row-btns">
                 <button className="btn primary" onClick={startGame}>
-                  Again
+                  {t("Again")}
                 </button>
                 <button className="btn ghost" onClick={stop}>
-                  Back
+                  {t("Back")}
                 </button>
               </div>
             </div>
@@ -680,7 +685,7 @@ export default function Opening({ settings, onBack }) {
 
         <div className="side right" style={{ width: 150 }}>
           <div>
-            <div className="k">Next</div>
+            <div className="k">{t("Next")}</div>
             <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
           </div>
           <div>
@@ -698,6 +703,8 @@ export default function Opening({ settings, onBack }) {
               [["O"], `order ${order === "fixed" ? "ideal" : "random"}`],
               [["M"], `mirror ${mirror}`],
               [["N"], `auto next ${autoNext === "all" ? "on" : "off"}`],
+              [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
+            [["K"], `input ${settings.showKeys ? "on" : "off"}`],
               [["Esc"], "exit"],
             ]} />
         </div>
