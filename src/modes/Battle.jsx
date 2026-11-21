@@ -568,7 +568,7 @@ export default function Battle({ settings, onBack }) {
       <div className="page wide" style={{ "--accent": "#e8505b" }}>
         <h1 className="title">{t("Battle")}</h1>
         <p className="lede">
-          {t("First to top out loses. Line clears send garbage; clearing while garbage is queued cancels it.")}
+          {t("Clear lines to attack until your opponent tops out.")}
         </p>
         <div className="opts fill">
           <div className="seats">

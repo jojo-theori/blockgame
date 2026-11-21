@@ -383,7 +383,7 @@ export default function Finesse({ settings, onBack }) {
       <div className="page" style={{ "--accent": ACCENT }}>
         <h1 className="title">{t("Finesse")}</h1>
         <p className="lede">
-          {t("Fill the gap with as few key presses as possible.")}
+          {t("Place each piece with the fewest key presses.")}
         </p>
         <div className="opts">
           <div className="opt">

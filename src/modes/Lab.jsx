@@ -115,7 +115,7 @@ export default function Lab({ settings, initial = "", onBack }) {
   return (
     <div className="page" style={{ "--accent": ACCENT }}>
       <h1 className="title">{t("Replay")}</h1>
-      <p className="lede">{t("Paste a log copied in Sprint or Battle to watch the run again and have it analysed.")}</p>
+      <p className="lede">{t("Paste a log to watch the run again and analyse it.")}</p>
       <div className="mid">
         {/* What the pasted log holds, above the box. The row is there even while
             empty, so nothing moves when a log lands. */}

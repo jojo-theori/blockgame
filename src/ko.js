@@ -13,7 +13,7 @@ export default {
   Soon: "준비 중",
   Beta: "베타",
   "Watch a run again from its log.": "기록으로 플레이를 다시 봅니다.",
-  "Paste a log copied in Sprint or Battle to watch the run again and have it analysed.": "스프린트나 배틀에서 복사한 기록을 붙여 넣어 다시 보고 분석하세요.",
+  "Paste a log to watch the run again and analyse it.": "기록을 붙여 넣어 플레이를 다시 보고 분석하세요.",
   "Paste from clipboard": "클립보드에서 붙여넣기",
   "Try a sample": "샘플로 보기",
   "Paste again": "다시 붙여넣기",
@@ -162,15 +162,14 @@ export default {
   "auto next off": "자동 다음 끔",
 
   // Sprint
-  "Clear the lines as fast as you can.": "줄을 최대한 빨리 지웁니다.",
+  "Clear the set number of lines as fast as you can.": "정해진 줄 수를 최대한 빨리 지우세요.",
   Lines: "줄",
   lines: "줄",
   "Lines left": "남은 줄",
   Handling: "조작",
 
   // Battle
-  "First to top out loses. Line clears send garbage; clearing while garbage is queued cancels it.":
-    "먼저 탑 아웃되면 집니다. 줄을 지우면 쓰레기 줄을 보내고, 쌓인 쓰레기 줄이 있을 때 지우면 상쇄됩니다.",
+  "Clear lines to attack until your opponent tops out.": "상대가 먼저 탑 아웃될 때까지 줄을 지워 공격하세요.",
   "Player 1": "플레이어 1",
   "Player 2": "플레이어 2",
   CPU: "CPU",
@@ -219,7 +218,7 @@ export default {
   "Mode options": "모드 옵션",
 
   // Opening
-  "Learn an opener by building it, guided move by move.": "정해진 수순을 따라 쌓으며 오프너를 익힙니다.",
+  "Get the common openers into your hands.": "자주 쓰는 오프너를 손에 익히세요.",
   Stage: "스테이지",
   "Stage {n}": "스테이지 {n}",
   "Step {n} / {m}": "단계 {n} / {m}",
@@ -243,8 +242,7 @@ export default {
   "No solution from here. Press {key} to restart.": "여기서는 풀 수 없습니다. {key} 키를 눌러 다시 시작하세요.",
 
   // Finesse
-  "Fill the gap with as few key presses as possible.":
-    "가장 적은 키 입력으로 빈칸을 채웁니다.",
+  "Place each piece with the fewest key presses.": "가장 적은 키 입력으로 블록을 놓으세요.",
   Endless: "무한",
   "Piece types": "블록 종류",
   "Use 180 rotation": "180 회전 사용",

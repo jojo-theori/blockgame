@@ -351,7 +351,7 @@ export default function Sprint({ settings, onBack }) {
     return (
       <div className="page" style={{ "--accent": "#41b6e6" }}>
         <h1 className="title">{t("Sprint")}</h1>
-        <p className="lede">{t("Clear the lines as fast as you can.")}</p>
+        <p className="lede">{t("Clear the set number of lines as fast as you can.")}</p>
         <div className="opts center">
           <div className="opt">
             <div className="k">{t("Lines")}</div>

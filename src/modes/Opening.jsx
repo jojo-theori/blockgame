@@ -495,7 +495,7 @@ export default function Opening({ settings, onBack }) {
       <div className="page wide" style={{ "--accent": "#b14fd0" }}>
         <h1 className="title">{t("Opening")}</h1>
         <p className="lede">
-          {t("Learn an opener by building it, guided move by move.")}
+          {t("Get the common openers into your hands.")}
         </p>
         <div className="mid">
         <div className="openers">
