@@ -55,7 +55,7 @@ function place({ lines = 0, spin = false, perfect = false, b2b = false, combo = 
   else if (lines) sfx.clear(lines);
   else sfx.drop();
   if (lines && b2b) sfx.b2b();
-  if (lines && combo >= 1) sfx.combo(combo, lines);
+  if (lines && combo >= 1) sfx.combo(combo, lines, spin);
 }
 
 const SCALE_NAMES = {

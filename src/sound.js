@@ -122,6 +122,17 @@ export function setComboScale(name) {
   }
 }
 
+const SPIN_LEAD = 0.06; // length of the twist before a T-spin's notes
+// One note a line: times (octave shift as a frequency multiplier), after (seconds to wait first).
+function clearNotes(lines, times = 1, after = 0) {
+  const n = Math.min(Math.max(lines, 1), 4);
+  for (let i = 0; i < n; i++) {
+    if (clearStyle === "hits") tone({ freq: 392 * times, type: "triangle", dur: 0.07, vol: 0.1, delay: after + i * CLEAR_STEP });
+    else if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[i] * times, type: "triangle", dur: 0.2 + 0.03 * n, vol: 0.09 - 0.012 * n, delay: after });
+    else tone({ freq: CLEAR_NOTES[i] * times, type: "triangle", dur: i === n - 1 ? 0.18 : 0.08, vol: 0.09, delay: after + i * CLEAR_STEP });
+  }
+}
+
 const CLEAR_STEP = 0.06; // seconds between the hits of a line clear
 
 export const sfx = {
@@ -132,18 +143,12 @@ export const sfx = {
   drop: () => tone({ freq: 800, type: "sine", dur: 0.08, vol: 0.12 }),
   // results of a placement
   // A line clear: one note a line, in the chosen style (see CLEAR_STYLES).
-  clear: (lines) => {
-    const n = Math.min(Math.max(lines, 1), 4);
-    for (let i = 0; i < n; i++) {
-      if (clearStyle === "hits") tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: i * CLEAR_STEP });
-      else if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: 0.2 + 0.03 * n, vol: 0.09 - 0.012 * n });
-      else tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: i === n - 1 ? 0.18 : 0.08, vol: 0.09, delay: i * CLEAR_STEP });
-    }
-  },
+  clear: (lines) => clearNotes(lines),
+  // A T-spin is the same clear said an octave up, after a quick upward
+  // twist: the count reads the same way, and the twist marks the spin.
   spin: (lines) => {
-    [880, 1109, 1319].slice(0, Math.max(1, lines)).forEach((f, i) =>
-      tone({ freq: f, type: "triangle", dur: 0.14, vol: 0.08, delay: i * 0.05 }),
-    );
+    tone({ freq: 523.25, type: "sine", dur: SPIN_LEAD, vol: 0.07, slide: 1046.5 });
+    clearNotes(lines, 2, SPIN_LEAD);
   },
   perfect: () => {
     [523, 659, 784, 1047, 1319, 2093].forEach((f, i) => tone({ freq: f, type: "triangle", dur: 0.22, vol: 0.08, delay: i * 0.06 }));
@@ -162,13 +167,13 @@ export const sfx = {
   },
   // Combo: one short note that climbs the chosen scale with every clear in a
   // row, from C5 (combo 1) up two octaves to C7, where it stays.
-  // lines: how many were cleared, so the note lands after the hits of the clear.
-  combo: (n, lines = 1) => {
+  // lines, spin: what was cleared, so the note lands after the clear's own notes.
+  combo: (n, lines = 1, spin = false) => {
     if (!opts.combo) return;
     const scale = SCALES[comboScale];
     const step = Math.min(Math.max(n, 1), 2 * scale.length + 1) - 1;
     const semitones = 12 * Math.floor(step / scale.length) + scale[step % scale.length];
-    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: clearSpan(lines) });
+    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: clearSpan(lines) + (spin ? SPIN_LEAD : 0) });
   },
   garbage: () => noise({ dur: 0.14, vol: 0.18, freq: 300 }),
   // flow
@@ -223,7 +228,7 @@ export function trackSfx(engine, { topout = true, fault = true } = {}) {
     if (fault && log[last]?.finesseFault > 0) sfx.miss();
     if (lines > 0) {
       if (log[last]?.b2b) sfx.b2b();
-      if (engine.combo >= 1) sfx.combo(engine.combo, lines);
+      if (engine.combo >= 1) sfx.combo(engine.combo, lines, /Spin/i.test(action));
     }
   }
   if (now.garbage > prev.garbage) sfx.garbage();
