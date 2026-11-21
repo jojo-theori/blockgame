@@ -845,6 +845,8 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .snd-row > .k { padding-top: 11px; }
 .snd-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 .snd-btns .btn { height: 36px; padding: 0 14px; }
+.snd-btns.tight { gap: 4px; flex-wrap: nowrap; }
+.snd-btns.tight .btn { width: 34px; padding: 0; font-variant-numeric: tabular-nums; }
 /* Help on the scores: a question mark at the end of the row, its text on hover. */
 .lab-top { position: relative; }
 .lab-help { position: absolute; top: -5px; right: -4px; z-index: 5; }

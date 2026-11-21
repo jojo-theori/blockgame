@@ -59,6 +59,8 @@ function noise({ dur = 0.12, vol = 0.12, freq = 400, delay = 0 }) {
   src.start(t);
 }
 
+const CLEAR_STEP = 0.06; // seconds between the hits of a line clear
+
 export const sfx = {
   // input
   move: () => tone({ freq: 520, type: "triangle", dur: 0.03, vol: 0.035 }),
@@ -66,10 +68,12 @@ export const sfx = {
   hold: () => tone({ freq: 440, type: "sine", dur: 0.09, vol: 0.07, slide: 330 }),
   drop: () => tone({ freq: 800, type: "sine", dur: 0.08, vol: 0.12 }),
   // results of a placement
+  // A line clear is counted out: one hit a line, all on the same note (G4),
+  // so the pitch is left to the combo. A quad ends on a fifth above.
   clear: (lines) => {
-    const base = [0, 523, 587, 659, 784][Math.min(lines, 4)];
-    tone({ freq: base, type: "triangle", dur: 0.16, vol: 0.1 });
-    tone({ freq: base * 1.5, type: "sine", dur: 0.2, vol: 0.06, delay: 0.05 });
+    const n = Math.min(Math.max(lines, 1), 4);
+    for (let i = 0; i < n; i++) tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: i * CLEAR_STEP });
+    if (n === 4) tone({ freq: 587, type: "sine", dur: 0.16, vol: 0.06, delay: 3 * CLEAR_STEP });
   },
   spin: (lines) => {
     [880, 1109, 1319].slice(0, Math.max(1, lines)).forEach((f, i) =>
@@ -88,11 +92,12 @@ export const sfx = {
   },
   // Combo: one short note that climbs the C major scale with every clear in
   // a row, from C5 (combo 1) up two octaves to C7 (combo 15 and beyond).
-  combo: (n) => {
+  // lines: how many were cleared, so the note lands after the hits of the clear.
+  combo: (n, lines = 1) => {
     if (!opts.combo) return;
     const step = Math.min(Math.max(n, 1), 15) - 1;
     const semitones = 12 * Math.floor(step / 7) + [0, 2, 4, 5, 7, 9, 11][step % 7];
-    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.09, vol: 0.07, delay: 0.12 });
+    tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: Math.min(lines, 4) * CLEAR_STEP + 0.02 });
   },
   garbage: () => noise({ dur: 0.14, vol: 0.18, freq: 300 }),
   // flow
@@ -144,7 +149,7 @@ export function trackSfx(engine, { topout = true } = {}) {
       let last = log.length - 1;
       while (last >= 0 && log[last].kind !== "place") last--;
       if (log[last]?.b2b) sfx.b2b();
-      if (engine.combo >= 1) sfx.combo(engine.combo);
+      if (engine.combo >= 1) sfx.combo(engine.combo, lines);
     }
   }
   if (now.garbage > prev.garbage) sfx.garbage();

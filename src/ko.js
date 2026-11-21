@@ -18,6 +18,7 @@ export default {
   "T-spin triple": "T스핀 트리플",
   "The bonus alone": "보너스음만",
   "Combo 1 to 15": "콤보 1~15",
+  "Combo with doubles and triples": "콤보 속 더블·트리플",
   "Four quads back to back": "쿼드 4연속 백투백",
   "Quad, T-spin double, T-spin triple": "쿼드 → T스핀 더블 → T스핀 트리플",
   "Back-to-back inside a combo": "콤보 중 백투백",

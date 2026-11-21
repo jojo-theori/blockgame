@@ -54,7 +54,7 @@ function place({ lines = 0, spin = false, perfect = false, b2b = false, combo = 
   else if (lines) sfx.clear(lines);
   else sfx.drop();
   if (lines && b2b) sfx.b2b();
-  if (lines && combo >= 1) sfx.combo(combo);
+  if (lines && combo >= 1) sfx.combo(combo, lines);
 }
 
 const GROUPS = [
@@ -76,13 +76,15 @@ const GROUPS = [
   },
   {
     label: "Combo",
-    items: [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15].map((n) => ({ label: String(n), run: () => place({ lines: 1, combo: n }) })),
+    tight: true, // fifteen numbers on one line
+    items: Array.from({ length: 15 }, (_, i) => i + 1).map((n) => ({ label: String(n), run: () => place({ lines: 1, combo: n }) })),
   },
   {
     label: "Runs",
     // Each step is one placement; they are played half a second apart.
     items: [
       { label: "Combo 1 to 15", steps: Array.from({ length: 15 }, (_, i) => ({ lines: 1, combo: i + 1 })) },
+      { label: "Combo with doubles and triples", steps: [1, 2, 1, 3, 2, 4].map((lines, i) => ({ lines, combo: i + 1 })) },
       { label: "Four quads back to back", steps: [{ lines: 4 }, { lines: 4, b2b: true }, { lines: 4, b2b: true }, { lines: 4, b2b: true }] },
       { label: "Quad, T-spin double, T-spin triple", steps: [{ lines: 4 }, { lines: 2, spin: true, b2b: true }, { lines: 3, spin: true, b2b: true }] },
       { label: "Back-to-back inside a combo", steps: [{ lines: 4 }, { lines: 4, b2b: true, combo: 1 }, { lines: 2, spin: true, b2b: true, combo: 2 }, { lines: 1, combo: 3 }] },
@@ -133,7 +135,7 @@ function SoundTest({ onBack }) {
           {GROUPS.map((g) => (
             <div key={g.label} className="snd-row">
               <div className="k">{t(g.label)}</div>
-              <div className="snd-btns">
+              <div className={"snd-btns" + (g.tight ? " tight" : "")}>
                 {g.items.map((item) => (
                   <button key={item.label} type="button" className={"btn compact" + (playing === item.label ? " primary" : "")} onClick={press(item)}>
                     {t(item.label)}
