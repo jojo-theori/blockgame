@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { keyLabel, loadKeyBindings } from "./keys.js";
 import { sfx } from "./sound.js";
 import { t } from "./i18n.js";
+import { buildLogText } from "./game.js";
 
 // Shared components translate the plain-string text they are given.
 const tr = (x) => (typeof x === "string" ? t(x) : x);
@@ -146,17 +147,38 @@ export function Kbd({ children }) {
 }
 
 // Row of shortcut hints: items = [[["↑","↓"], "move"], [["Enter"], "open"]]
+// items: [caps, label, on?]. A boolean `on` marks a toggle, lit while it is on.
 export function KeyHints({ items, style }) {
   return (
     <div className="keys" style={style}>
-      {items.map(([caps, label], i) => (
-        <span key={i} className="hint">
+      {items.map(([caps, label, on], i) => (
+        <span key={i} className={"hint" + (on ? " on" : "")}>
           {caps.map((c) => (
             <Kbd key={c}>{c}</Kbd>
           ))}
           <span>{tr(label)}</span>
         </span>
       ))}
+    </div>
+  );
+}
+
+// Above the Start button of every mode: the handling values, which key profile
+// this game uses, and a way into the settings to change either. profiles: key
+// profiles in play ("solo", or "p1" and "p2"; none when only CPUs play).
+const PROFILE_KEYS = { solo: "Solo keys", p1: "P1 keys", p2: "P2 keys" };
+export function SetupInfo({ settings, profiles = ["solo"] }) {
+  return (
+    <div className="setup-info">
+      <div>
+        DAS {settings.das} ms · ARR {settings.arr} ms · SDF {settings.sdf === 100 ? "∞" : settings.sdf}
+      </div>
+      <div>
+        {profiles.map((p) => t(PROFILE_KEYS[p]) + " · ")}
+        <button type="button" className="link" onClick={settings.openSettings}>
+          {t("Settings")}
+        </button>
+      </div>
     </div>
   );
 }
@@ -369,30 +391,58 @@ export function Switch({ checked, onChange, label, hint }) {
 // The same per-piece record that "Copy log" copies, shown live beside the board.
 // Newest at the bottom; older rows fade out at the top.
 const PIECE_COLOR = { I: "#41b6e6", T: "#b14fd0", L: "#f2913d", J: "#3d6fe0", S: "#5cc45c", Z: "#e8505b", O: "#f2cb4c" };
-export function ReplayLog({ events, total }) {
+// side: which side of the board it sits on; keys: false hides the key counts
+// (a CPU presses no keys).
+// getText: returns the whole log as text, for the copy button beside the title.
+export function ReplayLog({ events, total, side = "left", keys = true, getText }) {
   const first = total - events.length;
+  const [copied, setCopied] = useState(false);
+  const copy = (e) => {
+    e.currentTarget.blur(); // a focused button would take the game's Space
+    navigator.clipboard
+      .writeText(getText())
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => console.error("Copy failed:", err));
+  };
   return (
-    <div className="rlog" aria-label="Piece log">
-      <div className="k">{t("Log")}</div>
+    <div className={"rlog" + (side === "right" ? " right" : "")} aria-label="Piece log">
+      <div className="k rlog-head">
+        {t("Log")}
+        {getText && (
+          <button type="button" className="rlog-copy" tabIndex={-1} onClick={copy} disabled={!total} title={t(copied ? "Copied!" : "Copy log")} aria-label={t("Copy log")}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              {copied ? <path d="M5 12.5l4.5 4.5L19 7.5" /> : <path d="M9 9h10v10H9zM5 15V5h10" />}
+            </svg>
+          </button>
+        )}
+      </div>
       <ol className="rlog-list">
         {events.map((ev, i) => {
           const n = first + i + 1;
-          const fault = ev.kind === "place" && ev.finesseFault > 0;
+          const fault = keys && ev.kind === "place" && ev.finesseFault > 0;
           return (
             <li key={n} className="rlog-row">
               <span className="rlog-n">#{n}</span>
               <span className="rlog-t">{ev.t.toFixed(2)}s</span>
               <span className="rlog-p">
-                <i style={{ background: PIECE_COLOR[ev.type] }} />
-                {ev.type}
+                <i style={{ background: ev.kind === "garbage" ? "#5a5a5a" : PIECE_COLOR[ev.type] }} />
+                {ev.kind === "garbage" ? "G" : ev.type}
               </span>
-              {ev.kind === "hold" ? (
+              {ev.kind === "garbage" ? (
+                <>
+                  <span className="rlog-dim">+{ev.holes.length}</span>
+                  <span className="rlog-dim">{t("garbage")}</span>
+                </>
+              ) : ev.kind === "hold" ? (
                 <span className="rlog-dim">{t("hold")}</span>
               ) : (
                 <>
                   <span className={"rlog-keys" + (fault ? " bad" : "")}>
-                    {ev.keys}
-                    {ev.optimal > 0 && <span className="rlog-dim">/{ev.optimal}</span>}
+                    {keys && ev.keys}
+                    {keys && ev.optimal > 0 && <span className="rlog-dim">/{ev.optimal}</span>}
                   </span>
                   <span className="rlog-tag">{[ev.action, ev.b2b && "B2B", ev.pc && "PC"].filter(Boolean).join(" ")}</span>
                 </>
@@ -458,7 +508,7 @@ export function KeyStrokes({ profile = "solo" }) {
 
 
 // ─── Top bar (always visible, top right): language, theme, full screen ───
-export function TopBar({ lang, setLang, theme, setTheme }) {
+export function TopBar({ lang, setLang, theme, setTheme, onSettings }) {
   const [full, setFull] = useState(() => !!document.fullscreenElement);
   useEffect(() => {
     const on = () => setFull(!!document.fullscreenElement);
@@ -473,6 +523,12 @@ export function TopBar({ lang, setLang, theme, setTheme }) {
   const canFull = !!document.documentElement.requestFullscreen;
   return (
     <div className="topbar">
+      <button type="button" className="top-btn" title={t("Settings")} aria-label={t("Settings")} onClick={click(onSettings)}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      </button>
       <button
         type="button"
         className="top-btn lang"
@@ -524,7 +580,7 @@ export function TopBar({ lang, setLang, theme, setTheme }) {
 }
 
 // Piece log for modes that don't track it themselves: polls the engine.
-export function EngineLog({ engineRef }) {
+export function EngineLog({ engineRef, side, keys }) {
   const [log, setLog] = useState({ events: [], total: 0 });
   useEffect(() => {
     let seen = -1;
@@ -539,7 +595,7 @@ export function EngineLog({ engineRef }) {
     }, 100);
     return () => clearInterval(id);
   }, [engineRef]);
-  return <ReplayLog events={log.events} total={log.total} />;
+  return <ReplayLog events={log.events} total={log.total} side={side} keys={keys} getText={() => buildLogText(engineRef.current)} />;
 }
 
 // Pause overlay for solo modes (Esc). `extra` adds mode-specific buttons.
@@ -556,10 +612,10 @@ export function PauseMenu({ onResume, onRestart, onSetup, onMenu, extra }) {
         </button>
         {extra}
         <button className="btn" onClick={onSetup}>
-          {t("Change setup")}
+          {t("Mode options")}
         </button>
         <button className="btn ghost" onClick={onMenu}>
-          {t("Menu")}
+          {t("Main menu")}
         </button>
       </div>
     </div>

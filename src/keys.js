@@ -23,6 +23,10 @@ export const ACTION_LABELS = {
   hold: "HOLD",
 };
 
+// Bindings that are not game actions. Restart belongs to the solo profile
+// only: a Battle is shared, so it has no restart key.
+export const EXTRA_ACTIONS = { solo: ["restart"], p1: [], p2: [] };
+
 // Profiles:
 //   solo: used in Sprint and other 1P modes, and by P1 vs CPU in Battle
 //   p1:   used by P1 in Battle vs Player (player-vs-player on one keyboard)
@@ -37,6 +41,7 @@ export const DEFAULT_BINDINGS = {
     rotateCCW: "KeyZ",
     rotate180: "KeyA",
     hold: "KeyC",
+    restart: "KeyF",
   },
   // P1 on the left of the keyboard: A/S/D to move, 1 ccw, 2 cw, Q 180,
   // 3 hold, left Shift hard drop.
@@ -89,7 +94,20 @@ export function loadKeyBindings() {
 
 export function saveKeyBindings(bindings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...bindings, v: VERSION }));
+  solo = null;
 }
+
+// The solo profile, read on every key press outside a game, so it is cached
+// until the bindings are saved. Menus everywhere follow it: the hard drop key
+// picks, the counter-clockwise rotation key goes back.
+let solo = null;
+export function soloKeys() {
+  if (!solo) solo = loadKeyBindings().solo;
+  return solo;
+}
+export const restartKey = () => soloKeys().restart;
+export const selectKey = () => soloKeys().harddrop;
+export const backKey = () => soloKeys().rotateCCW;
 
 // Pretty label for an e.code value.
 export function keyLabel(code) {

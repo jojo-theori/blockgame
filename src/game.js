@@ -871,11 +871,6 @@ export class BlockEngine {
     // Accumulate until the battle loop collects it (several pieces can lock
     // between two frames, e.g. hard drops from key events).
     this.outgoingAttack += outgoing;
-    if (this.lastAttack === 0 && this.garbageQueue.length > 0) {
-      this.applyGarbage();
-      if (this.gameOver) return;
-    }
-
     try {
       const heights = computeHeights(this.matrix);
       const holes = countHoles(this.matrix);
@@ -909,6 +904,13 @@ export class BlockEngine {
       });
     } catch (e) {
       console.error("[replay] record failed:", e);
+    }
+
+    // Garbage comes up after the piece is recorded, so the log keeps the order
+    // things happened in: the placement, then the rows that rose under it.
+    if (this.lastAttack === 0 && this.garbageQueue.length > 0) {
+      this.applyGarbage();
+      if (this.gameOver) return;
     }
 
     if (this.playing) this.spawn();
@@ -1098,10 +1100,22 @@ export class BlockEngine {
     this._initPieceTracking();
   }
 
-  start() {
+  // held: { left, right, softdrop } → time the key went down, for keys already
+  // down when the game starts (held through the countdown). They count from
+  // that moment, so DAS is charged for the first piece like for any later one.
+  start(held = {}) {
     this.reset();
     this.playing = true;
     this.spawn();
+    if (held.left != null) {
+      this.pressedLeft = true;
+      this.dasLeft = held.left;
+    }
+    if (held.right != null) {
+      this.pressedRight = true;
+      this.dasRight = held.right;
+    }
+    if (held.softdrop != null) this.softDropping = true;
   }
 
   update(dt, now) {
@@ -1269,19 +1283,28 @@ export class BlockEngine {
     if (queue.length === 0) return;
 
     this.garbageApplied = (this.garbageApplied || 0) + queue.reduce((n, b) => n + b.amount, 0);
+    // The rows that actually rose go in the log (hole column of each, bottom
+    // row last), so a replay can rebuild the board.
+    const holes = [];
+    const record = () => holes.length && this.replay.push({ kind: "garbage", holes, t: this.clock });
     for (const batch of queue) {
       for (let i = 0; i < batch.amount; i++) {
-        const top = this.matrix.shift();
-        if (top.some((v) => v !== EMPTY)) {
+        // Checked before the row is taken off: a top out must leave the
+        // matrix at full height, or drawing it throws and the board freezes.
+        if (this.matrix[0].some((v) => v !== EMPTY)) {
           this.gameOver = true;
           this.playing = false;
+          record();
           return;
         }
+        this.matrix.shift();
         const row = new Array(COLS).fill(8);
         row[batch.holeCol] = EMPTY;
         this.matrix.push(row);
+        holes.push(batch.holeCol);
       }
     }
+    record();
 
     if (this.currentId) {
       if (this.collides(this.currentX, this.currentY, this.currentRot)) {
@@ -1404,21 +1427,16 @@ function countHoles(matrix) {
   return holes;
 }
 
-export function buildReplayText(engine, settings, summary) {
-  const { das, arr, sprintLines } = settings;
+// One or two text lines per event of the piece log.
+function replayLines(engine) {
   const lines = [];
-  const time = summary.time.toFixed(3);
-  const timeStr = formatTime(summary.time);
-  lines.push(
-    `SPRINT ${sprintLines}L | ${timeStr} (${time}s) | ${summary.blocks} blocks | ${summary.pps.toFixed(2)} PPS | DAS:${das} ARR:${arr}`,
-  );
-
-  lines.push("");
-
   let pieceNum = 0;
   for (const ev of engine.replay) {
     const ts = `[${ev.t.toFixed(3)}s]`;
-    if (ev.kind === "hold") {
+    if (ev.kind === "garbage") {
+      pieceNum++;
+      lines.push(`#${String(pieceNum).padStart(2, "0")} ${ts} garbage +${ev.holes.length} holes=[${ev.holes.join(",")}]`);
+    } else if (ev.kind === "hold") {
       pieceNum++;
       lines.push(
         `#${String(pieceNum).padStart(2, "0")} ${ts} ${ev.type} hold`,
@@ -1442,6 +1460,27 @@ export function buildReplayText(engine, settings, summary) {
       );
     }
   }
+  return lines;
+}
+
+// The piece log so far as text (the log panel's copy button).
+export function buildLogText(engine) {
+  if (!engine) return "";
+  return [`LOG | ${engine.placedBlocks} blocks | ${formatTime(engine.clock)}`, "", ...replayLines(engine)].join("\n");
+}
+
+export function buildReplayText(engine, settings, summary) {
+  const { das, arr, sprintLines } = settings;
+  const lines = [];
+  const time = summary.time.toFixed(3);
+  const timeStr = formatTime(summary.time);
+  lines.push(
+    `SPRINT ${sprintLines}L | ${timeStr} (${time}s) | ${summary.blocks} blocks | ${summary.pps.toFixed(2)} PPS | DAS:${das} ARR:${arr}`,
+  );
+
+  lines.push("");
+
+  lines.push(...replayLines(engine));
 
   lines.push("");
   const s = engine.stats;

@@ -161,7 +161,10 @@ canvas { display: block; }
 .btn.primary:hover, .btn.primary.focus { background: var(--fg-hi); border-color: var(--fg-hi); }
 .btn.ghost { border-color: transparent; color: var(--dim); }
 .btn.ghost:hover { color: var(--fg); background: var(--hover); }
-.btn:focus-visible, .group button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+/* The focus ring sits on the button's own edge, so it lines up with the fill
+   and the hover border. Filled (white) buttons keep it outside to stay visible. */
+.btn:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+.btn.primary:focus-visible, .group button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .row-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 /* ─── Type ─── */
@@ -183,6 +186,7 @@ canvas { display: block; }
   line-height: 1.6;
 }
 .keys .hint { display: inline-flex; align-items: center; gap: 5px; }
+.keys .hint.on, .keys .hint.on .kbd { color: var(--fg); }
 .kbd {
   display: inline-flex;
   align-items: center;
@@ -242,8 +246,8 @@ canvas { display: block; }
 .lede { font-size: var(--t3); color: var(--dim); line-height: 1.55; max-width: 30em; margin: 12px 0 0; }
 
 /* ─── Home ─── */
-.logo { font-size: 44px; font-weight: 700; letter-spacing: -0.05em; line-height: 1; margin: 0; }
-.sub { font-size: var(--t3); color: var(--dim); margin: 8px 0 0; }
+.logo { font-size: clamp(64px, 15vh, 120px); font-weight: 700; letter-spacing: -0.05em; line-height: 0.9; margin: 0; }
+.sub { font-size: var(--t3); color: var(--dim); margin: 14px 0 0; }
 .menu { display: flex; flex-direction: column; gap: 10px; width: 300px; }
 .menu button {
   position: relative;
@@ -294,7 +298,7 @@ canvas { display: block; }
 .side { width: 120px; flex: none; display: flex; flex-direction: column; gap: 24px; min-height: 0; overflow: visible; }
 .side > .keys:last-child { margin-top: auto; }
 .board-wrap, .play canvas { flex: none; }
-.side.right { width: 104px; }
+.side.right { width: 120px; }
 .stat .v { font-size: var(--t5); }
 .stat .v.big { font-size: var(--t6); }
 .board-wrap { position: relative; }
@@ -417,7 +421,11 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 }
 .settings .opt > .group { justify-self: start; }
 .settings .opt .k { white-space: nowrap; }
-.keybtn { min-width: 110px; }
+/* Rows with a longer explanation: the text takes the room and wraps, the control keeps its own width. */
+.settings .opt.wide { grid-template-columns: 1fr auto; }
+.settings .opt.wide > .group { justify-self: end; }
+.settings .opt .k.hint { white-space: normal; text-transform: none; letter-spacing: 0.01em; line-height: 1.45; margin-top: 2px; }
+.keybtn { min-width: 96px; height: 32px; }
 .btn.compact { height: 38px; padding: 0 16px; flex: none; }
 .settings .group { flex: none; }
 .keybtn.rec { border-color: var(--fg); }
@@ -620,6 +628,73 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   transition: text-decoration-color 0.2s var(--out);
 }
 .link:hover { text-decoration-color: var(--fg); }
+
+/* ─── Lab ─── */
+.lab-box {
+  width: 100%;
+  max-width: 520px;
+  height: 260px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: var(--fill);
+  text-align: left;
+  overflow: hidden;
+}
+.lab-box { position: relative; }
+.lab-catch { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; resize: none; cursor: default; }
+.lab-box:focus-within { outline: 1px solid var(--line); }
+.lab-empty > *, .lab-lines { position: relative; z-index: 1; }
+.lab-empty { pointer-events: none; }
+.lab-empty .btn { pointer-events: auto; }
+.lab-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.lab-keys { display: flex; align-items: center; gap: 5px; font-size: var(--t2); color: var(--faint); }
+.lab-keys span { margin-left: 4px; }
+.lab-head { width: 100%; max-width: 520px; min-height: 1.6em; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 4px; margin-bottom: 10px; font-size: var(--t2); line-height: 1.6; color: var(--fg); }
+.lab-head .link { color: var(--dim); }
+.lab-lines { flex: 1; min-height: 0; margin: 0; padding: 12px 6px 12px 16px; list-style: none; overflow-y: auto; overflow-x: hidden; font-size: var(--t1); line-height: 1.7; color: var(--dim); }
+.lab-lines li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ─── Scroll areas ───
+   The bar's place is always kept, so content never shifts when it starts to
+   scroll; the track is clear, and the thumb fades in only while hovered. */
+@property --scroll-thumb { syntax: "<color>"; inherits: true; initial-value: transparent; }
+.scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+  transition: --scroll-thumb 0.25s var(--out);
+}
+.scroll:hover { --scroll-thumb: var(--muted); }
+.lab-held .k { color: var(--fg); }
+.lab-held canvas { animation: lab-held 0.45s var(--out); transform-origin: 50% 50%; }
+@keyframes lab-held { from { transform: scale(1.18); filter: brightness(1.6); } }
+@media (prefers-reduced-motion: reduce) { .lab-held canvas { animation: none; } }
+.lab-bar { display: flex; align-items: center; gap: 16px; margin-top: 24px; }
+.lab-bar input[type="range"] { flex: 1; min-width: 0; }
+.lab-icon, .lab-speed {
+  flex: none;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s var(--out);
+}
+.lab-icon:hover, .lab-speed:hover { background: var(--hover); }
+.lab-icon { width: 38px; }
+.lab-icon svg { width: 16px; height: 16px; fill: currentColor; }
+/* Fixed width, so the bar keeps its shape as the speed changes. */
+.lab-speed { width: 56px; font-size: var(--t2); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+
+/* Handling, keys and the settings link above Start */
+.setup-info { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 10px; font-size: var(--t2); color: var(--dim); }
+.setup-info .link { color: var(--dim); }
+.setup-info .link:hover { color: var(--fg); }
 
 /* ─── Battle seats ─── */
 .seats { display: flex; align-items: stretch; justify-content: center; gap: 20px; }
@@ -844,7 +919,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .choice-list button {
   height: 46px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 0 20px;
@@ -853,7 +928,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   background: var(--fill);
   color: var(--dim);
   cursor: pointer;
-  line-height: 44px;
+  line-height: 1;
   transition: color 0.2s var(--out), background 0.2s var(--out), border-color 0.2s var(--out);
 }
 .choice-list button:hover { background: var(--hover); color: var(--fg); }
@@ -889,7 +964,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 /* ─── Switch ─── */
 .switch-row {
   width: 100%;
-  max-width: 340px;
+  max-width: 280px; /* same as .choice-list */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -945,6 +1020,24 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   gap: 10px;
   animation: none;
 }
+.rlog.right { right: auto; left: calc(100% + 28px); }
+.rlog-head { display: flex; align-items: center; gap: 6px; }
+.rlog-copy {
+  width: 20px;
+  height: 20px;
+  margin: -4px 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.rlog-copy:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.rlog-copy:disabled { opacity: 0.4; cursor: default; }
+.rlog-copy svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .rlog-list {
   flex: 1;
   min-height: 0;
@@ -1035,6 +1128,8 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .top-btn:hover, .top-btn:focus-visible { background: var(--hover); color: var(--fg); }
 .top-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 html, body { transition: background-color 0.25s var(--out), color 0.25s var(--out); }
+/* Theme switch: one slow cross-fade of the whole page. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.45s; animation-timing-function: ease-in-out; }
 .seat-row { display: flex; flex-direction: column; gap: 8px; }
 .seat-hc { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; padding-left: 4px; }
 
@@ -1042,6 +1137,20 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
 .dd-btn { box-shadow: inset 0 0 0 1px var(--stroke); }
 .dd-menu { box-shadow: inset 0 0 0 1px var(--stroke), 0 12px 32px var(--shadow); }
 .veil.pause .row-btns { flex-direction: column; align-items: stretch; }
+
+/* Battle menus worked by each seat's own keys: the button that seat is on. */
+.btn.cursor { outline: 2px solid var(--fg); outline-offset: -2px; }
+.btn.primary.cursor { outline-offset: 2px; }
+
+/* Keyboard navigation: the control the keys are on. */
+.page button:focus-visible, .veil button:focus-visible, .dialog button:focus-visible, .dd-menu button:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: -2px;
+}
+.page .btn.primary:focus-visible, .veil .btn.primary:focus-visible, .dialog .btn.primary:focus-visible,
+.page .group button:focus-visible, .dialog .group button:focus-visible {
+  outline-offset: 2px;
+}
 
 /* ─── Stepper (− value +) ─── */
 .stepper { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; background: var(--fill); }
@@ -1090,6 +1199,13 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
 .dialog-body { margin: 10px 0 0; font-size: var(--t2); line-height: 1.6; color: var(--dim); }
 .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
 .dialog-actions .btn { height: 40px; }
+/* Settings dialog: fixed height, so switching sections never resizes it. */
+.settings-dialog { width: min(540px, 100%); height: min(700px, 100%); display: flex; flex-direction: column; padding-bottom: 20px; }
+.settings-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.settings-dialog .settings { flex: 1; max-width: none; margin-top: 20px; }
+.settings-foot { display: flex; justify-content: flex-end; gap: 8px; padding-top: 16px; }
+.settings-foot .btn { height: 40px; min-width: 96px; }
+.settings-foot .btn.primary:disabled { background: var(--cap); border-color: transparent; color: var(--faint); cursor: default; }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .dialog, .dialog-back { animation: none; } }
 /* Fixed line boxes: Latin and Hangul names (or "CPU") must give the same height. */

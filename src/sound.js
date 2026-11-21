@@ -9,6 +9,12 @@ export function setSoundEnabled(on) {
   enabled = !!on;
 }
 
+// Sounds that can be switched off one by one (Settings → Sound).
+const opts = { fault: true, b2b: true, combo: true };
+export function setSoundOptions(o) {
+  Object.assign(opts, o);
+}
+
 function ac() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (ctx.state === "suspended") ctx.resume();
@@ -73,7 +79,15 @@ export const sfx = {
   perfect: () => {
     [523, 659, 784, 1047, 1319].forEach((f, i) => tone({ freq: f, type: "triangle", dur: 0.22, vol: 0.08, delay: i * 0.06 }));
   },
-  miss: () => tone({ freq: 180, type: "square", dur: 0.12, vol: 0.05, slide: 120 }),
+  miss: () => opts.fault && tone({ freq: 180, type: "square", dur: 0.12, vol: 0.05, slide: 120 }),
+  // Back-to-back: a low note answered an octave up, under the clear sound.
+  b2b: () => {
+    if (!opts.b2b) return;
+    tone({ freq: 392, type: "square", dur: 0.09, vol: 0.035, delay: 0.1 });
+    tone({ freq: 784, type: "square", dur: 0.14, vol: 0.035, delay: 0.18 });
+  },
+  // Combo: one short note that climbs a semitone with every clear in a row.
+  combo: (n) => opts.combo && tone({ freq: 660 * 2 ** (Math.min(n, 14) / 12), type: "sine", dur: 0.09, vol: 0.07, delay: 0.12 }),
   garbage: () => noise({ dur: 0.14, vol: 0.18, freq: 300 }),
   // flow
   ready: () => tone({ freq: 440, type: "sine", dur: 0.1, vol: 0.08 }),
@@ -118,6 +132,14 @@ export function trackSfx(engine, { topout = true } = {}) {
     else if (/Spin/i.test(action) && lines > 0) sfx.spin(lines);
     else if (lines > 0) sfx.clear(lines);
     else sfx.drop();
+    if (lines > 0) {
+      // The last placement in the log says whether the back-to-back bonus held.
+      const log = engine.replay;
+      let last = log.length - 1;
+      while (last >= 0 && log[last].kind !== "place") last--;
+      if (log[last]?.b2b) sfx.b2b();
+      if (engine.combo >= 1) sfx.combo(engine.combo);
+    }
   }
   if (now.garbage > prev.garbage) sfx.garbage();
   if (topout && now.over && !prev.over) sfx.lose();

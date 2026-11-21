@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
-import { BlockEngine, formatTime, buildReplayText } from "../game.js";
-import { buildKeyMap, loadKeyBindings } from "../keys.js";
+import { BlockEngine, formatTime, buildReplayText, buildLogText } from "../game.js";
+import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Stat, Countdown, KeyHints, ReplayLog, KeyStrokes, PauseMenu } from "../ui.jsx";
-import { useDisplayToggles, usePause } from "../display.js";
+import { Stat, SetupInfo, Countdown, KeyHints, ReplayLog, KeyStrokes, PauseMenu } from "../ui.jsx";
+import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions } from "../display.js";
 import { useFit } from "../fit.js";
 
 const SPRINT_OPTIONS = [1, 20, 40, 100, 1000];
@@ -40,16 +40,8 @@ export default function Sprint({ settings, onBack }) {
   const [copied, setCopied] = useState(false);
   const [log, setLog] = useState({ events: [], total: 0 });
   const logLenRef = useRef(0);
-  const [sprintLines, setSprintLines] = useState(
-    () => {
-      try {
-        const saved = localStorage.getItem("jbl-settings");
-        return saved ? JSON.parse(saved).sprintLines ?? 40 : 40;
-      } catch {
-        return 40;
-      }
-    },
-  );
+  // Always opens on 40 lines, whatever was played last.
+  const [sprintLines, setSprintLines] = useState(40);
 
   // Sync refs
   useEffect(() => {
@@ -58,13 +50,6 @@ export default function Sprint({ settings, onBack }) {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("jbl-settings") || "{}");
-      saved.sprintLines = sprintLines;
-      localStorage.setItem("jbl-settings", JSON.stringify(saved));
-    } catch { /* ignore */ }
-  }, [sprintLines]);
 
   // ─── RENDERER ───
   const render = useCallback(() => {
@@ -109,7 +94,18 @@ export default function Sprint({ settings, onBack }) {
 
       trackSfx(engine);
 
+      // The last piece usually locks inside a key handler, between two frames,
+      // so the run can already be over here: bring the side numbers up to the
+      // final state before stopping.
+      const syncHud = () => {
+        setDisplayTime(formatTime(engine.clock));
+        setDisplayLines(engine.linesRemaining);
+        setDisplayPPS(engine.clock > 0 ? (engine.placedBlocks / engine.clock).toFixed(2) : "0.00");
+        setDisplayAttack(engine.totalAttack);
+      };
+
       if (engine.completed && stateRef.current !== "completed") {
+        syncHud();
         sfx.win();
         setPhase("completed");
         setStats(buildEndStats(engine));
@@ -117,6 +113,7 @@ export default function Sprint({ settings, onBack }) {
         return;
       }
       if (engine.gameOver && stateRef.current !== "gameover") {
+        syncHud();
         setPhase("gameover");
         setStats(buildEndStats(engine));
         render();
@@ -172,31 +169,35 @@ export default function Sprint({ settings, onBack }) {
 
   // ─── START GAME (with countdown) ───
   const launchGame = useCallback(() => {
-    const s = settingsRef.current;
-    const engine = new BlockEngine({
-      das: s.das,
-      arr: s.arr,
-      sdf: s.sdf,
-      sprintLines,
-    });
-    engineRef.current = engine;
+    const engine = engineRef.current;
     prevPlacedRef.current = 0;
     logLenRef.current = 0;
     setLog({ events: [], total: 0 });
-    engine.start();
+    engine.start(heldActions(keysRef.current));
     setPhase("playing");
     setDisplayAction("");
     setDisplayAttack(0);
     setStats(null);
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(gameLoopRef.current);
-  }, [sprintLines]);
+  }, []);
 
   const countdownRef = useRef(null);
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
+    // The engine is made now, not at "Go", so the countdown can show the pieces
+    // that are coming. The seed keeps that order when start() resets it.
+    const s = settingsRef.current;
+    engineRef.current = new BlockEngine({
+      das: s.das,
+      arr: s.arr,
+      sdf: s.sdf,
+      sprintLines,
+      seed: Math.floor(Math.random() * 2 ** 31),
+    });
+    render();
     setPhase("countdown");
     setDisplayAction("");
     actionPieceRef.current = -1;
@@ -207,7 +208,12 @@ export default function Sprint({ settings, onBack }) {
         launchGame();
       }, 500);
     }, 700);
-  }, [launchGame]);
+  }, [launchGame, sprintLines, render]);
+
+  // Coming from the setup screen the canvases only exist once the game view is up.
+  useEffect(() => {
+    if (phase === "countdown") render();
+  }, [phase, render]);
 
   const { pause, resume } = usePause({
     phase,
@@ -225,13 +231,23 @@ export default function Sprint({ settings, onBack }) {
     setPhase("select");
   };
 
+  const settingsOpen = !!settings.settingsOpen;
+  useSettingsDialog(settings, {
+    pause,
+    apply: () => {
+      tune(engineRef.current, settings);
+      keysRef.current = buildKeyMap(loadKeyBindings().solo);
+    },
+  });
+
   // ─── KEY HANDLING ───
   useEffect(() => {
+    if (settingsOpen) return;
     const handleKeyDown = (e) => {
       if (e.repeat) return;
       const action = keysRef.current[e.code];
 
-      if (e.code === "KeyF") {
+      if (e.code === restartKey()) {
         if (phase === "playing" || phase === "paused" || phase === "gameover" || phase === "completed") {
           startGame();
           return;
@@ -261,21 +277,6 @@ export default function Sprint({ settings, onBack }) {
           return;
         }
       }
-      if (e.code === "Enter" && phase === "select") {
-        e.preventDefault();
-        startGame();
-        return;
-      }
-      if ((e.code === "ArrowUp" || e.code === "ArrowDown") && phase === "select") {
-        e.preventDefault();
-        const i = SPRINT_OPTIONS.indexOf(sprintLines);
-        const next = SPRINT_OPTIONS[Math.min(SPRINT_OPTIONS.length - 1, Math.max(0, i + (e.code === "ArrowDown" ? 1 : -1)))];
-        if (next !== sprintLines) {
-          sfx.tick();
-          setSprintLines(next);
-        }
-        return;
-      }
 
       if (!action || phase !== "playing") return;
       e.preventDefault();
@@ -293,7 +294,7 @@ export default function Sprint({ settings, onBack }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [phase, startGame, stats, onBack, sprintLines, pause, resume]);
+  }, [phase, startGame, stats, onBack, pause, resume, settingsOpen]);
 
   // Reload bindings whenever entering select (settings may have been edited)
   useEffect(() => {
@@ -326,7 +327,7 @@ export default function Sprint({ settings, onBack }) {
     return (
       <div className="page" style={{ "--accent": "#41b6e6" }}>
         <h1 className="title">{t("Sprint")}</h1>
-        <p className="lede">{t("Clear the lines as fast as you can. The clock starts on the first piece.")}</p>
+        <p className="lede">{t("Clear the lines as fast as you can.")}</p>
         <div className="opts center">
           <div className="opt">
             <div className="k">{t("Lines")}</div>
@@ -351,14 +352,9 @@ export default function Sprint({ settings, onBack }) {
               ))}
             </div>
           </div>
-          <div className="opt">
-            <div className="k">{t("Handling")}</div>
-            <div className="dim small">
-              DAS {settings.das} ms · ARR {settings.arr} ms · SDF {settings.sdf === 100 ? "∞" : settings.sdf}
-            </div>
-          </div>
         </div>
         <div className="actions">
+          <SetupInfo settings={settings} />
           <button className="btn primary" onClick={startGame}>
             {t("Start")}
           </button>
@@ -377,7 +373,7 @@ export default function Sprint({ settings, onBack }) {
     <>
       <div className="mode-label">Sprint · {sprintLines} lines</div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} />}
+        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} getText={() => buildLogText(engineRef.current)} />}
         <div className="side">
           <div>
             <div className="k">{t("Hold")}</div>
@@ -431,14 +427,14 @@ export default function Sprint({ settings, onBack }) {
                       <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M5 12.5l4.5 4.5L19 7.5" />
                       </svg>
-                      {t("Copied")}
+                      {t("Copied!")}
                     </>
                   ) : (
                     t("Copy log")
                   )}
                 </button>
                 <button className="btn ghost" onClick={onBack}>
-                  {t("Menu")}
+                  {t("Main menu")}
                 </button>
               </div>
             </div>
@@ -447,9 +443,8 @@ export default function Sprint({ settings, onBack }) {
           {phase === "gameover" && (
             <div className="veil">
               <div className="k">{t("Top out")}</div>
-              <div className="title">
-                {stats?.lines || 0} lines in {formatTime(stats?.time || 0)}
-              </div>
+              <div className="title">{formatTime(stats?.time || 0)}</div>
+              <div className="k">{t("{n} lines", { n: stats?.lines || 0 })}</div>
               <div className="row-btns">
                 <button className="btn primary" onClick={startGame}>
                   {t("Again")}
@@ -461,7 +456,7 @@ export default function Sprint({ settings, onBack }) {
                       <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M5 12.5l4.5 4.5L19 7.5" />
                       </svg>
-                      {t("Copied")}
+                      {t("Copied!")}
                     </>
                   ) : (
                     t("Copy log")
@@ -469,7 +464,7 @@ export default function Sprint({ settings, onBack }) {
                   </button>
                 )}
                 <button className="btn ghost" onClick={onBack}>
-                  {t("Menu")}
+                  {t("Main menu")}
                 </button>
               </div>
             </div>
@@ -482,9 +477,9 @@ export default function Sprint({ settings, onBack }) {
             <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
           </div>
           <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[
-            [["F"], "restart"],
-            [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
-            [["K"], `input ${settings.showKeys ? "on" : "off"}`],
+            [[keyLabel(restartKey())], "restart"],
+            [["J"], `log ${settings.showLog !== false ? "on" : "off"}`, settings.showLog !== false],
+            [["K"], `input ${settings.showKeys ? "on" : "off"}`, !!settings.showKeys],
             [["Esc"], phase === "paused" ? "resume" : "pause"],
           ]} />
         </div>

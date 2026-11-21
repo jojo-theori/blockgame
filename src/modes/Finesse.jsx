@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
 import { ROWS, COLS, COLORS, BlockEngine, formatTime } from "../game.js";
-import { buildKeyMap, loadKeyBindings } from "../keys.js";
-import { drawBoard, BOARD_W, BOARD_H } from "../render.js";
+import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
+import { drawBoard, clearPlayfield, BOARD_W, BOARD_H } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyName, MultiSelect, Switch, KeyStrokes, EngineLog, PauseMenu } from "../ui.jsx";
-import { useDisplayToggles, usePause } from "../display.js";
+import { Stat, SetupInfo, Countdown, KeyHints, Kbd, Advanced, KeyName, MultiSelect, Switch, KeyStrokes, EngineLog, PauseMenu } from "../ui.jsx";
+import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions } from "../display.js";
 import { useFit } from "../fit.js";
 import { placements, bestPaths, sameCells } from "../finesse.js";
 
 const ACCENT = "#5cc45c";
 const PREFS_KEY = "jbl-finesse";
-const GOALS = [20, 40, 100, 0]; // 0 = endless
+const GOALS = [20, 40, 100];
 const PIECES = [
   { id: 1, label: "I" },
   { id: 2, label: "T" },
@@ -111,7 +111,7 @@ export default function Finesse({ settings, onBack }) {
   const zoom = useFit(700, 600);
   const prefs = loadPrefs();
   const [phase, setPhase] = useState("select"); // select | countdown | playing | done
-  const [goal, setGoal] = useState(prefs.goal ?? 20);
+  const [goal, setGoal] = useState(20); // always opens on 20, whatever was played last
   const [onFault, setOnFault] = useState(prefs.onFault ?? "retry"); // retry | continue
   // Pieces to practise (any subset). Older saves stored a single piece id (0 = all).
   const [pieces, setPieces] = useState(() =>
@@ -146,11 +146,11 @@ export default function Finesse({ settings, onBack }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ goal, onFault, pieces, allow180 }));
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ onFault, pieces, allow180 }));
     } catch {
       /* ignore */
     }
-  }, [goal, onFault, pieces, allow180]);
+  }, [onFault, pieces, allow180]);
 
   // ─── PLACEMENT CHECK ───
   const validate = useCallback(
@@ -253,7 +253,7 @@ export default function Finesse({ settings, onBack }) {
     });
     engine.validatePlacement = validate;
     engineRef.current = engine;
-    engine.start();
+    engine.start(heldActions(keysRef.current));
     const first = pickTarget(engine.currentId, null, allow180);
     engine.matrix = buildWell(first.cells);
     engine.updateGhost();
@@ -283,6 +283,7 @@ export default function Finesse({ settings, onBack }) {
     delete map[bindRef.current.hold]; // no hold in finesse practice
     keysRef.current = map;
     engineRef.current = null;
+    clearPlayfield(canvasRef.current);
     setPhase("countdown");
     setCountdownText("Ready");
     countdownRef.current = setTimeout(() => {
@@ -314,22 +315,25 @@ export default function Finesse({ settings, onBack }) {
     restart: () => startGame(),
   });
 
+  const settingsOpen = !!settings.settingsOpen;
+  useSettingsDialog(settings, {
+    pause,
+    apply: () => {
+      tune(engineRef.current, settings);
+      bindRef.current = loadKeyBindings().solo;
+      setBind(bindRef.current);
+      const map = buildKeyMap(bindRef.current);
+      delete map[bindRef.current.hold]; // no hold in finesse practice
+      keysRef.current = map;
+    },
+  });
+
   // ─── KEYS ───
   useEffect(() => {
+    if (settingsOpen) return;
     const onDown = (e) => {
       if (phase === "select") {
         if (e.code === "Escape") return onBack();
-        if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
-          e.preventDefault();
-          const d = e.code === "ArrowRight" ? 1 : -1;
-          setGoal((g) => GOALS[(GOALS.indexOf(g) + d + GOALS.length) % GOALS.length]);
-        } else if (e.code === "ArrowUp" || e.code === "ArrowDown") {
-          e.preventDefault();
-          setOnFault((m) => (m === "retry" ? "continue" : "retry"));
-        } else if (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space") {
-          e.preventDefault();
-          startGame();
-        }
         return;
       }
       if (e.code === "Escape") {
@@ -338,7 +342,7 @@ export default function Finesse({ settings, onBack }) {
         return setPhase("select");
       }
       if (e.repeat) return;
-      if (e.code === "KeyF" && phase !== "countdown") {
+      if (e.code === restartKey() && phase !== "countdown") {
         e.preventDefault();
         return startGame();
       }
@@ -359,7 +363,7 @@ export default function Finesse({ settings, onBack }) {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
     };
-  }, [phase, onBack, startGame, stop, pause, resume]);
+  }, [phase, onBack, startGame, stop, pause, resume, settingsOpen]);
 
   useEffect(
     () => () => {
@@ -375,22 +379,35 @@ export default function Finesse({ settings, onBack }) {
       <div className="page" style={{ "--accent": ACCENT }}>
         <h1 className="title">{t("Finesse")}</h1>
         <p className="lede">
-          {t("Fill the gap with as few key presses as possible. Holding left or right to the wall counts as one press.")}
+          {t("Fill the gap with as few key presses as possible.")}
         </p>
         <div className="opts">
           <div className="opt">
             <div className="k">{t("Pieces")}</div>
-            <Segmented
-              label="Pieces"
-              options={GOALS.map((g) => ({ id: g, label: g ? String(g) : t("Endless") }))}
-              value={goal}
-              onChange={setGoal}
-            />
+            <div className="choice-list" role="radiogroup" aria-label="Pieces">
+              {GOALS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  role="radio"
+                  aria-checked={goal === g}
+                  className={goal === g ? "on" : ""}
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    if (g !== goal) sfx.tick();
+                    setGoal(g);
+                  }}
+                >
+                  <span className="n">{g}</span>
+                  <span className="u">pieces</span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="opt switches">
             <Switch
               label="Practice mode"
-              hint="Shows each fault and repeats the piece. Off: faults count toward a final score"
+              hint="Repeats the piece on a fault"
               checked={onFault === "retry"}
               onChange={(on) => setOnFault(on ? "retry" : "continue")}
             />
@@ -425,6 +442,7 @@ export default function Finesse({ settings, onBack }) {
           </Advanced>
         </div>
         <div className="actions">
+          <SetupInfo settings={settings} />
           <button className="btn primary" onClick={startGame}>
             {t("Start")}
           </button>
@@ -464,7 +482,7 @@ export default function Finesse({ settings, onBack }) {
         <div className="board-wrap">
           <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
           {phase === "countdown" && <Countdown text={countdownText} />}
-          {phase === "paused" && <PauseMenu onResume={resume} onRestart={() => startGame()} onSetup={() => setPhase("select")} onMenu={onBack} extra={!goal && <button className="btn" onClick={() => { run.current.finished = true; loopRef.current?.(performance.now()); }}>{t("End run")}</button>} />}
+          {phase === "paused" && <PauseMenu onResume={resume} onRestart={() => startGame()} onSetup={() => setPhase("select")} onMenu={onBack} />}
           {phase === "done" && result && (
             <div className="veil">
               <div className="k">{result.pieces} pieces</div>
@@ -482,7 +500,7 @@ export default function Finesse({ settings, onBack }) {
                   {t("Again")}
                 </button>
                 <button className="btn ghost" onClick={() => setPhase("select")}>
-                  Setup
+                  {t("Mode options")}
                 </button>
               </div>
             </div>
@@ -510,9 +528,9 @@ export default function Finesse({ settings, onBack }) {
             )}
           </div>
           <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[
-            [["F"], "restart"],
-            [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
-            [["K"], `input ${settings.showKeys ? "on" : "off"}`],
+            [[keyLabel(restartKey())], "restart"],
+            [["J"], `log ${settings.showLog !== false ? "on" : "off"}`, settings.showLog !== false],
+            [["K"], `input ${settings.showKeys ? "on" : "off"}`, !!settings.showKeys],
             [["Esc"], phase === "paused" ? "resume" : "pause"],
           ]} />
         </div>

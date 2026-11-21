@@ -141,10 +141,12 @@ export function drawMini(ctx, id, ox, oy, size, alpha = 1) {
   for (const [r, c] of filled) cell(ctx, offX + c * size, offY + r * size, size, COLORS[id], alpha);
 }
 
-export const MINI = 16;
+// Hold and queue pieces are drawn at the board's own cell size, so the queue
+// reads at a glance while the eyes stay on the board.
+export const MINI = CELL;
 export const HOLD_W = 4 * MINI + 8;
 export const HOLD_H = 2 * MINI + 8;
-export const SLOT = 2 * MINI + 18;
+export const SLOT = 2 * MINI + 16;
 
 export function drawHold(canvas, id, used = false) {
   if (!canvas) return;
@@ -152,12 +154,20 @@ export function drawHold(canvas, id, used = false) {
   if (id) drawMini(ctx, id, 4, 4, MINI, used ? 0.3 : 1);
 }
 
-export function drawQueue(canvas, queue, n = 5) {
+// slot: height each piece takes (a tighter one where the column is crowded).
+export function drawQueue(canvas, queue, n = 5, slot = SLOT) {
   if (!canvas) return;
-  const ctx = prep(canvas, HOLD_W, SLOT * n);
+  const ctx = prep(canvas, HOLD_W, slot * n);
   for (let i = 0; i < Math.min(n, queue.length); i++) {
-    drawMini(ctx, queue[i], 4, 4 + i * SLOT, MINI, i === 0 ? 1 : 0.85);
+    drawMini(ctx, queue[i], 4, 4 + i * slot, MINI, i === 0 ? 1 : 0.85);
   }
+}
+
+// Empty board, hold and queue: what the countdown shows before a run starts.
+export function clearPlayfield(board, hold, queue) {
+  drawBoard(board, null);
+  if (hold) prep(hold, HOLD_W, HOLD_H);
+  if (queue) prep(queue, HOLD_W, queue.height / (window.devicePixelRatio || 1));
 }
 
 // Small static board picture (used for opener previews). grid: rows of ids.

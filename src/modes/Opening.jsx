@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
 import { ROWS, COLS, COLORS, BlockEngine, formatTime } from "../game.js";
-import { buildKeyMap, loadKeyBindings } from "../keys.js";
+import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
 import {
   drawBoard,
   drawHold,
   drawQueue,
+  clearPlayfield,
   drawPicture,
   BOARD_W,
   BOARD_H,
@@ -14,8 +15,8 @@ import {
   SLOT,
 } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyStrokes, EngineLog, PauseMenu } from "../ui.jsx";
-import { useDisplayToggles, usePause } from "../display.js";
+import { Segmented, Stat, SetupInfo, Countdown, KeyHints, Kbd, Advanced, KeyStrokes, EngineLog, PauseMenu } from "../ui.jsx";
+import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions } from "../display.js";
 import { useFit } from "../fit.js";
 import {
   OPENERS,
@@ -54,10 +55,13 @@ function StepPicture({ step, size = 12 }) {
   return <canvas ref={ref} width={COLS * size} height={step.grid.length * size} />;
 }
 
+// Queue pieces sit closer here: the same column holds eight key hints.
+const QUEUE_SLOT = SLOT - 10;
+
 export default function Opening({ settings, onBack }) {
   // In-game display toggles (K key input); they change the saved setting.
   useDisplayToggles(settings);
-  const zoom = useFit(700, 600);
+  const zoom = useFit(700, 660);
   const prefs = loadPrefs();
   const [phase, setPhase] = useState("select"); // select | countdown | playing | done
   const [openerIdx, setOpenerIdx] = useState(() => {
@@ -222,7 +226,7 @@ export default function Opening({ settings, onBack }) {
     drawBoard(canvasRef.current, engine, { guide: guideGrid(), focus: focusCells(), reject });
     if (engine) {
       drawHold(holdRef.current, engine.hold, engine.holdUsed);
-      drawQueue(queueRef.current, engine.queue);
+      drawQueue(queueRef.current, engine.queue, 5, QUEUE_SLOT);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [guide]);
@@ -296,7 +300,7 @@ export default function Opening({ settings, onBack }) {
     render();
   }, [render, phase]);
 
-  const launch = useCallback((op, seq, startBoard) => {
+  const launch = useCallback((op, seq, startBoard, seed) => {
     playOpRef.current = op;
     const s = settingsRef.current;
     const engine = new BlockEngine({
@@ -305,6 +309,7 @@ export default function Opening({ settings, onBack }) {
       sdf: s.sdf,
       sprintLines: 999999,
       sequence: seq,
+      seed,
     });
     engine.validatePlacement = validate;
     engineRef.current = engine;
@@ -320,7 +325,7 @@ export default function Opening({ settings, onBack }) {
       hintKey: null,
     };
     prevPlacedRef.current = 0;
-    engine.start();
+    engine.start(heldActions(keysRef.current));
     if (startBoard) {
       // Stage practice: begin from the board the earlier stages leave behind.
       engine.matrix = startBoard.map((row) => row.slice());
@@ -331,6 +336,17 @@ export default function Opening({ settings, onBack }) {
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(loopRef.current);
   }, [validate]);
+
+  // Countdown view: empty board and hold, with the coming pieces in the queue.
+  const previewRef = useRef([]);
+  const showPreview = useCallback(() => {
+    clearPlayfield(canvasRef.current, holdRef.current, queueRef.current);
+    drawQueue(queueRef.current, previewRef.current, 5, QUEUE_SLOT);
+  }, []);
+  // Coming from the setup screen the canvases only exist once the game view is up.
+  useEffect(() => {
+    if (phase === "countdown") showPreview();
+  }, [phase, showPreview]);
 
   // opts.idx: opener to play (defaults to the selected one); opts.quick: skip the
   // countdown (continuous mode); opts.keepStreak: don't reset the streak.
@@ -358,14 +374,19 @@ export default function Opening({ settings, onBack }) {
       return;
     }
     engineRef.current = null;
+    // The countdown shows the pieces that are coming; the seed makes the run
+    // deal the same ones.
+    const seed = Math.floor(Math.random() * 2 ** 31);
+    previewRef.current = new BlockEngine({ sequence: seq, seed }).queue.slice();
+    showPreview();
     run.current = { ...run.current, step: 0, target: stepTarget(op.steps[0]), done: false, reject: null };
     setPhase("countdown");
     setCountdownText("Ready");
     countdownRef.current = setTimeout(() => {
       setCountdownText("Go");
-      countdownRef.current = setTimeout(() => launch(op, seq, startBoard), 350);
+      countdownRef.current = setTimeout(() => launch(op, seq, startBoard, seed), 350);
     }, 550);
-  }, [launch, openerIdx, mirror, order, stage]);
+  }, [launch, showPreview, openerIdx, mirror, order, stage]);
 
   useEffect(() => {
     startRef.current = startGame;
@@ -395,30 +416,22 @@ export default function Opening({ settings, onBack }) {
     restart: () => startGame(),
   });
 
+  const settingsOpen = !!settings.settingsOpen;
+  useSettingsDialog(settings, {
+    pause,
+    apply: () => {
+      tune(engineRef.current, settings);
+      keysRef.current = buildKeyMap(loadKeyBindings().solo);
+    },
+  });
+
   // ─── KEYS ───
   useEffect(() => {
+    if (settingsOpen) return;
     const onDown = (e) => {
       if (phase === "select") {
         if (e.code === "Escape") return onBack();
-        if (e.code === "ArrowDown" || e.code === "ArrowUp") {
-          e.preventDefault();
-          const d = e.code === "ArrowDown" ? 1 : -1;
-          setOpenerIdx((i) => {
-            let n = i;
-            do n = (n + d + OPENERS.length) % OPENERS.length;
-            while (OPENERS[n].disabled && n !== i);
-            if (n !== i) setStage(null);
-            return n;
-          });
-        } else if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
-          e.preventDefault();
-          setOrder((o) => (o === "fixed" ? "random" : "fixed"));
-        } else if (e.code === "KeyG") {
-          setGuide((g) => !g);
-        } else if (e.code === "Enter" || e.code === "NumpadEnter" || e.code === "Space") {
-          e.preventDefault();
-          startGame();
-        }
+        if (e.code === "KeyG") setGuide((g) => !g);
         return;
       }
       if (e.code === "Escape") {
@@ -427,7 +440,7 @@ export default function Opening({ settings, onBack }) {
         return stop();
       }
       if (e.repeat) return;
-      if (e.code === "KeyF" && phase !== "countdown") {
+      if (e.code === restartKey() && phase !== "countdown") {
         e.preventDefault();
         return startGame();
       }
@@ -461,7 +474,7 @@ export default function Opening({ settings, onBack }) {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
     };
-  }, [phase, onBack, startGame, stop, pause, resume]);
+  }, [phase, onBack, startGame, stop, pause, resume, settingsOpen]);
 
 
   useEffect(
@@ -583,6 +596,7 @@ export default function Opening({ settings, onBack }) {
         </Advanced>
         </div>
         <div className="actions">
+          <SetupInfo settings={settings} />
           <button className="btn primary" onClick={startGame}>
             {t("Start")}
           </button>
@@ -609,7 +623,7 @@ export default function Opening({ settings, onBack }) {
       : st.hint === "hold"
         ? t("Hold the {p}.", { p: ID_LETTER[engine?.currentId] || "" })
         : st.hint === "stuck"
-          ? t("No solution from here. Press F to restart.")
+          ? t("No solution from here. Press {key} to restart.", { key: keyLabel(restartKey()) })
           : "";
 
   return (
@@ -628,7 +642,7 @@ export default function Opening({ settings, onBack }) {
           </div>
           <Stat k="Time" v={formatTime(engine?.clock || 0)} big />
           <div className="stat">
-            <div className="k">{t("Misses")}</div>
+            <div className="k">{t("Faults")}</div>
             <div key={missFlash} className={"v" + (missFlash ? " flash" : "")}>
               {st.misses}
             </div>
@@ -669,7 +683,7 @@ export default function Opening({ settings, onBack }) {
                     {formatTime(result.time)}
                   </div>
                   <div className="grid2">
-                    <Stat k="Misses" v={result.misses === 0 ? "Clean" : result.misses} />
+                    <Stat k="Faults" v={result.misses === 0 ? "Clean" : result.misses} />
                     <Stat k="Pieces" v={result.pieces} />
                     <Stat k="PPS" v={result.pps.toFixed(2)} />
                     <Stat k="Order" v={order === "fixed" ? "Ideal" : "Random"} />
@@ -692,7 +706,7 @@ export default function Opening({ settings, onBack }) {
                   {t("Again")}
                 </button>
                 <button className="btn ghost" onClick={stop}>
-                  {t("Back")}
+                  {t("Mode options")}
                 </button>
               </div>
             </div>
@@ -702,7 +716,7 @@ export default function Opening({ settings, onBack }) {
         <div className="side right" style={{ width: 150 }}>
           <div>
             <div className="k">{t("Next")}</div>
-            <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
+            <canvas ref={queueRef} width={HOLD_W} height={QUEUE_SLOT * 5} style={{ marginTop: 8 }} />
           </div>
           <div>
             {/* Space is always reserved so the hint never pushes anything around */}
@@ -714,13 +728,13 @@ export default function Opening({ settings, onBack }) {
             </p>
           </div>
           <KeyHints style={{ flexDirection: "column", alignItems: "flex-start" }} items={[
-              [["F"], "restart"],
-              [["G"], `guide ${guide ? "on" : "off"}`],
+              [[keyLabel(restartKey())], "restart"],
+              [["G"], `guide ${guide ? "on" : "off"}`, !!guide],
               [["O"], `order ${order === "fixed" ? "ideal" : "random"}`],
-              [["M"], `mirror ${mirror}`],
-              [["N"], `auto next ${autoNext === "all" ? "on" : "off"}`],
-              [["J"], `log ${settings.showLog !== false ? "on" : "off"}`],
-            [["K"], `input ${settings.showKeys ? "on" : "off"}`],
+              [["M"], `mirror ${mirror}`, mirror === "on"],
+              [["N"], `auto next ${autoNext === "all" ? "on" : "off"}`, autoNext === "all"],
+              [["J"], `log ${settings.showLog !== false ? "on" : "off"}`, settings.showLog !== false],
+            [["K"], `input ${settings.showKeys ? "on" : "off"}`, !!settings.showKeys],
               [["Esc"], phase === "paused" ? "resume" : "pause"],
             ]} />
         </div>

@@ -4,18 +4,21 @@ import { sfx } from "./sound.js";
 
 // In-game toggles for the display settings: J shows/hides the piece log and
 // K the key input, in every game mode. Skipped if the key is a game binding.
-export function useDisplayToggles(settings) {
+export function useDisplayToggles(settings, profiles = ["solo"]) {
   const ref = useRef(settings);
+  const profilesRef = useRef(profiles);
   useEffect(() => {
     ref.current = settings;
+    profilesRef.current = profiles;
   });
   useEffect(() => {
     const onKey = (e) => {
       if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.target instanceof HTMLElement && e.target.closest("input, textarea")) return;
-      const bound = Object.values(loadKeyBindings().solo || {});
-      if (bound.includes(e.code)) return;
+      const all = loadKeyBindings();
+      if (profilesRef.current.some((p) => Object.values(all[p] || {}).includes(e.code))) return;
       const s = ref.current;
+      if (s.settingsOpen) return;
       if (e.code === "KeyK" && s.setShowKeys) {
         s.setShowKeys((v) => !v);
         sfx.tick();
@@ -27,6 +30,45 @@ export function useDisplayToggles(settings) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+}
+
+// Keys that are physically down right now (code → time it went down), so a game
+// can start with the movement keys the player is already holding.
+const down = new Map();
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", (e) => !down.has(e.code) && down.set(e.code, performance.now()), true);
+  window.addEventListener("keyup", (e) => down.delete(e.code), true);
+  window.addEventListener("blur", () => down.clear());
+}
+export function heldActions(keyMap) {
+  const held = {};
+  for (const [code, at] of down) {
+    const a = keyMap?.[code];
+    if (a === "left" || a === "right" || a === "softdrop") held[a] = at;
+  }
+  return held;
+}
+
+// The settings dialog can open at any time. Opening it pauses a running game;
+// when it closes, `apply` gives the game the new handling and key bindings.
+export function useSettingsDialog(settings, { pause, apply }) {
+  const ref = useRef({ pause, apply });
+  useEffect(() => {
+    ref.current = { pause, apply };
+  });
+  const was = useRef(false);
+  useEffect(() => {
+    const open = !!settings.settingsOpen;
+    if (open && !was.current) ref.current.pause();
+    if (!open && was.current) ref.current.apply();
+    was.current = open;
+  }, [settings.settingsOpen]);
+}
+export function tune(engine, s) {
+  if (!engine) return;
+  engine.das = s.das;
+  engine.arr = s.arr;
+  engine.sdf = s.sdf;
 }
 
 // Esc pauses a solo game instead of leaving it. Pausing stops the loop (the
@@ -61,6 +103,7 @@ export function usePause({ phase, setPhase, rafRef, countdownRef, lastTimeRef, l
 let playing = 0;
 const subs = new Set();
 const emit = () => subs.forEach((f) => f(playing > 0));
+export const isPlaying = () => playing > 0;
 export function usePlaying(active) {
   useEffect(() => {
     if (!active) return;

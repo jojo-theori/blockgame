@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { t } from "../i18n.js";
 import {
   ACTIONS,
+  EXTRA_ACTIONS,
   DEFAULT_BINDINGS,
   loadKeyBindings,
   saveKeyBindings,
@@ -29,6 +30,7 @@ const ACTION_NAMES = {
   rotateCCW: "Rotate counter-clockwise",
   rotate180: "Rotate 180",
   hold: "Hold",
+  restart: "Restart",
 };
 
 export default function Settings({
@@ -40,12 +42,13 @@ export default function Settings({
   setSdf,
   soundEnabled,
   setSoundEnabled,
-  onBack,
+  soundOpts,
+  setSoundOpts,
+  onClose,
 }) {
   // Key edits are a draft until Save; leaving without saving drops them.
   const [saved, setSaved] = useState(() => loadKeyBindings());
   const [bindings, setBindings] = useState(saved);
-  const [notice, setNotice] = useState("");
   const [confirmReset, setConfirmReset] = useState(false);
   const dirty = JSON.stringify(saved) !== JSON.stringify(bindings);
   const [activeProfile, setActiveProfile] = useState("solo");
@@ -87,23 +90,16 @@ export default function Settings({
       // across those two profiles swaps too.
       const old = bindings[rec.profile][rec.action];
       const scope = rec.profile === "solo" ? ["solo"] : ["p1", "p2"];
-      let swapped = null;
       const next = { ...bindings, [rec.profile]: { ...bindings[rec.profile], [rec.action]: code } };
       for (const p of scope) {
-        for (const a of ACTIONS) {
+        for (const a of [...ACTIONS, ...EXTRA_ACTIONS[p]]) {
           if (p === rec.profile && a === rec.action) continue;
           if (bindings[p][a] === code) {
             next[p] = { ...next[p], [a]: old };
-            swapped = { p, a };
           }
         }
       }
       setBindings(next);
-      setNotice(
-        swapped && old !== code
-          ? t("Swapped: {action} now uses {key}.", { action: (swapped.p !== rec.profile ? t(PROFILE_LIST.find((x) => x.id === swapped.p).label) + " " : "") + t(ACTION_NAMES[swapped.a]), key: keyLabel(old) })
-          : "",
-      );
       setError("");
       setRecording(null);
     };
@@ -111,18 +107,18 @@ export default function Settings({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [bindings]);
 
-  // ESC to back when not capturing
+  // Esc closes the dialog when not capturing a key (or resetting a profile).
   useEffect(() => {
     const onKey = (e) => {
-      if (recording) return;
+      if (recording || confirmReset) return;
       if (e.code === "Escape" || e.key === "Escape") {
         e.preventDefault();
-        onBack();
+        onClose();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [recording, onBack]);
+  }, [recording, confirmReset, onClose]);
 
   const profile = bindings[activeProfile];
 
@@ -132,25 +128,25 @@ export default function Settings({
       [activeProfile]: { ...DEFAULT_BINDINGS[activeProfile] },
     }));
     setError("");
-    setNotice("");
   };
   const save = () => {
     saveKeyBindings(bindings);
     setSaved(bindings);
-    setNotice("");
   };
   const profileLabel = PROFILE_LIST.find((p) => p.id === activeProfile).label;
   const atDefault = JSON.stringify(bindings[activeProfile]) === JSON.stringify(DEFAULT_BINDINGS[activeProfile]);
 
   return (
-    <div className="page" style={{ "--accent": "var(--fg)" }}>
-      <h1 className="title">{t("Settings")}</h1>
-      <div className="mid shrink">
-      <div>
+    // A click outside closes it, unless key edits would be lost.
+    <div className="dialog-back" onPointerDown={(e) => e.target === e.currentTarget && !dirty && onClose()}>
+    <div className="dialog settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title" style={{ "--accent": "var(--fg)" }}>
+      <div className="settings-head">
+        <div id="settings-title" className="dialog-title">{t("Settings")}</div>
         <Segmented
           label="Section"
           options={[
             { id: "game", label: "Handling" },
+            { id: "sound", label: "Sound" },
             { id: "keys", label: "Keys" },
           ]}
           value={section}
@@ -182,18 +178,33 @@ export default function Settings({
               </div>
               <SliderField value={sdf} setValue={setSdf} min={1} max={100} def={30} displayValue={sdf === 100 ? "∞" : `${sdf}×`} />
             </div>
-            <div className="opt">
-              <div className="k" style={{ color: "var(--fg)" }}>{t("Sound")}</div>
-              <Segmented
-                label="Sound"
-                options={[
-                  { id: true, label: "On" },
-                  { id: false, label: "Off" },
-                ]}
-                value={soundEnabled}
-                onChange={setSoundEnabled}
-              />
-            </div>
+          </div>
+        )}
+
+        {section === "sound" && (
+          <div className="opts">
+            {[
+              { k: "All sounds", v: soundEnabled, set: setSoundEnabled },
+              { k: "Fault", hint: "A wrong or wasteful placement in Finesse and Opening", key: "fault" },
+              { k: "Back-to-back", hint: "A quad or spin clear right after another", key: "b2b" },
+              { k: "Combo", hint: "Clears in a row, rising with each one", key: "combo" },
+            ].map((row) => (
+              <div key={row.k} className="opt wide">
+                <div>
+                  <div className="k" style={{ color: "var(--fg)" }}>{t(row.k)}</div>
+                  {row.hint && <div className="k small hint">{t(row.hint)}</div>}
+                </div>
+                <Segmented
+                  label={row.k}
+                  options={[
+                    { id: true, label: "On", disabled: !!row.key && !soundEnabled },
+                    { id: false, label: "Off", disabled: !!row.key && !soundEnabled },
+                  ]}
+                  value={row.key ? soundOpts[row.key] : row.v}
+                  onChange={(on) => (row.key ? setSoundOpts((o) => ({ ...o, [row.key]: on })) : row.set(on))}
+                />
+              </div>
+            ))}
           </div>
         )}
 
@@ -219,14 +230,14 @@ export default function Settings({
               {t("Keys follow the physical key, so the 한/영 toggle never changes them.")}
             </p>
             <div className="key-msg">
-              {error ? <span className="err">{t(error)}</span> : notice ? <span>{notice}</span> : dirty ? <span>{t("Unsaved changes. Save to keep them.")}</span> : null}
+              {error ? <span className="err">{t(error)}</span> : dirty ? <span>{t("Unsaved changes. Save to keep them.")}</span> : null}
             </div>
             <div className="opts" style={{ marginTop: 0 }}>
-              {KEY_ORDER.map((action) => {
+              {[...KEY_ORDER, ...EXTRA_ACTIONS[activeProfile]].map((action) => {
                 const isRecording =
                   recording && recording.profile === activeProfile && recording.action === action;
                 return (
-                  <div key={action} className="opt" style={{ minHeight: 44, padding: "4px 0", gridTemplateColumns: "1fr auto" }}>
+                  <div key={action} className="opt" style={{ minHeight: 38, padding: "3px 0", gridTemplateColumns: "1fr auto" }}>
                     <div className="k" style={{ color: "var(--fg)" }}>{t(ACTION_NAMES[action])}</div>
                     <button
                       className={"btn keybtn" + (isRecording ? " rec" : "")}
@@ -246,7 +257,6 @@ export default function Settings({
           </div>
         )}
       </div>
-      </div>
       <ConfirmDialog
         open={confirmReset}
         title={t("Reset {profile} keys?", { profile: t(profileLabel) })}
@@ -258,16 +268,17 @@ export default function Settings({
           setConfirmReset(false);
         }}
       />
-      <div className="actions">
+      <div className="settings-foot">
+        <button className="btn ghost" onClick={onClose}>
+          {t(section === "keys" && dirty ? "Discard and close" : "Close")}
+        </button>
         {section === "keys" && (
           <button className="btn primary" onClick={save} disabled={!dirty}>
             {t(dirty ? "Save" : "Saved")}
           </button>
         )}
-        <button className="btn ghost" onClick={onBack}>
-          {t(section === "keys" && dirty ? "Discard and back" : "Back")}
-        </button>
       </div>
+    </div>
     </div>
   );
 }

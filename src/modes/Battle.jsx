@@ -1,16 +1,19 @@
-import { Fragment, useState, useEffect, useRef, useCallback } from "react";
+import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { t } from "../i18n.js";
-import { usePlaying } from "../display.js";
-import { ROWS, CELL, BlockEngine } from "../game.js";
+import { usePlaying, useDisplayToggles, useSettingsDialog, tune, heldActions } from "../display.js";
+import { ROWS, CELL, BlockEngine, buildLogText } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
 import { BotPlayer } from "../bots/player.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, prep, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
-import { Countdown, KeyHints, Dropdown, Stepper } from "../ui.jsx";
+import { SetupInfo, Countdown, KeyHints, Dropdown, Stepper, EngineLog, KeyStrokes } from "../ui.jsx";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { useFit } from "../fit.js";
 
 const METER_W = 6;
+const NO_CURSORS = [0, 0];
+const SIDE_W = 120; // hold column: wide enough for the key input and a long bot name
+const LOG_W = 196; // piece log and its gap
 
 const WHO = [
   { id: "p1", label: "Player 1" },
@@ -98,7 +101,41 @@ function createEngine(settings, attackBonus = 0, seed) {
   });
 }
 
-function PlayerBoard({ engineRef, label, sub, result, mirror }) {
+// log: "left" | "right" | null, the side the piece log sits on; isCpu hides its
+// key counts; keyProfile: the key profile to show as input, for a human seat;
+// hints: key hints under the queue, where the solo modes have them.
+// The pause or result menu over one seat's board. cursor: the button this
+// seat's own keys are on, when each player drives their own menu (two humans);
+// without it the shared keyboard navigation works the menu.
+// side: 0 left, 1 right, handed to the button's action; copied: this seat's
+// log was just copied.
+function SeatMenu({ k, title, items, cursor, side, copied }) {
+  return (
+    <div className="veil pause" data-nav={cursor == null ? undefined : "off"}>
+      {k && <div className="k">{k}</div>}
+      <div className="title">{title}</div>
+      <div className="row-btns">
+        {items.map((it, i) => (
+          <button key={it.label} className={"btn" + (it.kind ? " " + it.kind : "") + (cursor === i ? " cursor" : "")} onClick={() => it.run(side)}>
+            {it.copy && copied ? (
+              <>
+                <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 12.5l4.5 4.5L19 7.5" />
+                </svg>
+                {t("Copied!")}
+              </>
+            ) : (
+              t(it.label)
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// overlay: the pause or result screen, shown over this seat's board.
+function PlayerBoard({ engineRef, label, sub, result, mirror, log, isCpu, keyProfile, hints, overlay }) {
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -135,7 +172,7 @@ function PlayerBoard({ engineRef, label, sub, result, mirror }) {
   }, [engineRef]);
 
   const hold = (
-    <div className="side" style={{ width: HOLD_W }}>
+    <div className="side" style={{ width: SIDE_W }}>
       <div>
         <div className="k">{t("Hold")}</div>
         <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
@@ -145,6 +182,7 @@ function PlayerBoard({ engineRef, label, sub, result, mirror }) {
         {sub && <div className="k" style={{ marginTop: 4 }}>{sub}</div>}
         {result && <div className="k" style={{ marginTop: 12, color: "var(--fg)" }}>{result}</div>}
       </div>
+      {keyProfile && <KeyStrokes key={keyProfile} profile={keyProfile} />}
     </div>
   );
   const next = (
@@ -153,17 +191,22 @@ function PlayerBoard({ engineRef, label, sub, result, mirror }) {
         <div className="k">{t("Next")}</div>
         <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
       </div>
+      {hints && <KeyHints style={{ flexDirection: "column", alignItems: "flex-start", whiteSpace: "nowrap" }} items={hints} />}
     </div>
   );
   const board = (
     <div style={{ display: "flex", gap: 6, flexDirection: mirror ? "row-reverse" : "row" }}>
-      <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" style={{ opacity: result === "Lost" ? 0.5 : 1 }} />
+      <div className="board-wrap">
+        <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" style={{ display: "block" }} />
+        {overlay}
+      </div>
       <canvas ref={meterRef} width={METER_W} height={BOARD_H} />
     </div>
   );
 
   return (
     <div className="play" style={{ gap: 20 }}>
+      {log && <EngineLog engineRef={engineRef} side={log} keys={!isCpu} />}
       {hold}
       {board}
       {next}
@@ -171,8 +214,10 @@ function PlayerBoard({ engineRef, label, sub, result, mirror }) {
   );
 }
 
-export default function Battle({ settings, onBack, onSettings }) {
-  const zoom = useFit(1040, 600);
+export default function Battle({ settings, onBack }) {
+  // J and K show or hide the piece logs and the key input, as in the solo modes.
+  const showLog = settings.showLog !== false;
+  const showKeys = !!settings.showKeys;
   // select | countdown | playing | finished
   const [phase, setPhase] = useState("select");
   // Each side is Player 1, Player 2 or CPU (a human can only be on one side).
@@ -185,6 +230,13 @@ export default function Battle({ settings, onBack, onSettings }) {
   const [rightBot, setRightBot] = useState(saved.rightBot ?? "cc");
   const [leftHandicap, setLeftHandicap] = useState(saved.leftHandicap ?? 0);
   const [rightHandicap, setRightHandicap] = useState(saved.rightHandicap ?? 0);
+  const humanSeats = [left, right].filter((x) => x !== "cpu").length;
+  // Only the key profiles this match uses can take J or K away from the toggles.
+  useDisplayToggles(settings, humanSeats === 2 ? ["p1", "p2"] : humanSeats === 1 ? ["solo"] : []);
+  const profileOf = (slot) => (!showKeys || slot === "cpu" ? null : humanSeats === 1 ? "solo" : slot);
+  // Room for the logs and the key input is always kept, so J and K never move
+  // or rescale the boards.
+  const zoom = useFit(2 * (SIDE_W + BOARD_W + METER_W + HOLD_W + 46) + 56 + 2 * LOG_W, 600);
   const [countdownText, setCountdownText] = useState("");
   const [, forceUpdate] = useState(0);
   const [winner, setWinner] = useState(null); // "p1" | "p2"
@@ -283,8 +335,8 @@ export default function Battle({ settings, onBack, onSettings }) {
   const launch = useCallback(() => {
     const e1 = engine1Ref.current;
     const e2 = engine2Ref.current;
-    e1.start();
-    e2.start();
+    e1.start(heldActions(p1KeysRef.current));
+    e2.start(heldActions(p2KeysRef.current));
     seatsRef.current = [left, right];
     cpusRef.current = [
       left === "cpu" ? makeCpu(e1, leftBot, leftLevel) : null,
@@ -353,8 +405,63 @@ export default function Battle({ settings, onBack, onSettings }) {
     setPhase("select");
   }, []);
 
+  const settingsOpen = !!settings.settingsOpen;
+
+  // Pause and result menus. With two humans each seat moves its own cursor with
+  // its own keys: left / right (or soft drop) to move, hard drop to pick,
+  // rotate counter-clockwise to go back.
+  // Copies the log of the seat that asked (0 left, 1 right); that seat's
+  // button says so for a moment.
+  const [copiedSide, setCopiedSide] = useState(null);
+  const copyLog = useCallback((side) => {
+    navigator.clipboard
+      .writeText(buildLogText((side ? engine2Ref : engine1Ref).current))
+      .then(() => {
+        setCopiedSide(side);
+        setTimeout(() => setCopiedSide((s) => (s === side ? null : s)), 2000);
+      })
+      .catch((err) => console.error("Copy failed:", err));
+  }, []);
+  const menuItems = useMemo(
+    () =>
+      phase === "paused"
+        ? [
+            { label: "Resume", kind: "primary", run: resume },
+            { label: "Rematch", run: startGame },
+            { label: "Mode options", run: toSetup },
+            { label: "Main menu", kind: "ghost", run: onBack },
+          ]
+        : phase === "finished"
+          ? [
+              { label: "Rematch", kind: "primary", run: startGame },
+              { label: "Copy log", copy: true, run: copyLog },
+              { label: "Mode options", run: toSetup },
+              { label: "Main menu", kind: "ghost", run: onBack },
+            ]
+          : null,
+    [phase, resume, startGame, toSetup, copyLog, onBack],
+  );
+  const ownMenus = humanSeats === 2;
+  // Cursors of the left and right seat, kept per phase so each menu opens on
+  // its first button.
+  const [cursorState, setCursorState] = useState({ phase, at: [0, 0] });
+  const cursors = cursorState.phase === phase ? cursorState.at : NO_CURSORS;
+  const menuSinceRef = useRef(0);
+  useEffect(() => {
+    menuSinceRef.current = performance.now();
+  }, [phase]);
+  useSettingsDialog(settings, {
+    pause: () => (phaseRef.current === "playing" || phaseRef.current === "countdown") && pause(),
+    apply: () => {
+      tune(engine1Ref.current, settings);
+      tune(engine2Ref.current, settings);
+      reloadKeys();
+    },
+  });
+
   // Key handling for in-game.
   useEffect(() => {
+    if (settingsOpen) return;
     const onDown = (e) => {
       if (e.code === "Escape" || e.key === "Escape") {
         if (phase === "playing" || phase === "countdown") pause();
@@ -363,9 +470,23 @@ export default function Battle({ settings, onBack, onSettings }) {
         else if (phase === "select") onBack();
         return;
       }
-      if (phase === "select" && (e.code === "Enter" || e.code === "NumpadEnter")) {
+      if (menuItems && ownMenus) {
+        const side = p1KeysRef.current[e.code] ? 0 : p2KeysRef.current[e.code] ? 1 : -1;
+        if (side < 0) return;
         e.preventDefault();
-        startGame();
+        // A short wait first, so keys mashed as the match ends pick nothing.
+        if (e.repeat || performance.now() - menuSinceRef.current < 600) return;
+        const action = (side ? p2KeysRef : p1KeysRef).current[e.code];
+        const d = { left: -1, rotateCW: -1, right: 1, softdrop: 1 }[action];
+        if (d) {
+          sfx.tick();
+          setCursorState({ phase, at: cursors.map((v, i) => (i === side ? Math.min(menuItems.length - 1, Math.max(0, v + d)) : v)) });
+        } else if (action === "harddrop") {
+          menuItems[cursors[side]]?.run(side);
+        } else if (action === "rotateCCW") {
+          if (phase === "paused") resume();
+          else toSetup();
+        }
         return;
       }
       if (phase !== "playing") return;
@@ -397,7 +518,7 @@ export default function Battle({ settings, onBack, onSettings }) {
       window.removeEventListener("keydown", onDown);
       window.removeEventListener("keyup", onUp);
     };
-  }, [phase, onBack, startGame, pause, resume, toSetup]);
+  }, [phase, onBack, startGame, pause, resume, toSetup, settingsOpen, menuItems, ownMenus, cursors]);
 
   // Cleanup
   useEffect(
@@ -468,26 +589,11 @@ export default function Battle({ settings, onBack, onSettings }) {
                 </svg>
                 {t("Both sides are CPU, so you'll be watching.")}
               </span>
-            ) : humans === 2 ? (
-              <>
-                {t("Player 1 and Player 2 use their own keys. Change them in")}{" "}
-                <button type="button" className="link" onClick={onSettings}>
-                  {t("Settings")}
-                </button>
-                .
-              </>
-            ) : (
-              <>
-                {t("You play with your solo keys. Change them in")}{" "}
-                <button type="button" className="link" onClick={onSettings}>
-                  {t("Settings")}
-                </button>
-                .
-              </>
-            )}
+            ) : null}
           </p>
         </div>
         <div className="actions">
+          <SetupInfo settings={settings} profiles={humans === 2 ? ["p1", "p2"] : humans === 1 ? ["solo"] : []} />
           <button className="btn primary" onClick={startGame}>
             {t("Start")}
           </button>
@@ -504,6 +610,16 @@ export default function Battle({ settings, onBack, onSettings }) {
   const nameP1 = nameOf(left, leftBot);
   const nameP2 = nameOf(right, rightBot);
   const done = phase === "finished";
+  // The pause and result screens sit inside the board, as in the solo modes: on
+  // every human seat, never on a CPU seat (with two CPUs, on the left board).
+  const menuUp = phase === "paused" || done;
+  const showMenu = [menuUp && (left !== "cpu" || humanSeats === 0), menuUp && right !== "cpu"];
+  const menuText = {
+    k: done ? t("{name} topped out", { name: winner === "p1" ? nameP2 : nameP1 }) : null,
+    title: done ? t("{name} wins", { name: winner === "p1" ? nameP1 : nameP2 }) : t("Paused"),
+  };
+  // Each human seat gets the key hints under its own queue; a CPU seat has none.
+  const hints = [[["Esc"], phase === "paused" ? "resume" : "pause"]];
 
   return (
     <>
@@ -511,16 +627,12 @@ export default function Battle({ settings, onBack, onSettings }) {
         {t("Battle")} · {nameP1} vs {nameP2}
       </div>
       <div style={{ position: "relative" }}>
-        {/* When the match ends the boards fade back instead of being covered by a
-            dark box, so the page background and grid stay continuous. */}
         <div
           style={{
             display: "flex",
             gap: 56,
             alignItems: "flex-start",
             zoom,
-            opacity: done || phase === "paused" ? 0.12 : 1,
-            transition: "opacity 0.35s var(--out)",
           }}
         >
           <PlayerBoard
@@ -528,58 +640,25 @@ export default function Battle({ settings, onBack, onSettings }) {
             label={nameP1}
             sub={levelOf(left, leftLevel)}
             result={done ? t(winner === "p1" ? "Won" : "Lost") : null}
+            log={showLog ? "left" : null}
+            isCpu={left === "cpu"}
+            keyProfile={profileOf(left)}
+            hints={left === "cpu" ? null : hints}
+            overlay={showMenu[0] && <SeatMenu {...menuText} items={menuItems} cursor={ownMenus ? cursors[0] : null} side={0} copied={copiedSide === 0} />}
           />
           <PlayerBoard
             engineRef={engine2Ref}
             label={nameP2}
             sub={levelOf(right, rightLevel)}
             result={done ? t(winner === "p2" ? "Won" : "Lost") : null}
+            log={showLog ? "right" : null}
+            isCpu={right === "cpu"}
+            keyProfile={profileOf(right)}
+            hints={right === "cpu" ? null : hints}
+            overlay={showMenu[1] && <SeatMenu {...menuText} items={menuItems} cursor={ownMenus ? cursors[1] : null} side={1} copied={copiedSide === 1} />}
           />
         </div>
         {phase === "countdown" && <Countdown text={countdownText} />}
-        {phase === "paused" && (
-          <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "transparent" }}>
-            <div className="title">{t("Paused")}</div>
-            <div className="row-btns" style={{ width: 220 }}>
-              <button className="btn primary" onClick={resume}>
-                {t("Resume")}
-              </button>
-              <button className="btn" onClick={startGame}>
-                {t("Rematch")}
-              </button>
-              <button className="btn" onClick={toSetup}>
-                {t("Change setup")}
-              </button>
-              <button className="btn ghost" onClick={onBack}>
-                {t("Menu")}
-              </button>
-            </div>
-          </div>
-        )}
-        <KeyHints
-          style={{ position: "absolute", left: 0, right: 0, top: "100%", marginTop: 24 }}
-          items={[[["Esc"], phase === "paused" ? "resume" : "pause"]]}
-        />
-
-        {done && (
-          <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "transparent" }}>
-            <div className="k">{t("{name} topped out", { name: winner === "p1" ? nameP2 : nameP1 })}</div>
-            <div className="title">
-              {t("{name} wins", { name: winner === "p1" ? nameP1 : nameP2 })}
-            </div>
-            <div className="row-btns" style={{ width: 220 }}>
-              <button className="btn primary" onClick={startGame}>
-                {t("Rematch")}
-              </button>
-              <button className="btn" onClick={() => setPhase("select")}>
-                Change setup
-              </button>
-              <button className="btn ghost" onClick={onBack}>
-                {t("Menu")}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </>
   );
