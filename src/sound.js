@@ -11,6 +11,15 @@ export function setSoundEnabled(on) {
 
 // Sounds that can be switched off one by one (Settings → Sound).
 const opts = { fault: true, b2b: true, combo: true };
+// Start from what was saved, so the switches hold from the first sound on
+// (and through a reload of this module), not only once the app has set them.
+try {
+  const saved = JSON.parse(localStorage.getItem("jbl-settings") || "{}");
+  if (saved.soundEnabled === false) enabled = false;
+  Object.assign(opts, saved.soundOpts);
+} catch {
+  // no saved settings: the defaults
+}
 export function setSoundOptions(o) {
   Object.assign(opts, o);
 }
