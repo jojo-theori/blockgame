@@ -154,12 +154,11 @@ export const sfx = {
     tone({ freq: 330, type: "square", dur: 0.08, vol: 0.06, slide: 294 });
     tone({ freq: 233, type: "square", dur: 0.13, vol: 0.06, slide: 196, delay: 0.09 });
   },
-  // Back-to-back: the same clear with weight under it. A held C, an octave
-  // and two below the clear's root, starting with it.
+  // Back-to-back: a low note answered an octave up, under the clear sound.
   b2b: () => {
     if (!opts.b2b) return;
-    tone({ freq: 130.81, type: "square", dur: 0.3, vol: 0.04 });
-    tone({ freq: 261.63, type: "square", dur: 0.3, vol: 0.03 });
+    tone({ freq: 392, type: "square", dur: 0.09, vol: 0.035, delay: 0.1 });
+    tone({ freq: 784, type: "square", dur: 0.14, vol: 0.035, delay: 0.18 });
   },
   // Combo: one short note that climbs the chosen scale with every clear in a
   // row, from C5 (combo 1) up two octaves to C7, where it stays.
