@@ -7,6 +7,8 @@ export default {
   Battle: "배틀",
   Opening: "오프닝",
   Finesse: "피네스",
+  "Sound on": "소리 켜기",
+  "Sound off": "소리 끄기",
   Sandbox: "샌드박스",
   Lab: "실험실",
   Settings: "설정",

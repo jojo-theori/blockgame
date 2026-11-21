@@ -190,7 +190,7 @@ export default function App() {
           {devProfile} keys
         </div>
       )}
-      <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} onSettings={openSettings} />
+      <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} sound={soundEnabled} setSound={setSoundEnabled} onSettings={openSettings} />
       {settingsOpen && (
         <Settings
           values={{ das, arr, sdf, soundEnabled, soundOpts, skin, cellLines }}
