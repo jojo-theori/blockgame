@@ -303,6 +303,8 @@ export default {
   "Discard changes": "변경 취소",
   Analyze: "분석하기",
   Summary: "총평",
+  "See key moments": "주요 포인트 보기",
+  "Back to summary": "총평으로",
   "Back to start": "처음으로",
   "A clean run.": "깔끔한 플레이였습니다.",
   "A solid run on the whole.": "대체로 탄탄한 플레이였습니다.",

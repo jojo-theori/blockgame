@@ -685,13 +685,19 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                   {/* Previous and Next come first and never move; Show best joins
                       them on the right when there is a better line to show. */}
                   <div className="lab-moment-nav">
-                    <IconButton icon="prev" label="Previous" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
-                    {/* After the last moment it leads back to the start (and the summary).
-                        Both labels are laid out, so the button keeps one width. */}
-                    <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : restart()))} disabled={!moments.length}>
-                      <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next moment")}</span>
-                      <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Back to start")}</span>
-                    </button>
+                    {overview ? (
+                      <button type="button" className="btn primary compact" onClick={blur(() => jump(1))} disabled={!moments.length}>
+                        {t("See key moments")}
+                      </button>
+                    ) : (
+                      <>
+                        <IconButton icon="prev" label="Previous" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
+                        {/* After the last moment it leads back to the start (and the summary).
+                            Both labels are laid out, so the button keeps one width. */}
+                        <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : restart()))} disabled={!moments.length}>
+                          <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next moment")}</span>
+                          <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Back to start")}</span>
+                        </button>
                     {moment?.best && (
                       <button type="button" className="btn compact lab-best" onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -706,6 +712,11 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                         </svg>
                         {t(shownLine ? "Stop" : "Show best")}
                       </button>
+                    )}
+                        <span className="lab-close">
+                          <IconButton icon="close" label="Back to summary" onClick={blur(restart)} />
+                        </span>
+                      </>
                     )}
                   </div>
                 </div>
