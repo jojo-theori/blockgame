@@ -34,10 +34,8 @@ export function useDisplayToggles(settings) {
 // A pause during the countdown restarts the countdown on resume.
 export function usePause({ phase, setPhase, rafRef, countdownRef, lastTimeRef, loopRef, engineRef, restart }) {
   const from = useRef(null);
-  const [focusLost, setFocusLost] = useState(false);
-  const pause = (why) => {
+  const pause = () => {
     if (phase !== "playing" && phase !== "countdown") return;
-    setFocusLost(why === "focus");
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
     const e = engineRef.current;
@@ -47,7 +45,6 @@ export function usePause({ phase, setPhase, rafRef, countdownRef, lastTimeRef, l
   };
   const resume = () => {
     if (phase !== "paused") return;
-    setFocusLost(false);
     if (from.current === "countdown" || !engineRef.current) {
       restart();
       return;
@@ -56,30 +53,45 @@ export function usePause({ phase, setPhase, rafRef, countdownRef, lastTimeRef, l
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(loopRef.current);
   };
-  // Keys can't reach the game without focus, so pause (and say why).
-  const pauseRef = useRef(pause);
-  useEffect(() => {
-    pauseRef.current = pause;
-  });
-  useFocusLoss(phase === "playing" || phase === "countdown", () => pauseRef.current("focus"));
-  return { pause, resume, focusLost };
+  usePlaying(phase === "playing" || phase === "countdown");
+  return { pause, resume };
 }
 
-// Calls onLost when the window loses focus or the tab is hidden while active.
-export function useFocusLoss(active, onLost) {
-  const cb = useRef(onLost);
-  useEffect(() => {
-    cb.current = onLost;
-  });
+// ─── "Is a game running?" — read by the focus warning in App ───
+let playing = 0;
+const subs = new Set();
+const emit = () => subs.forEach((f) => f(playing > 0));
+export function usePlaying(active) {
   useEffect(() => {
     if (!active) return;
-    const lost = () => cb.current();
-    const vis = () => document.hidden && cb.current();
-    window.addEventListener("blur", lost);
-    document.addEventListener("visibilitychange", vis);
+    playing++;
+    emit();
     return () => {
-      window.removeEventListener("blur", lost);
-      document.removeEventListener("visibilitychange", vis);
+      playing--;
+      emit();
     };
   }, [active]);
+}
+
+// True while a game runs and the window has no keyboard focus. The game keeps
+// going (no pause); a click brings focus straight back.
+export function useFocusWarning() {
+  const [inGame, setInGame] = useState(playing > 0);
+  const [focused, setFocused] = useState(() => document.hasFocus());
+  useEffect(() => {
+    subs.add(setInGame);
+    const on = () => setFocused(true);
+    const off = () => setFocused(false);
+    const vis = () => setFocused(!document.hidden && document.hasFocus());
+    window.addEventListener("focus", on);
+    window.addEventListener("blur", off);
+    document.addEventListener("visibilitychange", vis);
+    return () => {
+      subs.delete(setInGame);
+      window.removeEventListener("focus", on);
+      window.removeEventListener("blur", off);
+      document.removeEventListener("visibilitychange", vis);
+    };
+  }, []);
+  return inGame && !focused;
 }

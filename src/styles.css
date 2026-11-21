@@ -1099,6 +1099,34 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
    it one fixed line box so the seats above never change height. */
 .slot-note { height: 20px; min-height: 0; line-height: 20px; white-space: nowrap; }
 .slot-note .warn { vertical-align: top; height: 20px; }
-.pause-note { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; font-size: var(--t2); line-height: 1.5; color: #f2cb4c; visibility: hidden; }
-.pause-note.on { visibility: visible; }
-.pause-note svg { flex: none; width: 14px; height: 14px; margin-top: 2px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+
+/* ─── Focus warning (game keeps running) ─── */
+.focus-warn {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s var(--out);
+  cursor: pointer;
+}
+.focus-warn.on { opacity: 1; pointer-events: auto; }
+.focus-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: var(--menu);
+  box-shadow: inset 0 0 0 1px var(--stroke), 0 16px 40px var(--shadow);
+  color: #f2cb4c;
+  transform: translateY(4px);
+  transition: transform 0.22s var(--out);
+}
+.focus-warn.on .focus-card { transform: none; }
+.focus-card svg { flex: none; width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.focus-title { font-size: var(--t3); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg); }
+.focus-sub { margin-top: 4px; font-size: var(--t2); color: var(--dim); }

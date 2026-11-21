@@ -6,7 +6,8 @@ import Opening from "./modes/Opening.jsx";
 import Finesse from "./modes/Finesse.jsx";
 import Settings from "./modes/Settings.jsx";
 import ComingSoon from "./modes/ComingSoon.jsx";
-import { KeyHints, TopBar } from "./ui.jsx";
+import { KeyHints, TopBar, FocusWarning } from "./ui.jsx";
+import { useFocusWarning } from "./display.js";
 import { sfx, setSoundEnabled as setSfxEnabled } from "./sound.js";
 
 // ─── SETTINGS PERSISTENCE ───
@@ -54,6 +55,7 @@ export default function App() {
   setLang(lang);
 
   const [menuIdx, setMenuIdx] = useState(0);
+  const focusLost = useFocusWarning();
   const rowRefs = useRef([]);
 
   useEffect(() => {
@@ -128,6 +130,7 @@ export default function App() {
         </button>
       )}
 
+      <FocusWarning show={focusLost} />
       <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={setTheme} />
 
       <main className="main">

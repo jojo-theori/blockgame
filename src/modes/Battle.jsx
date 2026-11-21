@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
-import { useFocusLoss } from "../display.js";
+import { usePlaying } from "../display.js";
 import { ROWS, CELL, BlockEngine } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
 import { BotPlayer } from "../bots/player.js";
@@ -324,7 +324,6 @@ export default function Battle({ settings, onBack, onSettings }) {
   // Pause (Esc). A match is shared, so nothing restarts from a single key:
   // rematch and exit live in the pause menu.
   const pausedFromRef = useRef(null);
-  const [focusLost, setFocusLost] = useState(false);
   const pause = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
@@ -338,7 +337,6 @@ export default function Battle({ settings, onBack, onSettings }) {
     setPhase("paused");
   }, []);
   const resume = useCallback(() => {
-    setFocusLost(false);
     if (pausedFromRef.current === "countdown") {
       runCountdown();
       return;
@@ -348,11 +346,7 @@ export default function Battle({ settings, onBack, onSettings }) {
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(loopRef.current);
   }, [runCountdown]);
-  // Without focus no key reaches the game: pause and say why.
-  useFocusLoss(phase === "playing" || phase === "countdown", () => {
-    pause();
-    setFocusLost(true);
-  });
+  usePlaying(phase === "playing" || phase === "countdown");
   const toSetup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (countdownRef.current) clearTimeout(countdownRef.current);
@@ -546,13 +540,6 @@ export default function Battle({ settings, onBack, onSettings }) {
         {phase === "paused" && (
           <div className="veil" style={{ alignItems: "center", textAlign: "center", background: "transparent" }}>
             <div className="title">{t("Paused")}</div>
-            <p className={"pause-note" + (focusLost ? " on" : "")}>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 3.5 22 20.5H2Z" />
-                <path d="M12 10v4.5M12 17.2v.3" />
-              </svg>
-              {t("The window lost focus, so the game paused.")}
-            </p>
             <div className="row-btns" style={{ width: 220 }}>
               <button className="btn primary" onClick={resume}>
                 {t("Resume")}

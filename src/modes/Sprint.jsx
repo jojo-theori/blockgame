@@ -209,7 +209,7 @@ export default function Sprint({ settings, onBack }) {
     }, 700);
   }, [launchGame]);
 
-  const { pause, resume, focusLost } = usePause({
+  const { pause, resume } = usePause({
     phase,
     setPhase,
     rafRef,
@@ -399,7 +399,7 @@ export default function Sprint({ settings, onBack }) {
           <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
 
           {phase === "countdown" && <Countdown text={countdownText} />}
-          {phase === "paused" && <PauseMenu focusLost={focusLost} onResume={resume} onRestart={startGame} onSetup={toSetup} onMenu={onBack} />}
+          {phase === "paused" && <PauseMenu onResume={resume} onRestart={startGame} onSetup={toSetup} onMenu={onBack} />}
 
           {displayAction && (
             <div key={actionKey} className="action-pop">

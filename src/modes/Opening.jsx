@@ -384,7 +384,7 @@ export default function Opening({ settings, onBack }) {
     setPhase("select");
   }, []);
 
-  const { pause, resume, focusLost } = usePause({
+  const { pause, resume } = usePause({
     phase,
     setPhase,
     rafRef,
@@ -652,7 +652,7 @@ export default function Opening({ settings, onBack }) {
           <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
 
           {phase === "countdown" && <Countdown text={countdownText} />}
-          {phase === "paused" && <PauseMenu focusLost={focusLost} onResume={resume} onRestart={() => startGame()} onSetup={stop} onMenu={onBack} />}
+          {phase === "paused" && <PauseMenu onResume={resume} onRestart={() => startGame()} onSetup={stop} onMenu={onBack} />}
 
           {phase === "playing" && st.lastAction && (
             <div key={st.actionKey} className="action-pop">

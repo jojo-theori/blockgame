@@ -303,7 +303,7 @@ export default function Finesse({ settings, onBack }) {
     setPhase("select");
   }, [goal]);
 
-  const { pause, resume, focusLost } = usePause({
+  const { pause, resume } = usePause({
     phase,
     setPhase,
     rafRef,
@@ -464,7 +464,7 @@ export default function Finesse({ settings, onBack }) {
         <div className="board-wrap">
           <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
           {phase === "countdown" && <Countdown text={countdownText} />}
-          {phase === "paused" && <PauseMenu focusLost={focusLost} onResume={resume} onRestart={() => startGame()} onSetup={() => setPhase("select")} onMenu={onBack} extra={!goal && <button className="btn" onClick={() => { run.current.finished = true; loopRef.current?.(performance.now()); }}>{t("End run")}</button>} />}
+          {phase === "paused" && <PauseMenu onResume={resume} onRestart={() => startGame()} onSetup={() => setPhase("select")} onMenu={onBack} extra={!goal && <button className="btn" onClick={() => { run.current.finished = true; loopRef.current?.(performance.now()); }}>{t("End run")}</button>} />}
           {phase === "done" && result && (
             <div className="veil">
               <div className="k">{result.pieces} pieces</div>

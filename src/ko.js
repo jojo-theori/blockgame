@@ -106,7 +106,8 @@ export default {
   "Swap with seat {n}": "{n}번 자리와 바꾸기",
   "Swap seats": "자리 바꾸기",
   Handicap: "핸디캡",
-  "The window lost focus, so the game paused.": "창의 포커스가 벗어나서 게임을 멈췄습니다.",
+  "No keyboard focus": "키보드 포커스 없음",
+  "Click anywhere to keep playing.": "아무 곳이나 클릭하면 바로 이어서 할 수 있습니다.",
   "Practice mode": "연습 모드",
   "Shows each fault and repeats the piece. Off: faults count toward a final score":
     "실수를 알려 주고 그 블록을 다시 놓게 합니다. 끄면 실수는 횟수로만 세고 마지막에 점수가 나옵니다",
