@@ -140,8 +140,8 @@ export function setComboScale(name) {
 const SPIN_LEAD = 0.06; // length of the twist before a T-spin's notes
 // One note a line sent. after: seconds to wait first.
 function clearNotes(notes, after = 0) {
-  // Nothing sent: one light, clear ding, an octave over the root.
-  if (notes <= 0) return tone({ freq: CLEAR_NOTES[2], type: "sine", dur: 0.16, vol: 0.07, delay: after });
+  // Nothing sent: a single soft, short note.
+  if (notes <= 0) return tone({ freq: CLEAR_NOTES[0], type: "sine", dur: 0.07, vol: 0.05, delay: after });
   const n = Math.min(notes, CLEAR_NOTES.length);
   for (let i = 0; i < n; i++) {
     if (clearStyle === "hits") tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: after + i * CLEAR_STEP });
@@ -157,11 +157,7 @@ export const sfx = {
   move: () => tone({ freq: 520, type: "triangle", dur: 0.03, vol: 0.035 }),
   rotate: () => tone({ freq: 660, type: "triangle", dur: 0.045, vol: 0.05, slide: 780 }),
   hold: () => tone({ freq: 440, type: "sine", dur: 0.09, vol: 0.07, slide: 330 }),
-  // A piece landing: a dull thud, with no pitch to speak of.
-  drop: () => {
-    tone({ freq: 210, type: "sine", dur: 0.07, vol: 0.12, slide: 95 });
-    noise({ dur: 0.045, vol: 0.07, freq: 700 });
-  },
+  drop: () => tone({ freq: 800, type: "sine", dur: 0.08, vol: 0.12 }),
   // results of a placement
   // A line clear: one note a line sent, in the chosen style (see CLEAR_STYLES).
   clear: (lines) => clearNotes(attackNotes(lines)),
