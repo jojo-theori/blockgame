@@ -87,8 +87,10 @@ const GROUPS = [
   {
     label: "Back-to-back",
     items: [
-      { label: "Quad", run: () => place({ lines: 4, b2b: true }) },
-      { label: "T-spin double", run: () => place({ lines: 2, spin: true, b2b: true }) },
+      { label: "Quad + bonus", run: () => place({ lines: 4, b2b: true }) },
+      { label: "T-spin single + bonus", run: () => place({ lines: 1, spin: true, b2b: true }) },
+      { label: "T-spin double + bonus", run: () => place({ lines: 2, spin: true, b2b: true }) },
+      { label: "T-spin triple + bonus", run: () => place({ lines: 3, spin: true, b2b: true }) },
       { label: "The bonus alone", run: () => sfx.b2b() },
     ],
   },
