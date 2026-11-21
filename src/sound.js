@@ -30,13 +30,43 @@ function ac() {
   return ctx;
 }
 
+// The waveform every note is played with. "mixed" leaves each sound the wave
+// it was written with (sine, triangle and square, by sound); the others put
+// the whole kit on one wave. Chosen in Lab → Sound test and kept.
+export const WAVES = ["mixed", "sine", "triangle", "square", "sawtooth"];
+const WAVE_KEY = "jbl-wave";
+// Square and sawtooth carry far more harmonics, so they are turned down to
+// sit about as loud as a sine or triangle of the same level.
+const WAVE_LEVEL = { sine: 1, triangle: 1, square: 0.45, sawtooth: 0.5 };
+let wave = "mixed";
+try {
+  const saved = localStorage.getItem(WAVE_KEY);
+  if (WAVES.includes(saved)) wave = saved;
+} catch {
+  // no storage: the default
+}
+export const getWave = () => wave;
+export function setWave(name) {
+  if (!WAVES.includes(name)) return;
+  wave = name;
+  try {
+    localStorage.setItem(WAVE_KEY, name);
+  } catch {
+    // not kept, still used for this visit
+  }
+}
+
 // One oscillator note. slide: end frequency (glide). delay in seconds.
-export function tone({ freq, type = "sine", dur = 0.08, vol = 0.1, slide = null, delay = 0, attack = 0.004 }) {
+function tone({ freq, type = "sine", dur = 0.08, vol = 0.1, slide = null, delay = 0, attack = 0.004 }) {
   if (!enabled) return;
   const a = ac();
   const t = a.currentTime + delay;
   const osc = a.createOscillator();
   const gain = a.createGain();
+  if (wave !== "mixed" && wave !== type) {
+    vol = (vol * WAVE_LEVEL[wave]) / WAVE_LEVEL[type];
+    type = wave;
+  }
   osc.type = type;
   osc.frequency.setValueAtTime(freq, t);
   if (slide) osc.frequency.exponentialRampToValueAtTime(slide, t + dur);
@@ -49,7 +79,7 @@ export function tone({ freq, type = "sine", dur = 0.08, vol = 0.1, slide = null,
 }
 
 // Short filtered noise burst (thuds, garbage).
-export function noise({ dur = 0.12, vol = 0.12, freq = 400, delay = 0 }) {
+function noise({ dur = 0.12, vol = 0.12, freq = 400, delay = 0 }) {
   if (!enabled) return;
   const a = ac();
   const t = a.currentTime + delay;

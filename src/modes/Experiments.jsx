@@ -1,17 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { t } from "../i18n.js";
-import { sfx, attackNotes, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle } from "../sound.js";
-import { sfxOriginal } from "../sound-original.js";
+import { sfx, attackNotes, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle, WAVES, getWave, setWave } from "../sound.js";
 import { Dropdown } from "../ui.jsx";
 
 const ACCENT = "#f2cb4c";
 
 // ─── Lab: things being tried out ───
 // A list of experiments; each opens on its own page. Esc goes back a step.
-const EXPERIMENTS = [
-  { id: "sound", label: "Sound test", desc: "Hear every sound the game makes, one at a time or as a run of clears." },
-  { id: "original", label: "Original sounds", desc: "The sounds as they first were, on the same buttons, to compare." },
-];
+const EXPERIMENTS = [{ id: "sound", label: "Sound test", desc: "Hear every sound the game makes, one at a time or as a run of clears." }];
 
 export default function Experiments({ settings, onBack }) {
   const [open, setOpen] = useState(null);
@@ -28,7 +24,6 @@ export default function Experiments({ settings, onBack }) {
   }, [open, onBack, settingsOpen]);
 
   if (open === "sound") return <SoundTest kit={sfx} onBack={() => setOpen(null)} />;
-  if (open === "original") return <SoundTest kit={sfxOriginal} original onBack={() => setOpen(null)} />;
   return (
     <div className="page" style={{ "--accent": ACCENT }}>
       <h1 className="title">{t("Lab")}</h1>
@@ -79,6 +74,9 @@ const SCALE_OPTIONS = Object.keys(SCALES).map((id) => ({ id, label: SCALE_NAMES[
 
 const STYLE_NAMES = { arpeggio: "Arpeggio: a note a line sent, climbing", chord: "Chord: a note a line sent, together", hits: "Hits: a tap a line sent, one note" };
 const STYLE_OPTIONS = CLEAR_STYLES.map((id) => ({ id, label: STYLE_NAMES[id] }));
+
+const WAVE_NAMES = { mixed: "As written: a wave for each sound", sine: "Sine", triangle: "Triangle", square: "Square", sawtooth: "Sawtooth" };
+const WAVE_OPTIONS = WAVES.map((id) => ({ id, label: WAVE_NAMES[id] }));
 
 const groupsFor = (kit) => [
   {
@@ -161,7 +159,7 @@ const groupsFor = (kit) => [
   },
 ];
 
-function SoundTest({ kit, original = false, onBack }) {
+function SoundTest({ kit, onBack }) {
   const groups = groupsFor(kit);
   // A run in progress: its timers, so a new press (or leaving) cuts it short.
   const timers = useRef([]);
@@ -171,6 +169,11 @@ function SoundTest({ kit, original = false, onBack }) {
   const pickStyle = (id) => {
     setClearStyle(id);
     setStyle(id);
+  };
+  const [wave, setWaveName] = useState(getWave);
+  const pickWave = (id) => {
+    setWave(id);
+    setWaveName(id);
   };
   const pickScale = (id) => {
     setComboScale(id);
@@ -192,12 +195,16 @@ function SoundTest({ kit, original = false, onBack }) {
   };
   return (
     <div className="page wide" style={{ "--accent": ACCENT }}>
-      <h1 className="title">{t(original ? "Original sounds" : "Sound test")}</h1>
-      <p className="lede">{t(original ? "The sounds before they were reworked. Nothing in the game plays these." : "Each button plays what the game would play. Sounds switched off in Settings stay silent here too.")}</p>
+      <h1 className="title">{t("Sound test")}</h1>
+      <p className="lede">{t("Each button plays what the game would play. Sounds switched off in Settings stay silent here too.")}</p>
       <div className="mid">
         <div className="snd">
-          {!original && (
-            <>
+          <div className="snd-row">
+            <div className="k">{t("Waveform")}</div>
+            <div className="snd-scale wide">
+              <Dropdown label={t("Waveform")} value={wave} options={WAVE_OPTIONS} onChange={pickWave} />
+            </div>
+          </div>
           <div className="snd-row">
             <div className="k">{t("Line clear")}</div>
             <div className="snd-scale wide">
@@ -211,8 +218,6 @@ function SoundTest({ kit, original = false, onBack }) {
               <span className="k small">{t("From C. Used in the game too.")}</span>
             </div>
           </div>
-            </>
-          )}
           {groups.map((g) => (
             <div key={g.label} className="snd-row">
               <div className="k">{t(g.label)}</div>
