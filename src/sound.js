@@ -145,7 +145,8 @@ const SPIN_LEAD = 0.06; // length of the twist before a T-spin's notes
 // wider the leap (a fifth, an octave, an octave and a fifth, two octaves).
 // The notes between would say the same thing with more noise. Hits has no
 // pitch to leap with, so it still counts them all out.
-// root: which note of the ladder to stand on (a T-spin stands one up, on G).
+// root: which note of the ladder to stand on (a T-spin stands one down, on
+// the G below the C a plain clear stands on).
 function clearNotes(notes, after = 0, root = 0) {
   const n = Math.min(Math.max(notes, 1), CLEAR_NOTES.length);
   if (clearStyle === "hits") {
@@ -153,10 +154,11 @@ function clearNotes(notes, after = 0, root = 0) {
     return;
   }
   const played = n - 1 <= root ? [root] : [root, n - 1];
+  const note = (at) => (at < 0 ? 196 : CLEAR_NOTES[at]); // -1: G3, under the ladder
   played.forEach((at, i) => {
     const last = i === played.length - 1;
-    if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[at], type: "triangle", dur: 0.24, vol: 0.1 / Math.sqrt(played.length), delay: after });
-    else tone({ freq: CLEAR_NOTES[at], type: "triangle", dur: last ? 0.18 : 0.08, vol: 0.09, delay: after + i * CLEAR_STEP });
+    if (clearStyle === "chord") tone({ freq: note(at), type: "triangle", dur: 0.24, vol: 0.1 / Math.sqrt(played.length), delay: after });
+    else tone({ freq: note(at), type: "triangle", dur: last ? 0.18 : 0.08, vol: 0.09, delay: after + i * CLEAR_STEP });
   });
 }
 
@@ -171,13 +173,13 @@ export const sfx = {
   // results of a placement
   // A line clear: one to four notes by its attack, in the chosen style (see CLEAR_STYLES).
   clear: (lines) => clearNotes(attackNotes(lines)),
-  // A T-spin is the same thing after a quick upward twist, standing on G
-  // where a plain clear stands on C: same top note for the same attack.
+  // A T-spin is the same thing after a quick upward twist, standing on the
+  // G below where a plain clear stands on C: same top note for the same attack.
   // A mini gets a smaller twist: quieter, and up a fifth, not an octave.
   spin: (lines, mini = false) => {
     if (mini) tone({ freq: 523.25, type: "sine", dur: SPIN_LEAD, vol: 0.04, slide: 783.99 });
     else tone({ freq: 523.25, type: "sine", dur: SPIN_LEAD, vol: 0.07, slide: 1046.5 });
-    clearNotes(attackNotes(lines, true, mini), SPIN_LEAD, 1);
+    clearNotes(attackNotes(lines, true, mini), SPIN_LEAD, -1);
   },
   perfect: () => {
     [523, 659, 784, 1047, 1319, 2093].forEach((f, i) => tone({ freq: f, type: "triangle", dur: 0.22, vol: 0.08, delay: i * 0.06 }));
