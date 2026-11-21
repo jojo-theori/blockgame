@@ -108,6 +108,24 @@ export function cell(ctx, x, y, size, color, alpha = 1, as, lines = gaps) {
   ctx.globalAlpha = 1;
 }
 
+// The ghost: the skinned cell, faded as a whole. It is painted opaque on a
+// scratch canvas first, since a skin's layers overlap and would otherwise
+// blend into one flat tone.
+let scratch = null;
+function ghost(ctx, x, y, size, color, alpha = 0.35) {
+  const dpr = window.devicePixelRatio || 1;
+  scratch ||= document.createElement("canvas");
+  const px = Math.round(size * dpr);
+  if (scratch.width !== px) scratch.width = scratch.height = px;
+  const sctx = scratch.getContext("2d");
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sctx.clearRect(0, 0, size, size);
+  cell(sctx, 0, 0, size, color, 1, skin);
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(scratch, x, y, size, size);
+  ctx.globalAlpha = 1;
+}
+
 function outline(ctx, x, y, size, color, alpha = 1, inset = 1.5) {
   ctx.globalAlpha = alpha;
   ctx.strokeStyle = color;
@@ -179,7 +197,7 @@ export function drawBoard(canvas, engine, opts = {}) {
       for (let c = 0; c < shape.length; c++) {
         if (!shape[r][c]) continue;
         const gy = engine.ghostY + r;
-        if (gy >= 0) cell(ctx, (engine.currentX + c) * CELL, gy * CELL, CELL, color, 0.3, skin);
+        if (gy >= 0) ghost(ctx, (engine.currentX + c) * CELL, gy * CELL, CELL, color);
       }
     }
     if (engine.playing) {
