@@ -163,14 +163,20 @@ const engineFlag = (loss, rank) => (loss >= ENGINE_GRADES.inaccuracy && rank >= 
 //              Battle: exp(-loss per piece / 280) on Cold Clear's losses
 //              (random play 8, a careless stacker 25-45, a tidy one 67,
 //              Cold Clear itself 90-95). Other modes: the stack evaluator.
-//   dexterity  pieces per second on a log scale: 0.25 PPS is 0, every
-//              doubling adds 25, 4 PPS is 100. (A first-day player sits
-//              around 0.4-0.5 PPS, so 15-25.)
-//   finesse    the share of key presses that were needed, stretched so that
-//              40% (every piece walked across tap by tap) is 0 and 100% is 100.
+//   dexterity  pieces per second on a log scale, 25 points a doubling, set
+//              against what players actually do:
+//              Sprint  40 lines in 2:00 is 25, 1:00 is 50, 0:30 is 75, 0:15
+//                      is 100 (0.84, 1.7, 3.4, 6.7 PPS; the usual beginner /
+//                      intermediate / advanced / expert bands).
+//              Battle  slower, since there is more to read. From 0.25 PPS (0)
+//                      to 4 PPS (100): TETR.IO's rank averages land at D 37,
+//                      B 52, A 59, S 67, SS 74, U 81, X 89, X+ 95.
+//   finesse    the share of pieces placed without a wasted key press, the
+//              way TETR.IO and Jstris count it. 70% is the usual mark for
+//              "good enough to move on".
 const clamp = (n) => Math.max(0, Math.min(100, n));
-export const dexterityScore = (pps) => (pps > 0 ? Math.round(clamp((100 * Math.log2(pps / 0.25)) / 4)) : 0);
-export const finesseScore = (need, used) => (used ? Math.round(clamp((100 * (need / used - 0.4)) / 0.6)) : 100);
+export const dexterityScore = (pps, mode) => (pps > 0 ? Math.round(clamp((100 * Math.log2(pps / (mode === "sprint" ? 0.42 : 0.25))) / 4)) : 0);
+export const finesseScore = (clean, scored) => (scored ? Math.round((100 * clean) / scored) : 100);
 const cellKey = (cells) => cells.map(([r, c]) => r * 10 + c).sort((x, y) => x - y).join(",");
 // A line of moves ({ id, cells }, each on the board the one before left)
 // played out: the board after each, and with the piece still on it.
@@ -515,8 +521,6 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
   const total = places.length ? places[places.length - 1].ev.t : 0;
   const keys = places.reduce((n, p) => n + (p.ev.keys || 0), 0);
   const scored = places.filter((p) => p.ev.optimal > 0);
-  const need = scored.reduce((n, p) => n + p.ev.optimal, 0);
-  const used = scored.reduce((n, p) => n + Math.max(p.ev.keys, p.ev.optimal), 0);
   const pps = total > 0 ? places.length / total : 0;
 
   // The moments shown: the heaviest of each kind, at most ten, in play order.
@@ -541,13 +545,12 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
   return {
     scores: {
       macro: places.length ? round(100 * Math.exp(-regret / places.length / (engine ? ENGINE_SCALE : 6.5))) : 0,
-      dexterity: dexterityScore(pps),
-      finesse: finesseScore(need, used),
+      dexterity: dexterityScore(pps, mode),
+      finesse: finesseScore(scored.filter((p) => !p.ev.finesseFault).length, scored.length),
     },
     engine: !!engine,
     traits: traitsOf({ places, found, mode, lines: frames[frames.length - 1].lines, holds: events.filter((e) => e.kind === "hold").length, usual }),
-    // keysPer / needPer: key presses a piece, as played and at the least possible.
-    facts: { pps, kps: total > 0 ? keys / total : 0, usual, pieces: places.length, keysPer: scored.length ? used / scored.length : 0, needPer: scored.length ? need / scored.length : 0 },
+    facts: { pps, kps: total > 0 ? keys / total : 0, usual, pieces: places.length },
     moments,
   };
 }

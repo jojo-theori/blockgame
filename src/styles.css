@@ -846,7 +846,6 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .lab-tip-row { display: flex; flex-direction: column; gap: 3px; font-size: var(--t2); line-height: 1.5; color: var(--dim); }
 .lab-tip-row b { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; font-size: var(--t3); font-weight: 600; color: var(--fg); }
 .lab-tip-row b .lab-kind-icon { width: 14px; height: 14px; }
-.lab-tip-row b i { margin-left: auto; font-style: normal; font-weight: 400; font-size: var(--t2); color: var(--dim); font-variant-numeric: tabular-nums; }
 /* The summary: a certificate, centred, with the rank on a seal. */
 .lab-award { --rank: var(--fg); padding: 20px 18px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--fill); text-align: center; animation: appear 0.4s var(--out) both; }
 .lab-award.rank-S { --rank: #e3bf3f; }
