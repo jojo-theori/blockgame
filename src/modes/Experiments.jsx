@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { t } from "../i18n.js";
-import { sfx } from "../sound.js";
+import { sfx, SCALES, getComboScale, setComboScale } from "../sound.js";
+import { Dropdown } from "../ui.jsx";
 
 const ACCENT = "#f2cb4c";
 
@@ -57,6 +58,20 @@ function place({ lines = 0, spin = false, perfect = false, b2b = false, combo = 
   if (lines && combo >= 1) sfx.combo(combo, lines);
 }
 
+const SCALE_NAMES = {
+  major: "Major",
+  minor: "Minor",
+  harmonicMinor: "Harmonic minor",
+  dorian: "Dorian",
+  lydian: "Lydian",
+  majorPentatonic: "Major pentatonic",
+  minorPentatonic: "Minor pentatonic",
+  blues: "Blues",
+  wholeTone: "Whole tone",
+  chromatic: "Chromatic",
+};
+const SCALE_OPTIONS = Object.keys(SCALES).map((id) => ({ id, label: SCALE_NAMES[id] }));
+
 const GROUPS = [
   {
     label: "Line clears",
@@ -112,6 +127,11 @@ function SoundTest({ onBack }) {
   // A run in progress: its timers, so a new press (or leaving) cuts it short.
   const timers = useRef([]);
   const [playing, setPlaying] = useState(null);
+  const [scale, setScale] = useState(getComboScale);
+  const pickScale = (id) => {
+    setComboScale(id);
+    setScale(id);
+  };
   const stop = () => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
@@ -132,6 +152,13 @@ function SoundTest({ onBack }) {
       <p className="lede">{t("Each button plays what the game would play. Sounds switched off in Settings stay silent here too.")}</p>
       <div className="mid">
         <div className="snd">
+          <div className="snd-row">
+            <div className="k">{t("Combo scale")}</div>
+            <div className="snd-scale">
+              <Dropdown label={t("Combo scale")} value={scale} options={SCALE_OPTIONS} onChange={pickScale} />
+              <span className="k small">{t("From C. Used in the game too.")}</span>
+            </div>
+          </div>
           {GROUPS.map((g) => (
             <div key={g.label} className="snd-row">
               <div className="k">{t(g.label)}</div>

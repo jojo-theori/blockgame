@@ -59,6 +59,39 @@ function noise({ dur = 0.12, vol = 0.12, freq = 400, delay = 0 }) {
   src.start(t);
 }
 
+// Scales the combo note can climb, as semitones above C within one octave.
+// The choice is made in Lab → Sound test and kept for the game itself.
+export const SCALES = {
+  major: [0, 2, 4, 5, 7, 9, 11],
+  minor: [0, 2, 3, 5, 7, 8, 10],
+  harmonicMinor: [0, 2, 3, 5, 7, 8, 11],
+  dorian: [0, 2, 3, 5, 7, 9, 10],
+  lydian: [0, 2, 4, 6, 7, 9, 11],
+  majorPentatonic: [0, 2, 4, 7, 9],
+  minorPentatonic: [0, 3, 5, 7, 10],
+  blues: [0, 3, 5, 6, 7, 10],
+  wholeTone: [0, 2, 4, 6, 8, 10],
+  chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+};
+const SCALE_KEY = "jbl-combo-scale";
+let comboScale = "major";
+try {
+  const saved = localStorage.getItem(SCALE_KEY);
+  if (saved && SCALES[saved]) comboScale = saved;
+} catch {
+  // no storage: the default scale
+}
+export const getComboScale = () => comboScale;
+export function setComboScale(name) {
+  if (!SCALES[name]) return;
+  comboScale = name;
+  try {
+    localStorage.setItem(SCALE_KEY, name);
+  } catch {
+    // not kept, still used for this visit
+  }
+}
+
 const CLEAR_STEP = 0.06; // seconds between the hits of a line clear
 
 export const sfx = {
@@ -90,13 +123,14 @@ export const sfx = {
     tone({ freq: 392, type: "square", dur: 0.09, vol: 0.035, delay: 0.1 });
     tone({ freq: 784, type: "square", dur: 0.14, vol: 0.035, delay: 0.18 });
   },
-  // Combo: one short note that climbs the C major scale with every clear in
-  // a row, from C5 (combo 1) up two octaves to C7 (combo 15 and beyond).
+  // Combo: one short note that climbs the chosen scale with every clear in a
+  // row, from C5 (combo 1) up two octaves to C7, where it stays.
   // lines: how many were cleared, so the note lands after the hits of the clear.
   combo: (n, lines = 1) => {
     if (!opts.combo) return;
-    const step = Math.min(Math.max(n, 1), 15) - 1;
-    const semitones = 12 * Math.floor(step / 7) + [0, 2, 4, 5, 7, 9, 11][step % 7];
+    const scale = SCALES[comboScale];
+    const step = Math.min(Math.max(n, 1), 2 * scale.length + 1) - 1;
+    const semitones = 12 * Math.floor(step / scale.length) + scale[step % scale.length];
     tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: Math.min(lines, 4) * CLEAR_STEP + 0.02 });
   },
   garbage: () => noise({ dur: 0.14, vol: 0.18, freq: 300 }),
