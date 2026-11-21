@@ -3,7 +3,7 @@ import { BlockEngine, formatTime, buildReplayText } from "../game.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints } from "../ui.jsx";
+import { Stat, Countdown, KeyHints, ReplayLog, KeyStrokes } from "../ui.jsx";
 import { useFit } from "../fit.js";
 
 const SPRINT_OPTIONS = [1, 20, 40, 100, 1000];
@@ -33,6 +33,8 @@ export default function Sprint({ settings, onBack }) {
   const [displayAttack, setDisplayAttack] = useState(0);
   const [stats, setStats] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [log, setLog] = useState({ events: [], total: 0 });
+  const logLenRef = useRef(0);
   const [sprintLines, setSprintLines] = useState(
     () => {
       try {
@@ -134,6 +136,10 @@ export default function Sprint({ settings, onBack }) {
       setDisplayAction(engine.lastAction);
       setActionKey((k) => k + 1);
       setDisplayAttack(engine.totalAttack);
+      if (engine.replay.length !== logLenRef.current) {
+        logLenRef.current = engine.replay.length;
+        setLog({ events: engine.replay.slice(-40), total: engine.replay.length });
+      }
 
       if (engine.completed) {
         sfx.win();
@@ -165,6 +171,8 @@ export default function Sprint({ settings, onBack }) {
     });
     engineRef.current = engine;
     prevPlacedRef.current = 0;
+    logLenRef.current = 0;
+    setLog({ events: [], total: 0 });
     engine.start();
     setPhase("playing");
     setDisplayAction("");
@@ -229,6 +237,16 @@ export default function Sprint({ settings, onBack }) {
         startGame();
         return;
       }
+      if ((e.code === "ArrowUp" || e.code === "ArrowDown") && phase === "select") {
+        e.preventDefault();
+        const i = SPRINT_OPTIONS.indexOf(sprintLines);
+        const next = SPRINT_OPTIONS[Math.min(SPRINT_OPTIONS.length - 1, Math.max(0, i + (e.code === "ArrowDown" ? 1 : -1)))];
+        if (next !== sprintLines) {
+          sfx.tick();
+          setSprintLines(next);
+        }
+        return;
+      }
 
       if (!action || phase !== "playing") return;
       e.preventDefault();
@@ -246,7 +264,7 @@ export default function Sprint({ settings, onBack }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [phase, startGame, stats, onBack]);
+  }, [phase, startGame, stats, onBack, sprintLines]);
 
   // Reload bindings whenever entering select (settings may have been edited)
   useEffect(() => {
@@ -281,14 +299,28 @@ export default function Sprint({ settings, onBack }) {
         <h1 className="title">Sprint</h1>
         <p className="lede">Clear the lines as fast as you can. The clock starts on the first piece.</p>
         <div className="opts center">
-          <div className="opt focus">
+          <div className="opt">
             <div className="k">Lines</div>
-            <Segmented
-              label="Lines"
-              options={SPRINT_OPTIONS.map((n) => ({ id: n, label: String(n) }))}
-              value={sprintLines}
-              onChange={setSprintLines}
-            />
+            {/* Plenty of room here, so the choices are big buttons in a column */}
+            <div className="choice-list" role="radiogroup" aria-label="Lines">
+              {SPRINT_OPTIONS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  role="radio"
+                  aria-checked={sprintLines === n}
+                  className={sprintLines === n ? "on" : ""}
+                  onClick={(e) => {
+                    e.currentTarget.blur();
+                    if (n !== sprintLines) sfx.tick();
+                    setSprintLines(n);
+                  }}
+                >
+                  <span className="n">{n}</span>
+                  <span className="u">{n === 1 ? "line" : "lines"}</span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="opt">
             <div className="k">Handling</div>
@@ -316,6 +348,7 @@ export default function Sprint({ settings, onBack }) {
     <>
       <div className="mode-label">Sprint · {sprintLines} lines</div>
       <div className="play" style={{ zoom }}>
+        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} />}
         <div className="side">
           <div>
             <div className="k">Hold</div>
@@ -330,6 +363,7 @@ export default function Sprint({ settings, onBack }) {
           </div>
           <Stat k="PPS" v={displayPPS} />
           <Stat k="Attack" v={displayAttack} />
+          {settings.showKeys && <KeyStrokes />}
         </div>
 
         <div className="board-wrap">

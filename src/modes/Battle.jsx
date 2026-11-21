@@ -364,7 +364,6 @@ export default function Battle({ settings, onBack, onSettings }) {
               <Fragment key={seat.n}>
                 {i > 0 && (
                   <div className="vs">
-                    <span>vs</span>
                     <button
                       type="button"
                       className="swap"
@@ -380,8 +379,9 @@ export default function Battle({ settings, onBack, onSettings }) {
                         b.setLevel(al);
                       }}
                     >
+                      <span className="swap-vs" aria-hidden="true">vs</span>
                       <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M7 7h11l-3-3M17 17H6l3 3" />
+                        <path d="M7 9.5h11l-2.5-2.5M17 14.5H6l2.5 2.5" />
                       </svg>
                     </button>
                   </div>

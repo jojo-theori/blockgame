@@ -13,7 +13,7 @@ import {
   SLOT,
 } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced } from "../ui.jsx";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyStrokes } from "../ui.jsx";
 import { useFit } from "../fit.js";
 import {
   OPENERS,
@@ -625,6 +625,7 @@ export default function Opening({ settings, onBack }) {
           <div style={{ visibility: autoNext === "off" ? "hidden" : "visible" }}>
             <Stat k="Streak" v={streak} />
           </div>
+          {settings.showKeys && <KeyStrokes />}
         </div>
 
         <div className="board-wrap">

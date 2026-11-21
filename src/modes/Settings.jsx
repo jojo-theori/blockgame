@@ -10,7 +10,7 @@ import {
   FORBIDDEN_CODES,
 } from "../keys.js";
 
-import { Segmented, KeyName } from "../ui.jsx";
+import { Segmented, KeyName, Switch } from "../ui.jsx";
 
 const PROFILE_LIST = [
   { id: "solo", label: "Solo" },
@@ -38,6 +38,10 @@ export default function Settings({
   setSdf,
   soundEnabled,
   setSoundEnabled,
+  showLog,
+  setShowLog,
+  showKeys,
+  setShowKeys,
   onBack,
 }) {
   const [bindings, setBindings] = useState(() => loadKeyBindings());
@@ -151,6 +155,7 @@ export default function Settings({
           label="Section"
           options={[
             { id: "game", label: "Handling" },
+            { id: "display", label: "Display" },
             { id: "keys", label: "Keys" },
           ]}
           value={section}
@@ -194,6 +199,23 @@ export default function Settings({
                 onChange={setSoundEnabled}
               />
             </div>
+          </div>
+        )}
+
+        {section === "display" && (
+          <div className="opts switches">
+            <Switch
+              checked={showLog}
+              onChange={setShowLog}
+              label="Show piece log"
+              hint="The Copy log record, beside the board in Sprint"
+            />
+            <Switch
+              checked={showKeys}
+              onChange={setShowKeys}
+              label="Show key input"
+              hint="Your game keys light up while held, in solo modes"
+            />
           </div>
         )}
 

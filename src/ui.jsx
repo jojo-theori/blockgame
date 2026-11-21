@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { keyLabel } from "./keys.js";
+import { keyLabel, loadKeyBindings } from "./keys.js";
 import { sfx } from "./sound.js";
 
 // ─── SHARED UI ───
@@ -255,6 +255,169 @@ export function Dropdown({ label, value, options, onChange }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// Multi-select chips: each option toggles on/off; at least `min` stay on.
+// `all` adds a leading chip that selects every option at once.
+export function MultiSelect({ options, values, onChange, min = 1, all = false, label }) {
+  const set = new Set(values);
+  const everything = options.every((o) => set.has(o.id));
+  const toggle = (id) => {
+    const next = new Set(set);
+    if (next.has(id)) {
+      if (next.size <= min) return;
+      next.delete(id);
+    } else next.add(id);
+    sfx.tick();
+    onChange(options.filter((o) => next.has(o.id)).map((o) => o.id));
+  };
+  return (
+    <div className="multi" role="group" aria-label={label}>
+      {all && (
+        <button
+          type="button"
+          className={"chip-btn" + (everything ? " on" : "")}
+          aria-pressed={everything}
+          onClick={() => {
+            if (everything) return;
+            sfx.tick();
+            onChange(options.map((o) => o.id));
+          }}
+        >
+          All
+        </button>
+      )}
+      {options.map((o) => (
+        <button
+          type="button"
+          key={String(o.id)}
+          className={"chip-btn" + (set.has(o.id) ? " on" : "")}
+          aria-pressed={set.has(o.id)}
+          onClick={() => toggle(o.id)}
+        >
+          {o.color && <i className="chip-dot" style={{ background: o.color }} />}
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// On/off switch with its label, e.g. "Retry on a fault".
+export function Switch({ checked, onChange, label, hint }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      className={"switch-row" + (checked ? " on" : "")}
+      onClick={(e) => {
+        e.currentTarget.blur();
+        sfx.tick();
+        onChange(!checked);
+      }}
+    >
+      <span className="switch-text">
+        <span className="switch-label">{label}</span>
+        {hint && <span className="switch-hint">{hint}</span>}
+      </span>
+      <span className="switch" aria-hidden="true">
+        <span className="knob" />
+      </span>
+    </button>
+  );
+}
+
+
+// ─── Replay log ───
+// The same per-piece record that "Copy log" copies, shown live beside the board.
+// Newest at the bottom; older rows fade out at the top.
+const PIECE_COLOR = { I: "#41b6e6", T: "#b14fd0", L: "#f2913d", J: "#3d6fe0", S: "#5cc45c", Z: "#e8505b", O: "#f2cb4c" };
+export function ReplayLog({ events, total }) {
+  const first = total - events.length;
+  return (
+    <div className="rlog" aria-label="Piece log">
+      <div className="k">Log</div>
+      <ol className="rlog-list">
+        {events.map((ev, i) => {
+          const n = first + i + 1;
+          const fault = ev.kind === "place" && ev.finesseFault > 0;
+          return (
+            <li key={n} className="rlog-row">
+              <span className="rlog-n">{String(n).padStart(2, "0")}</span>
+              <span className="rlog-t">{ev.t.toFixed(2)}</span>
+              <span className="rlog-p">
+                <i style={{ background: PIECE_COLOR[ev.type] }} />
+                {ev.type}
+              </span>
+              {ev.kind === "hold" ? (
+                <span className="rlog-dim">hold</span>
+              ) : (
+                <>
+                  <span className={"rlog-keys" + (fault ? " bad" : "")}>
+                    {ev.keys}
+                    {ev.optimal > 0 && <span className="rlog-dim">/{ev.optimal}</span>}
+                  </span>
+                  <span className="rlog-tag">{[ev.action, ev.b2b && "B2B", ev.pc && "PC"].filter(Boolean).join(" ")}</span>
+                </>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+// ─── Key input display ───
+// The bound game keys as caps that light up while held, laid out like a
+// small keyboard: rotations and hold on top, moves below, hard drop as a bar.
+const STROKE_ROWS = [
+  ["rotateCCW", "rotateCW", "rotate180", "hold"],
+  ["left", "softdrop", "right"],
+  ["harddrop"],
+];
+export function KeyStrokes({ profile = "solo" }) {
+  const [bind] = useState(() => loadKeyBindings()[profile] || {});
+  const [down, setDown] = useState(() => new Set());
+  useEffect(() => {
+    const codes = new Set(Object.values(bind));
+    const set = (code, on) => {
+      if (!codes.has(code)) return;
+      setDown((d) => {
+        if (d.has(code) === on) return d;
+        const n = new Set(d);
+        if (on) n.add(code);
+        else n.delete(code);
+        return n;
+      });
+    };
+    const onDown = (e) => set(e.code, true);
+    const onUp = (e) => set(e.code, false);
+    const clear = () => setDown(new Set());
+    window.addEventListener("keydown", onDown, true);
+    window.addEventListener("keyup", onUp, true);
+    window.addEventListener("blur", clear);
+    return () => {
+      window.removeEventListener("keydown", onDown, true);
+      window.removeEventListener("keyup", onUp, true);
+      window.removeEventListener("blur", clear);
+    };
+  }, [bind]);
+  return (
+    <div className="strokes" aria-hidden="true">
+      <div className="k">Input</div>
+      {STROKE_ROWS.map((row, r) => (
+        <div key={r} className="strokes-row">
+          {row.map((a) => (
+            <span key={a} className={"stroke" + (row.length === 1 ? " wide" : "") + (down.has(bind[a]) ? " on" : "")}>
+              <KeyName code={bind[a]} />
+            </span>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

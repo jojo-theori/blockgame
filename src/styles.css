@@ -602,20 +602,26 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .seat-fields { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
 .vs { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: var(--t2); color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
 .swap {
-  width: 34px;
-  height: 34px;
+  position: relative;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.035);
-  color: var(--dim);
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
   cursor: pointer;
-  transition: background 0.2s var(--out), color 0.2s var(--out), transform 0.3s var(--out);
+  transition: background 0.2s var(--out), color 0.2s var(--out);
 }
-.swap:hover { background: var(--hover); color: var(--fg); }
-.swap:active { transform: rotate(180deg); }
-.swap svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.swap > * { grid-area: 1 / 1; transition: opacity 0.18s var(--out), transform 0.25s var(--out); }
+.swap-vs { font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; }
+.swap svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(0.8); }
+.swap:hover, .swap:focus-visible { background: var(--hover); color: var(--fg); }
+.swap:hover .swap-vs, .swap:focus-visible .swap-vs { opacity: 0; transform: scale(0.8); }
+.swap:hover svg, .swap:focus-visible svg { opacity: 1; transform: none; }
+.swap:active svg { transform: rotate(180deg); }
 .slot-note { margin: 20px 0 0; min-height: 1.6em; text-align: center; }
 
 /* ─── Dropdown ─── */
@@ -795,3 +801,172 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 /* Static setup blocks (nothing in them changes height) sit midway between
    the title and the actions. */
 .page > .opts.center { margin-top: auto; margin-bottom: auto; padding-top: 0; }
+
+/* Big vertical choice buttons (Sprint lines) */
+.choice-list { display: flex; flex-direction: column; gap: 8px; width: 280px; }
+.choice-list button {
+  height: 46px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--dim);
+  cursor: pointer;
+  line-height: 44px;
+  transition: color 0.2s var(--out), background 0.2s var(--out), border-color 0.2s var(--out);
+}
+.choice-list button:hover { background: var(--hover); color: var(--fg); }
+.choice-list button.on { color: var(--fg); background: var(--hover); border-color: var(--accent); }
+.choice-list .n { font-size: var(--t5); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.choice-list .u { font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.choice-list button.on .u { color: var(--dim); }
+
+/* ─── Multi-select chips ─── */
+.multi { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  min-width: 40px;
+  justify-content: center;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--dim);
+  font-size: var(--t3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.chip-btn:hover { background: var(--hover); color: var(--fg); }
+.chip-btn.on { background: var(--fg); color: #000; }
+.chip-dot { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+
+/* ─── Switch ─── */
+.switch-row {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px 10px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--dim);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.switch-row:hover { background: var(--hover); }
+.switch-row.on { color: var(--fg); }
+.switch-text { display: flex; flex-direction: column; gap: 2px; }
+.switch-label { font-size: var(--t3); letter-spacing: 0.06em; text-transform: uppercase; }
+.switch-hint { font-size: var(--t1); color: var(--faint); }
+.switch {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: #262626;
+  transition: background 0.25s var(--out);
+}
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: transform 0.28s var(--out), background 0.25s var(--out);
+}
+.switch-row.on .switch { background: var(--accent); }
+.switch-row.on .switch .knob { transform: translateX(16px); background: #fff; }
+.opt.switches { width: 100%; align-items: center; gap: 8px; }
+
+
+/* ─── Replay log (Sprint, left of the play area; never moves the board) ─── */
+.play { position: relative; }
+.rlog {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: calc(100% + 48px);
+  width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: none;
+}
+.rlog-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 35%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 35%);
+}
+.rlog-row {
+  flex: none;
+  display: grid;
+  grid-template-columns: 22px 44px 26px 36px 1fr;
+  align-items: center;
+  height: 22px;
+  font-size: 10px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  animation: rlog-in 0.2s var(--out) both;
+}
+.rlog-n, .rlog-t, .rlog-dim { color: var(--faint); }
+.rlog-p { display: inline-flex; align-items: center; gap: 5px; color: var(--fg, #eee); }
+.rlog-p i { width: 6px; height: 6px; border-radius: 1.5px; display: block; }
+.rlog-keys.bad { color: var(--bad); }
+.rlog-tag { color: var(--fg, #eee); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; }
+@keyframes rlog-in { from { opacity: 0; transform: translateY(4px); } }
+@media (max-width: 1140px) { .rlog { display: none; } }
+@media (prefers-reduced-motion: reduce) { .rlog-row { animation: none; } }
+
+/* ─── Key input display (in-game, bottom of the left column) ─── */
+.side > .strokes { margin-top: auto; }
+.strokes { display: flex; flex-direction: column; gap: 4px; }
+.strokes > .k { margin-bottom: 6px; }
+.strokes-row { display: flex; gap: 4px; }
+.stroke {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  background: #1a1a1a;
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: background 0.12s var(--out), color 0.12s var(--out);
+}
+.stroke.wide { width: 108px; }
+.stroke.on { background: var(--fg); color: #0a0a0a; transition-duration: 0s; }
+.stroke .key-arrow .kbd-arrow { width: 7px; height: 7px; }
+
+/* Settings → Display */
+.opts.switches { gap: 8px; }

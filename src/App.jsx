@@ -34,7 +34,7 @@ const MODES = [
   { id: "finesse", label: "Finesse", color: "#5cc45c", desc: "Place each piece in the fewest key presses.", ready: true },
   { id: "puzzle", label: "Puzzle", color: "#f2913d", desc: "Solve set positions.", ready: false },
   { id: "challenge", label: "Challenge", color: "#f2cb4c", desc: "Daily goals.", ready: false },
-  { id: "settings", label: "Settings", color: "#8a8a8a", desc: "Handling, sound and key bindings.", ready: true },
+  { id: "settings", label: "Settings", color: "#8a8a8a", desc: "Handling, display and key bindings.", ready: true },
 ];
 
 // ─── APP ───
@@ -45,14 +45,16 @@ export default function App() {
   const [arr, setArr] = useState(() => loadSettings().arr ?? 10);
   const [sdf, setSdf] = useState(() => loadSettings().sdf ?? 30);
   const [soundEnabled, setSoundEnabled] = useState(() => loadSettings().soundEnabled ?? true);
+  const [showLog, setShowLog] = useState(() => loadSettings().showLog ?? true);
+  const [showKeys, setShowKeys] = useState(() => loadSettings().showKeys ?? false);
 
   const [menuIdx, setMenuIdx] = useState(0);
   const rowRefs = useRef([]);
 
   useEffect(() => {
     const prev = loadSettings();
-    saveSettings({ ...prev, das, arr, sdf, soundEnabled });
-  }, [das, arr, sdf, soundEnabled]);
+    saveSettings({ ...prev, das, arr, sdf, soundEnabled, showLog, showKeys });
+  }, [das, arr, sdf, soundEnabled, showLog, showKeys]);
 
   // Every sound follows the Sound setting.
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function App() {
     rowRefs.current[menuIdx]?.focus();
   }, [view, menuIdx]);
 
-  const settings = { das, arr, sdf, soundEnabled };
+  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys };
   const goMenu = () => setView("menu");
   const current = MODES.find((m) => m.id === view);
 
@@ -155,6 +157,10 @@ export default function App() {
             setSdf={setSdf}
             soundEnabled={soundEnabled}
             setSoundEnabled={setSoundEnabled}
+            showLog={showLog}
+            setShowLog={setShowLog}
+            showKeys={showKeys}
+            setShowKeys={setShowKeys}
             onBack={goMenu}
           />
         )}

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ROWS, COLS, BlockEngine, formatTime } from "../game.js";
+import { ROWS, COLS, COLORS, BlockEngine, formatTime } from "../game.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, BOARD_W, BOARD_H } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyName } from "../ui.jsx";
+import { Segmented, Stat, Countdown, KeyHints, Kbd, Advanced, KeyName, MultiSelect, Switch, KeyStrokes } from "../ui.jsx";
 import { useFit } from "../fit.js";
 import { placements, bestPaths, sameCells } from "../finesse.js";
 
@@ -11,7 +11,6 @@ const ACCENT = "#5cc45c";
 const PREFS_KEY = "jbl-finesse";
 const GOALS = [20, 40, 100, 0]; // 0 = endless
 const PIECES = [
-  { id: 0, label: "All" },
   { id: 1, label: "I" },
   { id: 2, label: "T" },
   { id: 3, label: "L" },
@@ -28,6 +27,20 @@ function loadPrefs() {
   } catch {
     return {};
   }
+}
+
+// Shuffled bags of just the given pieces, `n` pieces long.
+function bagsOf(ids, n) {
+  const out = [];
+  while (out.length < n) {
+    const bag = ids.slice();
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [bag[i], bag[j]] = [bag[j], bag[i]];
+    }
+    out.push(...bag);
+  }
+  return out;
 }
 
 function pickTarget(id, prevKey, allow180) {
@@ -96,7 +109,14 @@ export default function Finesse({ settings, onBack }) {
   const [phase, setPhase] = useState("select"); // select | countdown | playing | done
   const [goal, setGoal] = useState(prefs.goal ?? 20);
   const [onFault, setOnFault] = useState(prefs.onFault ?? "retry"); // retry | continue
-  const [piece, setPiece] = useState(prefs.piece ?? 0); // 0 = all pieces
+  // Pieces to practise (any subset). Older saves stored a single piece id (0 = all).
+  const [pieces, setPieces] = useState(() =>
+    Array.isArray(prefs.pieces) && prefs.pieces.length
+      ? prefs.pieces
+      : prefs.piece
+        ? [prefs.piece]
+        : PIECES.map((p) => p.id),
+  );
   const [allow180, setAllow180] = useState(prefs.allow180 ?? true);
   const [advOpen, setAdvOpen] = useState(false); // always starts folded
   const [countdownText, setCountdownText] = useState("");
@@ -122,11 +142,11 @@ export default function Finesse({ settings, onBack }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ goal, onFault, piece, allow180 }));
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ goal, onFault, pieces, allow180 }));
     } catch {
       /* ignore */
     }
-  }, [goal, onFault, piece, allow180]);
+  }, [goal, onFault, pieces, allow180]);
 
   // ─── PLACEMENT CHECK ───
   const validate = useCallback(
@@ -224,7 +244,8 @@ export default function Finesse({ settings, onBack }) {
       arr: s.arr,
       sdf: s.sdf,
       sprintLines: 999999,
-      sequence: piece ? new Array(5000).fill(piece) : null,
+      // Only the chosen pieces, dealt in shuffled bags of that set.
+      sequence: pieces.length === PIECES.length ? null : bagsOf(pieces, 5000),
     });
     engine.validatePlacement = validate;
     engineRef.current = engine;
@@ -246,7 +267,7 @@ export default function Finesse({ settings, onBack }) {
     setPhase("playing");
     lastTimeRef.current = 0;
     rafRef.current = requestAnimationFrame(loopRef.current);
-  }, [validate, piece, allow180]);
+  }, [validate, pieces, allow180]);
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -352,38 +373,34 @@ export default function Finesse({ settings, onBack }) {
             open={advOpen}
             onToggle={() => setAdvOpen((o) => !o)}
             changed={[
-              piece ? `Piece ${PIECES.find((p) => p.id === piece).label}` : null,
+              pieces.length === PIECES.length ? null : `Pieces ${pieces.map((id) => PIECES.find((p) => p.id === id).label).join(" ")}`,
               allow180 ? null : "No 180",
               onFault === "retry" ? null : "Keep going",
             ].filter(Boolean)}
           >
           <div className="opts">
           <div className="opt">
-            <div className="k">Piece</div>
-            <Segmented label="Piece" options={PIECES} value={piece} onChange={setPiece} />
-          </div>
-          <div className="opt">
-            <div className="k">180 rotation</div>
-            <Segmented
-              label="180 rotation"
-              options={[
-                { id: true, label: "Use" },
-                { id: false, label: "Don't use" },
-              ]}
-              value={allow180}
-              onChange={setAllow180}
+            <div className="k">Piece types</div>
+            <MultiSelect
+              label="Piece types"
+              all
+              options={PIECES.map((p) => ({ ...p, color: COLORS[p.id] }))}
+              values={pieces}
+              onChange={setPieces}
             />
           </div>
-          <div className="opt">
-            <div className="k">On a fault</div>
-            <Segmented
-              label="On a fault"
-              options={[
-                { id: "retry", label: "Retry piece" },
-                { id: "continue", label: "Keep going" },
-              ]}
-              value={onFault}
-              onChange={setOnFault}
+          <div className="opt switches">
+            <Switch
+              label="Use 180 rotation"
+              hint="Counts the 180 key when working out the best input"
+              checked={allow180}
+              onChange={setAllow180}
+            />
+            <Switch
+              label="Retry on a fault"
+              hint="Repeat the piece until it's placed cleanly"
+              checked={onFault === "retry"}
+              onChange={(on) => setOnFault(on ? "retry" : "continue")}
             />
           </div>
           </div>
@@ -422,6 +439,7 @@ export default function Finesse({ settings, onBack }) {
             </div>
           </div>
           <Stat k="Accuracy" v={`${acc}%`} />
+          {settings.showKeys && <KeyStrokes />}
         </div>
 
         <div className="board-wrap">
