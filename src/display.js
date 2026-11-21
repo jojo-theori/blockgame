@@ -63,6 +63,12 @@ export function useSettingsDialog(settings, { pause, apply }) {
     if (!open && was.current) ref.current.apply();
     was.current = open;
   }, [settings.settingsOpen]);
+  // The key profile can also change under a running game (dev shortcuts).
+  const version = useRef(settings.keysVersion);
+  useEffect(() => {
+    if (version.current !== settings.keysVersion) ref.current.apply();
+    version.current = settings.keysVersion;
+  }, [settings.keysVersion]);
 }
 export function tune(engine, s) {
   if (!engine) return;

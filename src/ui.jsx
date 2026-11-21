@@ -580,7 +580,8 @@ export function TopBar({ lang, setLang, theme, setTheme, onSettings }) {
 }
 
 // Piece log for modes that don't track it themselves: polls the engine.
-export function EngineLog({ engineRef, side, keys }) {
+// mode: header word for the copied log (see buildLogText).
+export function EngineLog({ engineRef, side, keys, mode }) {
   const [log, setLog] = useState({ events: [], total: 0 });
   useEffect(() => {
     let seen = -1;
@@ -595,7 +596,7 @@ export function EngineLog({ engineRef, side, keys }) {
     }, 100);
     return () => clearInterval(id);
   }, [engineRef]);
-  return <ReplayLog events={log.events} total={log.total} side={side} keys={keys} getText={() => buildLogText(engineRef.current)} />;
+  return <ReplayLog events={log.events} total={log.total} side={side} keys={keys} getText={() => buildLogText(engineRef.current, mode)} />;
 }
 
 // Pause overlay for solo modes (Esc). `extra` adds mode-specific buttons.
@@ -607,9 +608,11 @@ export function PauseMenu({ onResume, onRestart, onSetup, onMenu, extra }) {
         <button className="btn primary" onClick={onResume}>
           {t("Resume")}
         </button>
-        <button className="btn" onClick={onRestart}>
-          {t("Restart")}
-        </button>
+        {onRestart && (
+          <button className="btn" onClick={onRestart}>
+            {t("Restart")}
+          </button>
+        )}
         {extra}
         <button className="btn" onClick={onSetup}>
           {t("Mode options")}

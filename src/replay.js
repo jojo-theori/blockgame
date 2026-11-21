@@ -8,6 +8,29 @@ import { ROWS, COLS, EMPTY, getShape } from "./game.js";
 const LETTER_ID = { I: 1, T: 2, L: 3, J: 4, S: 5, Z: 6, O: 7 };
 const LINE = /^#\d+\s+\[([\d.]+)s\]\s+([ITLJSZO])\s+(?:(hold)|spawn\((-?\d+),(-?\d+)\)\s*→\s*placed\((-?\d+),(-?\d+)\)\s+rot=(\d))(.*)$/;
 
+// What the log says was played, from its first line: { mode, lines? }.
+// Older logs (headed "LOG") do not say; garbage in the log means a Battle.
+export function logMode(text, events = []) {
+  const head = (text.split(/\r?\n/).find((l) => l.trim()) || "").trim();
+  const sprint = head.match(/^SPRINT\s+(\d+)L/i);
+  if (sprint) return { mode: "sprint", lines: +sprint[1] };
+  // "BATTLE P1 vs Cold Clear | …": the board's player, then the opponent.
+  const battle = head.match(/^BATTLE(?:\s+(.+?)\s+vs\s+(.+?))?\s*(?:\||$)/i);
+  if (battle) {
+    // "Cold Clear (Hard) -1" → name, level, handicap (0 when not written).
+    const seat = (text) => {
+      const m = (text || "").match(/^(.*?)(?:\s+\(([^)]+)\))?(?:\s+([+-]\d+))?$/);
+      return text ? { name: m[1], level: m[2] || null, handicap: m[3] ? +m[3] : 0 } : null;
+    };
+    const me = seat(battle[1]);
+    const vs = seat(battle[2]);
+    return { mode: "battle", me: me?.name || null, vs: vs?.name || null, level: vs?.level || null, handicap: me && vs ? [me.handicap, vs.handicap] : null };
+  }
+  const named = head.match(/^(OPENING|FINESSE)\b/i);
+  if (named) return { mode: named[1].toLowerCase() };
+  return { mode: events.some((e) => e.kind === "garbage") ? "battle" : "unknown" };
+}
+
 const GARBAGE = /^#\d+\s+\[([\d.]+)s\]\s+garbage\s+\+\d+\s+holes=\[([\d,]*)\]/;
 
 // Text → events in the shape the piece log shows ({ kind, type, t, ... }).

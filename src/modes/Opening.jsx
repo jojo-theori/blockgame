@@ -634,7 +634,7 @@ export default function Opening({ settings, onBack }) {
         {opener.mirrored ? " · Mirrored" : ""}
       </div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <EngineLog engineRef={engineRef} />}
+        {settings.showLog !== false && <EngineLog engineRef={engineRef} mode="OPENING" />}
         <div className="side" style={{ width: 150 }}>
           <div>
             <div className="k">{t("Hold")}</div>
@@ -659,7 +659,7 @@ export default function Opening({ settings, onBack }) {
           <div style={{ visibility: autoNext === "off" ? "hidden" : "visible" }}>
             <Stat k="Streak" v={streak} />
           </div>
-          {settings.showKeys && <KeyStrokes />}
+          {settings.showKeys && <KeyStrokes key={settings.keysVersion} />}
         </div>
 
         <div className="board-wrap">

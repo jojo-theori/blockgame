@@ -116,6 +116,13 @@ export function drawBoard(canvas, engine, opts = {}) {
     }
   }
 
+  // mark: cells ringed in the text colour (the newest piece of a shown line)
+  if (opts.mark) {
+    for (const [r, c] of opts.mark) {
+      if (r >= 0) outline(ctx, c * CELL, r * CELL, CELL, "#ebebeb", 0.9, 1);
+    }
+  }
+
   if (opts.reject) {
     for (const [r, c] of opts.reject.cells) {
       if (r < 0) continue;

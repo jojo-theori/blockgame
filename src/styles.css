@@ -92,15 +92,33 @@ canvas { display: block; }
   inset: 0;
   opacity: 0.02;
   pointer-events: none;
-  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 20px 20px;
+  /* One layer for the lines and the pieces. The pieces are the grid's own
+     colour and sit in the same layer, so a piece is a solid patch of that
+     colour (no lines show inside it) and it can never slip off the cells: a
+     few of them, far apart, each filling whole 14px cells edge to edge. */
+  --lines: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-image: var(--minos), var(--lines); /* --minos: the tile of pieces, set from bg.jsx */
+  background-size: 420px 210px, 14px 14px, 14px 14px;
   /* Drifts slowly on the home screen. Elsewhere it pauses where it is (no jump
-     back), and resumes when you come home. One loop = whole cells, so seamless. */
-  animation: grid-drift 16s linear infinite;
+     back), and resumes when you come home. One loop = one tile of pieces, which
+     is a whole number of cells, so it is seamless. */
+  animation: grid-drift 240s linear infinite;
   animation-play-state: paused;
 }
 .app.is-home .bg-grid { animation-play-state: running; }
-@keyframes grid-drift { from { background-position: 0 0; } to { background-position: 40px 20px; } }
+/* The piece under the mouse, lit in its own colour over the grid. */
+.bg-glow { position: fixed; left: 0; top: 0; pointer-events: none; overflow: visible; fill: currentColor; opacity: 0; filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor); transition: opacity 0.35s var(--out); will-change: transform, opacity; }
+.bg-glow.on { opacity: 0.85; transition-duration: 0.12s; }
+/* A clicked piece: its old place shows plain grid, and it falls in its colour
+   to the foot of the window, where it lands with a small give. */
+.bg-hole, .bg-drop { position: fixed; left: 0; top: 0; pointer-events: none; overflow: visible; will-change: transform; }
+.bg-hole .fill { fill: var(--bg); }
+.bg-hole .lines { fill: none; stroke: var(--grid); stroke-opacity: 0.02; stroke-width: 1; }
+.bg-drop { fill: currentColor; opacity: 0.5; filter: drop-shadow(0 0 6px currentColor); }
+.bg-drop.landed g { animation: bg-thud 0.28s var(--out); transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes bg-thud { 0% { transform: scaleY(0.72) scaleX(1.12); } 60% { transform: scaleY(1.06) scaleX(0.98); } }
+@media (prefers-reduced-motion: reduce) { .bg-drop.landed g { animation: none; } }
+@keyframes grid-drift { from { background-position: 0 0; } to { background-position: 420px 210px; } }
 .wordmark {
   position: absolute;
   z-index: 30;
@@ -629,6 +647,12 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 }
 .link:hover { text-decoration-color: var(--fg); }
 
+/* Dev: a short note when the key profile is swapped by typing a name */
+.dev-note { position: fixed; z-index: 200; left: 50%; bottom: 56px; transform: translateX(-50%); padding: 7px 14px; border-radius: 999px; background: var(--fg); color: var(--on-fg); font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; pointer-events: none; animation: appear 0.25s var(--out) both; display: flex; align-items: center; gap: 6px; }
+.dev-note svg { width: 16px; height: 16px; }
+.dev-note svg circle { fill: #2fa84a; }
+.dev-note svg path { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
 /* ─── Lab ─── */
 .lab-box {
   width: 100%;
@@ -666,31 +690,162 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   transition: --scroll-thumb 0.25s var(--out);
 }
 .scroll:hover { --scroll-thumb: var(--muted); }
-.lab-held .k { color: var(--fg); }
-.lab-held canvas { animation: lab-held 0.45s var(--out); transform-origin: 50% 50%; }
-@keyframes lab-held { from { transform: scale(1.18); filter: brightness(1.6); } }
-@media (prefers-reduced-motion: reduce) { .lab-held canvas { animation: none; } }
-.lab-bar { display: flex; align-items: center; gap: 16px; margin-top: 24px; }
-.lab-bar input[type="range"] { flex: 1; min-width: 0; }
-.lab-icon, .lab-speed {
+/* Replay side panel: review on top, timeline and transport at the foot */
+.lab-side { position: absolute; top: 0; bottom: 0; left: calc(100% + 28px); width: 300px; display: flex; flex-direction: column; gap: 24px; text-align: left; animation: none; }
+/* Title line sits level with the HOLD and NEXT labels. */
+.lab-title { display: flex; align-items: center; gap: 4px; height: 14px; margin-bottom: -6px; font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+.stat .v.lab-mode { font-size: var(--t4); line-height: 1.3; }
+.lab-mode-sub { margin-top: 4px; line-height: 1.4; white-space: nowrap; }
+.lab-back { display: inline-flex; align-items: center; gap: 5px; height: 28px; margin-left: -8px; padding: 0 9px 0 6px; border: 0; border-radius: 999px; background: transparent; color: var(--dim); font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; transition: background 0.2s var(--out), color 0.2s var(--out); }
+.lab-back:hover { background: var(--hover); color: var(--fg); }
+.lab-title { justify-content: space-between; }
+.lab-top > .lab-icon.round { margin-left: auto; width: 36px; height: 36px; background: var(--fill); }
+.lab-top > .lab-icon.round svg { width: 18px; height: 18px; }
+.lab-back svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lab-top { display: flex; align-items: center; min-height: 44px; }
+.lab-top > .lab-analyze { flex: 1; height: 40px; }
+.lab-transport { margin-top: auto; display: flex; flex-direction: column; gap: 14px; }
+
+/* Scrubber with the key moments on it. The playhead is a white line, so it
+   never reads as one of the dots; the whole strip lights up under the mouse. */
+.lab-track { position: relative; display: flex; align-items: center; height: 32px; cursor: pointer; }
+.lab-track input[type="range"] { width: 100%; height: 32px; margin: 0; background: transparent; cursor: pointer; }
+.lab-track input[type="range"]::-webkit-slider-runnable-track { height: 2px; border-radius: 2px; background: var(--line); transition: background 0.2s var(--out); }
+.lab-track input[type="range"]::-moz-range-track { height: 2px; border-radius: 2px; background: var(--line); transition: background 0.2s var(--out); }
+.lab-track:hover input[type="range"]::-webkit-slider-runnable-track { background: var(--muted); }
+.lab-track:hover input[type="range"]::-moz-range-track { background: var(--muted); }
+.lab-track input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 3px;
+  height: 24px;
+  margin-top: -11px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--fg);
+  box-shadow: none;
+  transition: height 0.2s var(--out), margin-top 0.2s var(--out), background 0.2s var(--out);
+}
+.lab-track input[type="range"]::-moz-range-thumb { width: 3px; height: 24px; border: 0; border-radius: 2px; background: var(--fg); transition: height 0.2s var(--out); }
+.lab-track:hover input[type="range"]::-webkit-slider-thumb { height: 30px; margin-top: -14px; background: var(--fg-hi); }
+.lab-track:hover input[type="range"]::-moz-range-thumb { height: 30px; background: var(--fg-hi); }
+.lab-mark { position: absolute; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; padding: 0; border: 0; border-radius: 50%; background: var(--tone); cursor: pointer; transition: transform 0.2s var(--out); }
+.lab-mark:hover { transform: scale(1.5); }
+.lab-mark.on { transform: scale(1.6); box-shadow: 0 0 0 2px var(--bg); }
+
+/* Grades use the piece colours, one each, so no two read alike */
+.brilliant { --tone: #41b6e6; --ink: #04121a; }
+.good { --tone: #5cc45c; --ink: #06140a; }
+.inaccuracy { --tone: #f2cb4c; --ink: #1a1503; }
+.mistake { --tone: #f2913d; --ink: #1a0e03; }
+.blunder { --tone: #e8505b; --ink: #fff; }
+.slow { --tone: #3d6fe0; --ink: #fff; }
+.waste { --tone: #b14fd0; --ink: #fff; }
+
+/* Transport: first, back, play, forward, last; then, apart, the speed */
+.lab-buttons { display: flex; align-items: center; gap: 4px; margin-left: -8px; }
+.lab-icon {
   flex: none;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.lab-icon:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.lab-icon:disabled { opacity: 0.3; cursor: default; }
+/* Play is the one filled button of the row: light on dark, reversed. */
+.lab-icon.lead { background: var(--fg); color: var(--on-fg); }
+.lab-icon.lead:hover:not(:disabled) { background: var(--fg-hi); color: var(--on-fg); }
+.lab-icon svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lab-icon svg .solid { fill: currentColor; stroke: none; }
+.lab-speed {
+  flex: none;
+  width: 50px;
+  height: 34px;
+  margin-left: auto; /* at the far right, apart from the transport */
   border: 0;
   border-radius: 999px;
   background: var(--fill);
   color: var(--fg);
   font: inherit;
+  font-size: var(--t2);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
   cursor: pointer;
   transition: background 0.2s var(--out);
 }
-.lab-icon:hover, .lab-speed:hover { background: var(--hover); }
-.lab-icon { width: 38px; }
-.lab-icon svg { width: 16px; height: 16px; fill: currentColor; }
-/* Fixed width, so the bar keeps its shape as the speed changes. */
-.lab-speed { width: 56px; font-size: var(--t2); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.lab-speed:hover { background: var(--hover); }
 
+/* Analyze: the one coloured button. Same type as the others. */
+.btn.lab-analyze {
+  gap: 7px;
+  padding: 0 17px 0 14px;
+  border: 0;
+  /* Teal through blue to violet, deep enough to carry white text. */
+  background: linear-gradient(120deg, #17b890 0%, #2b93e6 52%, #7c64f2 100%);
+  color: #fff;
+  box-shadow: 0 6px 22px -8px rgba(43, 147, 230, 0.75);
+}
+.btn.lab-analyze:hover { filter: brightness(1.12); background: linear-gradient(120deg, #17b890 0%, #2b93e6 52%, #7c64f2 100%); color: #fff; }
+.lab-analyze svg { width: 15px; height: 15px; fill: currentColor; }
+
+/* Loading: score slots that pulse, the stage being worked on, and a bar in
+   the mode's colour with a light passing over it. */
+.lab-loading { display: flex; flex-direction: column; gap: 14px; }
+.lab-scores.waiting > div { opacity: 0.35; transition: opacity 0.4s var(--out); }
+.lab-scores.waiting > div.on { opacity: 1; }
+.lab-wait { width: 34px; height: 1.15em; border-radius: 6px; background: var(--fill); animation: lab-wait 1.1s ease-in-out infinite; animation-delay: calc(var(--i) * 0.16s); }
+.lab-stage { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: var(--t2); color: var(--dim); }
+.lab-stage span { animation: appear 0.3s var(--out) both; }
+.lab-stage b { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--fg); }
+.lab-loading > i { position: relative; display: block; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.lab-loading > i::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--accent); transform-origin: 0 50%; transform: scaleX(var(--p)); }
+.lab-loading > i::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.75), transparent); animation: lab-sheen 1.1s linear infinite; }
+@keyframes lab-wait { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@keyframes lab-sheen { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
+@media (prefers-reduced-motion: reduce) { .lab-wait, .lab-loading > i::after { animation: none; } }
+
+/* Review: scores, then the comment on the move the replay is on */
+.lab-scores { display: flex; gap: 18px; }
+.lab-scores .v { margin-top: 4px; font-size: var(--t6); font-variant-numeric: tabular-nums; color: var(--fg); }
+.lab-moment { display: flex; flex-direction: column; gap: 14px; }
+/* The bubble fills its slot, so it is one size for every comment. */
+.lab-slot { height: 118px; }
+.lab-quiet { height: 100%; margin: 0; display: grid; place-items: center; text-align: center; font-size: var(--t2); line-height: 1.55; color: var(--faint); }
+/* Comment bubble: filled, as wide as the panel, the brightest thing in it */
+.lab-bubble { width: 100%; height: 100%; padding: 14px 16px; border-radius: 14px; background: var(--fg); color: var(--on-fg); animation: bubble-in 0.42s cubic-bezier(0.2, 1.3, 0.4, 1) both; transform-origin: 0 24px; }
+@keyframes bubble-in { from { opacity: 0; transform: translateX(-10px) scale(0.86); } }
+.lab-bubble.still { animation: none; }
+@media (prefers-reduced-motion: reduce) { .lab-bubble { animation: none; } }
+.lab-bubble-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.lab-bubble-head b { font-size: var(--t3); font-weight: 600; }
+.lab-badge { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--tone); color: var(--ink); font-style: normal; font-size: 12px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.lab-badge svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.lab-badge svg .solid { fill: currentColor; stroke: none; }
+.lab-kind { margin-left: auto; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; background: var(--on-fg); color: var(--fg); }
+.lab-kind-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.lab-score-k { display: flex; align-items: center; gap: 2px; }
+.lab-score-k .lab-kind-icon { width: 13px; height: 13px; }
+.lab-bubble p { margin: 0; font-size: var(--t3); line-height: 1.55; }
+/* Typing caret: takes no room, so the text never jumps when it goes. */
+.lab-caret { display: inline-block; width: 0; height: 1em; vertical-align: -0.12em; box-shadow: 1.5px 0 0 0 currentColor; animation: lab-caret 0.7s steps(2) infinite; }
+@keyframes lab-caret { 50% { opacity: 0; } }
+.lab-moment-nav { display: flex; align-items: center; gap: 8px; }
+.lab-moment-nav .btn { height: 34px; padding: 0 13px; }
+.lab-best { gap: 6px; }
+.lab-best svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.lab-moment-nav .btn.primary:disabled { background: var(--cap); border-color: transparent; color: var(--faint); cursor: default; }
+
+.lab-held .k { color: var(--fg); }
+.lab-held canvas { animation: lab-held 0.45s var(--out); transform-origin: 50% 50%; }
+@keyframes lab-held { from { transform: scale(1.18); filter: brightness(1.6); } }
+@media (prefers-reduced-motion: reduce) { .lab-held canvas { animation: none; } }
 /* Handling, keys and the settings link above Start */
 .setup-info { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 10px; font-size: var(--t2); color: var(--dim); }
 .setup-info .link { color: var(--dim); }

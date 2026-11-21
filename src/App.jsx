@@ -2,7 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
-import { selectKey, keyLabel } from "./keys.js";
+import { useDevProfiles } from "./dev.js";
+import { Background } from "./bg.jsx";
+import { selectKey, backKey, keyLabel } from "./keys.js";
 import Sprint from "./modes/Sprint.jsx";
 import Battle from "./modes/Battle.jsx";
 import Opening from "./modes/Opening.jsx";
@@ -38,7 +40,7 @@ const MODES = [
   { id: "battle", label: "Battle", color: "#e8505b", desc: "One on one against the CPU or a friend on the same keyboard.", ready: true },
   { id: "opening", label: "Opening", color: "#b14fd0", desc: "Practise openers piece by piece: TKI, PCO, DT Cannon, Albatross.", ready: true, beta: true },
   { id: "finesse", label: "Finesse", color: "#5cc45c", desc: "Place each piece in the fewest key presses.", ready: true, beta: true },
-  { id: "lab", label: "Lab", color: "#3fc8b4", desc: "Watch a run again from its log.", ready: true, beta: true },
+  { id: "lab", label: "Replay", color: "#3fc8b4", desc: "Watch a run again from its log.", ready: true, beta: true },
   { id: "puzzle", label: "Puzzle", color: "#f2913d", desc: "Solve set positions.", ready: false },
   { id: "challenge", label: "Challenge", color: "#f2cb4c", desc: "Daily goals.", ready: false },
 ];
@@ -146,7 +148,9 @@ export default function App() {
     rowRefs.current[menuIdx]?.focus();
   }, [view, menuIdx]);
 
-  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings };
+  // Dev: typing "lizzy" / "jojo" swaps the solo key profile (see dev.js).
+  const [devProfile, keysVersion] = useDevProfiles();
+  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion };
   const goMenu = () => {
     setSettingsOpen(false);
     setView("menu");
@@ -155,7 +159,7 @@ export default function App() {
 
   return (
     <div className={"app" + (view === "menu" ? " is-home" : "")}>
-      <div className="bg-grid" />
+      <Background theme={theme} />
       {view !== "menu" && (
         <button className="wordmark" onClick={goMenu} title={t("Home")}>
           JBL
@@ -163,6 +167,15 @@ export default function App() {
       )}
 
       <FocusWarning show={focusLost} />
+      {devProfile && (
+        <div className="dev-note">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9.5" />
+            <path d="M7.8 12.4l2.9 2.9 5.5-6" />
+          </svg>
+          {devProfile} keys
+        </div>
+      )}
       <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} onSettings={openSettings} />
       {settingsOpen && (
         <Settings
@@ -207,7 +220,7 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <KeyHints items={[[["↑", "↓"], "move"], [[keyLabel(selectKey())], "open"]]} />
+            <KeyHints items={[[["↑", "↓"], "move"], [[keyLabel(selectKey())], "open"], [[keyLabel(backKey())], "back"]]} />
           </div>
         )}
 

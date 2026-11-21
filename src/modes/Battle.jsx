@@ -135,7 +135,7 @@ function SeatMenu({ k, title, items, cursor, side, copied }) {
 }
 
 // overlay: the pause or result screen, shown over this seat's board.
-function PlayerBoard({ engineRef, label, sub, result, mirror, log, isCpu, keyProfile, hints, overlay }) {
+function PlayerBoard({ engineRef, label, sub, result, mirror, log, logMode, isCpu, keyProfile, hints, overlay }) {
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -206,7 +206,7 @@ function PlayerBoard({ engineRef, label, sub, result, mirror, log, isCpu, keyPro
 
   return (
     <div className="play" style={{ gap: 20 }}>
-      {log && <EngineLog engineRef={engineRef} side={log} keys={!isCpu} />}
+      {log && <EngineLog engineRef={engineRef} side={log} keys={!isCpu} mode={logMode} />}
       {hold}
       {board}
       {next}
@@ -413,15 +413,26 @@ export default function Battle({ settings, onBack }) {
   // Copies the log of the seat that asked (0 left, 1 right); that seat's
   // button says so for a moment.
   const [copiedSide, setCopiedSide] = useState(null);
+  // Header of a copied log: whose board it is and who they played, with a
+  // CPU's level in brackets and each side's handicap when it has one, e.g.
+  // "BATTLE P1 +2 vs Cold Clear (Hard)".
+  const logModes = useMemo(() => {
+    const seat = (slot, bot, level, handicap) =>
+      (slot === "cpu" ? `${botName(bot)} (${level[0].toUpperCase() + level.slice(1)})` : slot === "p1" ? "P1" : "P2") +
+      (handicap ? ` ${handicap > 0 ? "+" : ""}${handicap}` : "");
+    const a = seat(left, leftBot, leftLevel, leftHandicap);
+    const b = seat(right, rightBot, rightLevel, rightHandicap);
+    return [`BATTLE ${a} vs ${b}`, `BATTLE ${b} vs ${a}`];
+  }, [left, right, leftBot, rightBot, leftLevel, rightLevel, leftHandicap, rightHandicap]);
   const copyLog = useCallback((side) => {
     navigator.clipboard
-      .writeText(buildLogText((side ? engine2Ref : engine1Ref).current))
+      .writeText(buildLogText((side ? engine2Ref : engine1Ref).current, logModes[side]))
       .then(() => {
         setCopiedSide(side);
         setTimeout(() => setCopiedSide((s) => (s === side ? null : s)), 2000);
       })
       .catch((err) => console.error("Copy failed:", err));
-  }, []);
+  }, [logModes]);
   const menuItems = useMemo(
     () =>
       phase === "paused"
@@ -641,6 +652,7 @@ export default function Battle({ settings, onBack }) {
             sub={levelOf(left, leftLevel)}
             result={done ? t(winner === "p1" ? "Won" : "Lost") : null}
             log={showLog ? "left" : null}
+            logMode={logModes[0]}
             isCpu={left === "cpu"}
             keyProfile={profileOf(left)}
             hints={left === "cpu" ? null : hints}
@@ -652,6 +664,7 @@ export default function Battle({ settings, onBack }) {
             sub={levelOf(right, rightLevel)}
             result={done ? t(winner === "p2" ? "Won" : "Lost") : null}
             log={showLog ? "right" : null}
+            logMode={logModes[1]}
             isCpu={right === "cpu"}
             keyProfile={profileOf(right)}
             hints={right === "cpu" ? null : hints}

@@ -1,16 +1,39 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { t } from "../i18n.js";
-import { formatTime } from "../game.js";
-import { parseLog, buildFrames } from "../replay.js";
+import { formatTime, getShape } from "../game.js";
+import { parseLog, buildFrames, logMode } from "../replay.js";
+import { analyze, bestLine } from "../analysis.js";
+import { sampleLog } from "../sample.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
-import { Stat, KeyHints, ReplayLog, Kbd } from "../ui.jsx";
+import { Stat, KeyHints, ReplayLog, Kbd, PauseMenu } from "../ui.jsx";
 import { useFit } from "../fit.js";
-import { selectKey, backKey, keyLabel } from "../keys.js";
+import { selectKey, keyLabel } from "../keys.js";
 
 const ACCENT = "#3fc8b4";
 const LETTER_ID = { I: 1, T: 2, L: 3, J: 4, S: 5, Z: 6, O: 7 };
 const SPEEDS = [0.5, 1, 2, 4];
 const PASTE_MOD = /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
+// What a replay is of: "Sprint 40 lines", "Battle · P1 vs Cold Clear". Empty
+// when the log does not say. tail is added after it (for the summary line).
+const MODE_NAMES = { sprint: "Sprint", battle: "Battle", opening: "Opening", finesse: "Finesse" };
+function modeName(m, tail = " · ") {
+  if (!MODE_NAMES[m.mode]) return "";
+  const detail = m.lines ? " " + t("{n} lines", { n: m.lines }) : m.vs ? ` · ${m.me} vs ${m.vs}${m.level ? ` (${t(m.level)})` : ""}` : "";
+  return t(MODE_NAMES[m.mode]) + detail + tail;
+}
+const NO_MOMENTS = [];
+const SCORES = [
+  ["macro", "Macro", "Stack planning, whatever the speed"],
+  ["dexterity", "Dexterity", "Raw speed of the hands"],
+  ["finesse", "Finesse", "How few key presses each placement took"],
+];
+const GRADES = { brilliant: "Brilliant", good: "Good", inaccuracy: "Inaccuracy", mistake: "Mistake", blunder: "Blunder", slow: "Slow", waste: "Wasted keys" };
+const BEAT_MS = 400; // one event per beat at 1× (so 4× shows ten a second)
+const LOAD_MS = 2200; // staged length of the analysis loading
+const STAGES = ["Reading the log…", "Weighing every placement…", "Timing the hands…", "Counting key presses…", "Picking the key moments…"];
+const stageOf = (p) => Math.min(STAGES.length - 1, Math.floor(p * STAGES.length));
+const LINE_AHEAD = 3; // pieces of the queue the better line goes on for
+const KIND_NAMES = { macro: "Macro", dexterity: "Dexterity", finesse: "Finesse" };
 const MAX_LINES = 400; // lines of a pasted log shown on the input page
 
 // ─── Lab: watch a run again from its copied piece log ───
@@ -23,15 +46,18 @@ export default function Lab({ settings, onBack }) {
   // The log is read as soon as it arrives, so the page can say what is in it.
   const replay = useMemo(() => {
     const events = parseLog(text);
-    return events.some((e) => e.kind === "place") ? { events, ...buildFrames(events) } : null;
+    return events.some((e) => e.kind === "place") ? { events, ...buildFrames(events), mode: logMode(text, events) } : null;
   }, [text]);
   const lines = useMemo(() => text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), [text]);
 
   const take = useCallback((pasted) => {
     const clean = (pasted || "").trim();
     if (!clean) return setError("The clipboard is empty.");
+    const valid = parseLog(clean).some((e) => e.kind === "place");
     setText(clean);
-    setError(parseLog(clean).some((e) => e.kind === "place") ? "" : "No pieces found in this log.");
+    setError(valid ? "" : "No pieces found in this log.");
+    // A log that reads goes straight to its replay, which analyses it at once.
+    if (valid) setOpen(true);
   }, []);
   // The button is always offered where the browser has the API. A refusal
   // (blocked for this site, or an embedded browser) is explained on the spot.
@@ -60,12 +86,12 @@ export default function Lab({ settings, onBack }) {
     };
   }, [open, settingsOpen, onBack, take]);
 
-  if (open && replay) return <Viewer replay={replay} keysOff={settingsOpen} onClose={() => setOpen(false)} />;
+  if (open && replay) return <Viewer replay={replay} keysOff={settingsOpen} onClose={() => setOpen(false)} onMenu={onBack} />;
 
   const last = replay?.frames[replay.frames.length - 1];
   return (
     <div className="page" style={{ "--accent": ACCENT }}>
-      <h1 className="title">{t("Lab")}</h1>
+      <h1 className="title">{t("Replay")}</h1>
       <p className="lede">{t("Paste a log copied in Sprint or Battle to watch the run again.")}</p>
       <div className="mid">
         {/* What the pasted log holds, above the box. The row is there even while
@@ -75,7 +101,7 @@ export default function Lab({ settings, onBack }) {
             <>
               <span>
                 {replay
-                  ? `${t("{n} pieces", { n: last.placed })} · ${formatTime(replay.events[replay.events.length - 1].t)} · ${t("{n} lines", { n: last.lines })}`
+                  ? `${modeName(replay.mode)}${t("{n} pieces", { n: last.placed })} · ${formatTime(replay.events[replay.events.length - 1].t)} · ${t("{n} lines", { n: last.lines })}`
                   : t("Not a log")}
               </span>
               {canRead && (
@@ -120,6 +146,10 @@ export default function Lab({ settings, onBack }) {
                 <Kbd>V</Kbd>
                 <span>{t(canRead ? "also pastes" : "to paste the log")}</span>
               </div>
+              {/* Under them, for a look without a log of your own: a made-up 40-line run. */}
+              <button className="btn ghost" onClick={() => take(sampleLog())}>
+                {t("Try a sample")}
+              </button>
             </div>
           ) : (
             // Long lines are cut short, so the box never scrolls sideways.
@@ -145,11 +175,130 @@ export default function Lab({ settings, onBack }) {
   );
 }
 
-function Viewer({ replay, keysOff, onClose }) {
+// Transport and navigation icons. Chevrons step, the triangle plays.
+const ICONS = {
+  first: <path d="M17 6.5 11.5 12l5.5 5.5M7.5 6.5v11" />,
+  prev: <path d="M14.5 6.5 9 12l5.5 5.5" />,
+  next: <path d="M9.5 6.5 15 12l-5.5 5.5" />,
+  last: <path d="M7 6.5 12.5 12 7 17.5M16.5 6.5v11" />,
+  back: <path d="M11 6.5 5.5 12l5.5 5.5M6 12h12.5" />,
+  close: <path d="M7.5 7.5l9 9M16.5 7.5l-9 9" />,
+  play: <path className="solid" d="M8.5 5.5v13l10-6.5z" />,
+  pause: <path className="solid" d="M8 5.5h2.5v13H8zM13.5 5.5H16v13h-2.5z" />,
+};
+// main: the filled, reversed one (play); round: a quiet filled circle (close).
+function IconButton({ icon, label, main, round, ...rest }) {
+  return (
+    <button type="button" className={"lab-icon" + (main ? " lead" : "") + (round ? " round" : "")} title={t(label)} aria-label={t(label)} {...rest}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        {ICONS[icon]}
+      </svg>
+    </button>
+  );
+}
+
+// One picture per thing scored, used beside its score and on the comments
+// about it: a brain for macro (planning the stack), a bolt for dexterity
+// (speed), a target for finesse (exact, with nothing wasted).
+const KIND_ICONS = {
+  // Brain outline, after the Lucide icon set (ISC licence).
+  macro: (
+    <>
+      <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+      <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+      <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
+    </>
+  ),
+  dexterity: <path d="M13 3 5.5 13.5H11L10 21l7.5-10.5H12z" />,
+  // A target with an arrow in its centre: the fewest inputs, placed exactly.
+  finesse: (
+    <>
+      <circle cx="10.5" cy="13.5" r="7.5" />
+      <circle cx="10.5" cy="13.5" r="3" />
+      <path d="M10.5 13.5 20.5 3.5M16.5 3.5h4v4" />
+    </>
+  ),
+};
+function KindIcon({ kind }) {
+  return (
+    <svg className="lab-kind-icon" viewBox="0 0 24 24" aria-hidden="true">
+      {KIND_ICONS[kind]}
+    </svg>
+  );
+}
+
+// The mark of a grade: a filled circle in one of the piece colours, with the
+// annotation sign (as in chess reviews) or a small picture.
+const GRADE_ICONS = {
+  brilliant: "!!",
+  good: <path className="solid" d="M12 4.2l2.3 4.9 5.3.7-3.9 3.7 1 5.3-4.7-2.6-4.7 2.6 1-5.3-3.9-3.7 5.3-.7z" />,
+  inaccuracy: "?!",
+  mistake: "?",
+  blunder: "??",
+  slow: (
+    <>
+      <circle cx="12" cy="13.5" r="6" />
+      <path d="M12 13.5V10M10 4.5h4" />
+    </>
+  ),
+  waste: (
+    <>
+      <rect x="5" y="7.5" width="14" height="10" rx="2.2" />
+      <path d="M12 10.2v4.6M9.7 12.5h4.6" />
+    </>
+  ),
+};
+function GradeIcon({ grade }) {
+  const icon = GRADE_ICONS[grade];
+  return (
+    <i className={"lab-badge " + grade} aria-hidden="true">
+      {typeof icon === "string" ? icon : <svg viewBox="0 0 24 24">{icon}</svg>}
+    </i>
+  );
+}
+
+// Text that types itself out, a few characters at a time. The part not yet
+// typed is there but unseen, so the bubble has its final size from the start.
+// instant: show it whole at once (while the replay is running past).
+function Typed({ text, instant }) {
+  const still = instant || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const [n, setN] = useState(still ? text.length : 0);
+  useEffect(() => {
+    if (n >= text.length) return;
+    const id = setTimeout(() => setN((v) => Math.min(text.length, v + 2)), 24);
+    return () => clearTimeout(id);
+  }, [n, text]);
+  return (
+    <>
+      {text.slice(0, n)}
+      {n < text.length && <i className="lab-caret" aria-hidden="true" />}
+      <span style={{ visibility: "hidden" }}>{text.slice(n)}</span>
+    </>
+  );
+}
+
+// A score that counts up to its value when it first appears.
+function CountUp({ to }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const began = performance.now();
+    let raf;
+    const tick = (now) => {
+      const p = Math.min(1, (now - began) / 700);
+      setN(Math.round(to * (1 - (1 - p) ** 3)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to]);
+  return n;
+}
+
+function Viewer({ replay, keysOff, onClose, onMenu }) {
   const { events, frames, dealt } = replay;
   const total = events.length;
-  const end = events[total - 1].t;
-  const zoom = useFit(640, 680);
+  // Wide enough for the log on the left and the review on the right.
+  const zoom = useFit(1260, 600);
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -157,8 +306,11 @@ function Viewer({ replay, keysOff, onClose }) {
   // step: how many events have happened; clock: the replay's own time.
   const [step, setStep] = useState(0);
   const [clock, setClock] = useState(0);
-  const [playing, setPlaying] = useState(true);
-  const [speed, setSpeed] = useState(1);
+  // Opens stopped: the analysis starts by itself and goes to the first moment.
+  const [playing, setPlaying] = useState(false);
+  // Esc pauses, as in the game modes: the menu is the way out.
+  const [menu, setMenu] = useState(null); // null, or { wasPlaying }
+  const [speed, setSpeed] = useState(4); // starts fast; the button steps down from there
   const clockRef = useRef(0);
 
   const seek = useCallback(
@@ -171,41 +323,132 @@ function Viewer({ replay, keysOff, onClose }) {
     [events, total],
   );
 
-  // Playback: the clock runs and events happen as their time comes.
+  // Playback: one event per beat, at an even pace. The log says when each
+  // piece locked but not how it got there, so the player's own timing is not
+  // re-enacted; the clock on the left still shows the real time of each move.
   useEffect(() => {
-    if (!playing) return;
-    let raf;
-    let last = 0;
-    const tick = (now) => {
-      const dt = last ? Math.min(now - last, 100) : 0;
-      last = now;
-      clockRef.current = Math.min(end, clockRef.current + (dt / 1000) * speed);
-      let n = 0;
-      while (n < total && events[n].t <= clockRef.current) n++;
-      setClock(clockRef.current);
-      setStep((s) => Math.max(s, n));
-      if (clockRef.current >= end) return setPlaying(false);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [playing, speed, events, total, end]);
+    if (!playing || step >= total) return;
+    const id = setTimeout(() => {
+      seek(step + 1);
+      if (step + 1 >= total) setPlaying(false);
+    }, BEAT_MS / speed);
+    return () => clearTimeout(id);
+  }, [playing, speed, step, total, seek]);
+
+  // Analysis: scores and the moments worth a second look. `review` is null
+  // until asked for, a number (0..1) while it runs, then the result.
+  const [review, setReview] = useState(0); // starts analysing as soon as it opens
+  // "Show": the better line from this moment, played out piece by piece on
+  // the board. It belongs to the step it was asked on; moving away ends it.
+  const [line, setLine] = useState(null); // { step, moves, shown }
+  const startAnalysis = () => {
+    // The numbers themselves come in an instant. The loading is staged on a
+    // fixed clock instead (LOAD_MS, easing out), so the review arrives with
+    // some ceremony and the result is shown when both are done.
+    let began = null;
+    const staged = new Promise((done) => {
+      const tick = (now) => {
+        began ??= now;
+        const p = Math.min(1, (now - began) / LOAD_MS);
+        setReview((r) => (typeof r === "number" ? 1 - (1 - p) ** 2.2 : r));
+        if (p < 1) requestAnimationFrame(tick);
+        else done();
+      };
+      requestAnimationFrame(tick);
+    });
+    Promise.all([analyze(replay), staged]).then(([result]) => {
+      setReview(result);
+      if (result.moments.length) seek(result.moments[0].step);
+    });
+  };
+  // Run once when the replay opens; the button only comes back after the
+  // analysis has been closed.
+  const began = useRef(false);
+  useEffect(() => {
+    if (began.current) return;
+    began.current = true;
+    startAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const runAnalysis = () => {
+    setPlaying(false);
+    setReview(0);
+    startAnalysis();
+  };
+  const moments = review && typeof review === "object" ? review.moments : NO_MOMENTS;
+  const momentAt = moments.findIndex((m) => m.step === step);
+  const moment = momentAt >= 0 ? moments[momentAt] : null;
+  const shownLine = line && line.step === step ? line : null;
+  const showLine = () => {
+    const ids = [LETTER_ID[events[step].type], ...dealt.slice(frames[step].dealtCount, frames[step].dealtCount + LINE_AHEAD)];
+    setPlaying(false);
+    setLine({ step, moves: bestLine(frames[step].matrix, ids, replay.mode.mode, moment?.first), shown: 1 });
+  };
+  // One more piece of the line every beat. Once it is all on the board it
+  // stays a moment, then goes away by itself, back to the real game.
+  useEffect(() => {
+    if (!shownLine) return;
+    const done = shownLine.shown >= shownLine.moves.length;
+    const id = setTimeout(() => setLine((l) => (done ? null : l && { ...l, shown: l.shown + 1 })), done ? 1400 : 520);
+    return () => clearTimeout(id);
+  }, [shownLine]);
+  // Next or previous moment from wherever the replay is. Going forward, the
+  // moves in between are run through quickly first (about a second at most),
+  // so the moment is seen in the flow of the game and not as a cut.
+  const rushRef = useRef(null);
+  const stopRush = useCallback(() => {
+    clearInterval(rushRef.current);
+    rushRef.current = null;
+  }, []);
+  useEffect(() => stopRush, [stopRush]);
+  const jump = useCallback(
+    (d) => {
+      const target = d > 0 ? moments.find((m) => m.step > step) : [...moments].reverse().find((m) => m.step < step);
+      if (!target) return;
+      stopRush();
+      setPlaying(false);
+      if (d < 0) return seek(target.step);
+      let at = step;
+      const stride = Math.max(1, Math.ceil((target.step - step) / 22));
+      rushRef.current = setInterval(() => {
+        at = Math.min(target.step, at + stride);
+        seek(at);
+        if (at >= target.step) stopRush();
+      }, 55);
+    },
+    [moments, step, seek, stopRush],
+  );
 
   const toggle = useCallback(() => {
+    stopRush();
     if (!playing && step >= total) seek(0);
     setPlaying((p) => !p);
-  }, [playing, step, total, seek]);
+  }, [playing, step, total, seek, stopRush]);
   const stepBy = useCallback(
     (d) => {
+      stopRush();
       setPlaying(false);
       seek(step + d);
     },
-    [seek, step],
+    [seek, step, stopRush],
   );
 
   useEffect(() => {
     if (keysOff) return;
     const onKey = (e) => {
+      if (e.code === "Escape") {
+        // Open the pause menu, or close it and go on as before.
+        if (menu) {
+          setPlaying(menu.wasPlaying);
+          setMenu(null);
+        } else {
+          stopRush();
+          setMenu({ wasPlaying: playing });
+          setPlaying(false);
+        }
+        return;
+      }
+      if (menu) return; // the menu takes the keys (shared navigation)
       if (e.target instanceof HTMLElement && e.target.closest("input")) return;
       if (e.code === selectKey()) {
         e.preventDefault();
@@ -216,13 +459,14 @@ function Viewer({ replay, keysOff, onClose }) {
       } else if (e.code === "ArrowRight") {
         e.preventDefault();
         stepBy(1);
-      } else if (e.code === "Escape" || e.code === backKey()) {
-        onClose();
+      } else if (e.code === "ArrowUp" || e.code === "ArrowDown") {
+        e.preventDefault();
+        jump(e.code === "ArrowDown" ? 1 : -1);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [keysOff, toggle, stepBy, onClose]);
+  }, [keysOff, toggle, stepBy, jump, menu, playing, stopRush]);
 
   // Draw: the board so far, plus the next piece above the spot it will land on.
   const frame = frames[step];
@@ -239,10 +483,40 @@ function Viewer({ replay, keysOff, onClose }) {
         ghostY: next.placed[1],
       });
     }
-    drawBoard(canvasRef.current, board);
+    if (shownLine) {
+      // The better line: the board as it would be, the newest piece lit, and
+      // the queue moved on by as many pieces as were placed.
+      const n = shownLine.shown;
+      const last = shownLine.moves[n - 1];
+      drawBoard(canvasRef.current, { matrix: last.matrix, currentId: 0 }, { mark: last.cleared ? null : last.cells });
+      drawHold(holdRef.current, frame.hold);
+      drawQueue(queueRef.current, dealt.slice(frame.dealtCount + n - 1));
+      return;
+    }
+    if (moment && !playing && next?.kind === "place") {
+      // Stopped on a key moment: the piece is shown where it was put down
+      // (before any line clears), ringed, so the move itself is easy to read.
+      // The better spot, if there is one, is marked beside it.
+      const id = LETTER_ID[next.type];
+      const shape = getShape(id, next.rot);
+      const placed = frame.matrix.map((row) => row.slice());
+      const cells = [];
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape.length; c++) {
+          const y = next.placed[1] + r;
+          const x = next.placed[0] + c;
+          if (!shape[r][c] || y < 0 || y >= placed.length) continue;
+          placed[y][x] = id;
+          cells.push([y, x]);
+        }
+      }
+      drawBoard(canvasRef.current, { matrix: placed, currentId: 0 }, { mark: cells, focus: moment.best || null });
+    } else {
+      drawBoard(canvasRef.current, board);
+    }
     drawHold(holdRef.current, frame.hold);
     drawQueue(queueRef.current, dealt.slice(frame.dealtCount));
-  }, [events, dealt, frame, step]);
+  }, [events, dealt, frame, step, moment, shownLine, playing]);
 
   const held = step > 0 && events[step - 1].kind === "hold";
   const shown = useMemo(() => events.slice(Math.max(0, step - 40), step), [events, step]);
@@ -253,8 +527,11 @@ function Viewer({ replay, keysOff, onClose }) {
 
   return (
     <>
-      <div className="mode-label">{t("Lab")} · Replay</div>
-      <div style={{ zoom }}>
+      <div className="mode-label">
+        {t("Replay")}
+        {replay.mode.mode === "unknown" ? "" : ` · ${modeName(replay.mode, "")}`}
+      </div>
+      <div style={{ zoom, "--accent": ACCENT }}>
         <div className="play">
           <ReplayLog events={shown} total={step} />
           <div className="side">
@@ -264,6 +541,21 @@ function Viewer({ replay, keysOff, onClose }) {
               <div className="k">{t("Hold")}</div>
               <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
             </div>
+            {/* What was played, with the run's other facts. */}
+            {MODE_NAMES[replay.mode.mode] && (
+              <div className="stat">
+                <div className="k">{t(MODE_NAMES[replay.mode.mode])}</div>
+                <div className="v lab-mode">{replay.mode.lines ? t("{n} lines", { n: replay.mode.lines }) : replay.mode.vs ? `vs ${replay.mode.vs}` : "–"}</div>
+                {/* A CPU's level, and the handicap of each side when either had
+                    one: each on a line of its own, so neither wraps. */}
+                {replay.mode.level && <div className="k lab-mode-sub">{t(replay.mode.level)}</div>}
+                {replay.mode.handicap?.some(Boolean) && (
+                  <div className="k lab-mode-sub">
+                    {t("Handicap")} {replay.mode.handicap.map((h) => (h > 0 ? "+" : "") + h).join(" : ")}
+                  </div>
+                )}
+              </div>
+            )}
             <Stat k="Time" v={formatTime(clock)} big />
             <Stat k="Pieces" v={`${frame.placed} / ${frames[total].placed}`} />
             <Stat k="Lines" v={frame.lines} />
@@ -271,6 +563,16 @@ function Viewer({ replay, keysOff, onClose }) {
           </div>
           <div className="board-wrap">
             <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
+            {menu && (
+              <PauseMenu
+                onResume={() => {
+                  setPlaying(menu.wasPlaying);
+                  setMenu(null);
+                }}
+                onSetup={onClose}
+                onMenu={onMenu}
+              />
+            )}
           </div>
           <div className="side right">
             <div>
@@ -282,42 +584,175 @@ function Viewer({ replay, keysOff, onClose }) {
               items={[
                 [[keyLabel(selectKey())], playing ? "pause" : "play"],
                 [["←", "→"], "step"],
-                [["Esc"], "exit"],
+                ...(moments.length ? [[["↑", "↓"], "key moments"]] : []),
+                [["Esc"], menu ? "resume" : "pause"],
               ]}
             />
           </div>
-        </div>
-        <div className="lab-bar">
-          <button type="button" className="lab-icon" onClick={blur(toggle)} title={t(playing ? "Pause" : "Play")} aria-label={t(playing ? "Pause" : "Play")}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              {playing ? <path d="M8 5.5h2.5v13H8zM13.5 5.5H16v13h-2.5z" /> : <path d="M8.5 5.5v13l10-6.5z" />}
-            </svg>
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={total}
-            value={step}
-            aria-label={t("Position")}
-            onChange={(e) => {
-              setPlaying(false);
-              seek(+e.target.value);
-            }}
-            onPointerUp={(e) => e.currentTarget.blur()}
-          />
-          {/* One button that steps through the speeds, to keep the bar short. */}
-          <button
-            type="button"
-            className="lab-speed"
-            onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) + 1) % SPEEDS.length]))}
-            title={t("Speed")}
-            aria-label={`${t("Speed")} ${speed}×`}
-          >
-            {speed}×
-          </button>
-          <button type="button" className="btn ghost compact" onClick={onClose}>
-            {t("Exit")}
-          </button>
+          {/* Everything that drives the replay sits beside the queue: the review
+              on top, the timeline and transport at the bottom, level with the
+              foot of the board. Nothing here changes the page's layout. */}
+          <div className="lab-side">
+            {/* Analyze across the panel, and the scores in its place afterwards. */}
+            <div className="lab-top">
+              {review === null && (
+                <button type="button" className="btn lab-analyze" onClick={blur(runAnalysis)}>
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    {/* Two sparkles with curved sides: a large one and a small one. */}
+                    <path d="M10 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM18.5 13.5c.3 2.4 1.6 3.7 4 4-2.4.3-3.7 1.6-4 4-.3-2.4-1.6-3.7-4-4 2.4-.3 3.7-1.6 4-4z" />
+                  </svg>
+                  {t("Analyze my run")}
+                </button>
+              )}
+              {review !== null && (
+                <div className={"lab-scores" + (typeof review === "number" ? " waiting" : "")}>
+                  {SCORES.map(([key, label, hint], n) => (
+                    <div key={key} title={t(hint)} className={typeof review === "number" && review * SCORES.length > n ? "on" : ""}>
+                      <div className="k lab-score-k">
+                        <KindIcon kind={key} />
+                        {t(label)}
+                      </div>
+                      {/* A soft pulse holds the place while the score is worked out. */}
+                      {typeof review === "number" ? (
+                        <div className="v lab-wait" style={{ "--i": n }} />
+                      ) : (
+                        <div className="v">
+                          <CountUp to={review.scores[key]} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Across from the scores it belongs to: puts the analysis away
+                  and leaves the replay where it is. */}
+              {review && typeof review === "object" && (
+                <IconButton
+                  icon="close"
+                  label="Close analysis"
+                  round
+                  onClick={blur(() => {
+                    stopRush();
+                    setLine(null);
+                    setReview(null);
+                  })}
+                />
+              )}
+            </div>
+            {typeof review === "number" && (
+              <div className="lab-loading">
+                <div className="lab-stage">
+                  <span key={stageOf(review)}>{t(STAGES[stageOf(review)])}</span>
+                  <b>{Math.round(review * 100)}%</b>
+                </div>
+                <i style={{ "--p": review }} />
+              </div>
+            )}
+            {review && typeof review === "object" && (
+              <>
+                <div className="lab-moment">
+                  {/* The comment's slot keeps one height, so the buttons under it
+                      never move; away from a key moment there is only a quiet note. */}
+                  <div className="lab-slot">
+                    {moment ? (
+                      // While the replay runs, comments it passes just appear: the pop
+                      // and the typing are for a moment the player stops on.
+                      <div key={moment.step} className={"lab-bubble " + moment.grade + (playing ? " still" : "")}>
+                        <div className="lab-bubble-head">
+                          <GradeIcon grade={moment.grade} />
+                          <b>
+                            #{moment.step + 1} {events[moment.step].type} · {t(GRADES[moment.grade])}
+                          </b>
+                          <span className="lab-kind" title={t(KIND_NAMES[moment.kind])}>
+                            <KindIcon kind={moment.kind} />
+                          </span>
+                        </div>
+                        <p>
+                          <Typed text={t(moment.text[0], moment.text[1])} instant={playing} />
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
+                    )}
+                  </div>
+                  {/* Previous and Next come first and never move; Show best joins
+                      them on the right when there is a better line to show. */}
+                  <div className="lab-moment-nav">
+                    <IconButton icon="prev" label="Previous" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
+                    <button type="button" className="btn primary compact" onClick={blur(() => jump(1))} disabled={!moments.some((m) => m.step > step)}>
+                      {t("Next moment")}
+                    </button>
+                    {moment?.best && (
+                      <button type="button" className="btn compact lab-best" onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          {shownLine ? (
+                            <path d="M7.5 7.5l9 9M16.5 7.5l-9 9" />
+                          ) : (
+                            <>
+                              <path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6z" />
+                              <circle cx="12" cy="12" r="2.6" />
+                            </>
+                          )}
+                        </svg>
+                        {t(shownLine ? "Stop" : "Show best")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="lab-transport">
+              <div className="lab-track">
+                <input
+                  type="range"
+                  min={0}
+                  max={total}
+                  value={step}
+                  aria-label={t("Position")}
+                  onChange={(e) => {
+                    stopRush();
+                    setPlaying(false);
+                    seek(+e.target.value);
+                  }}
+                  onPointerUp={(e) => e.currentTarget.blur()}
+                />
+                {/* Key moments sit on the track where they happened. */}
+                {moments.map((m, n) => (
+                  <button
+                    key={m.step}
+                    type="button"
+                    tabIndex={-1}
+                    className={"lab-mark " + m.grade + (n === momentAt ? " on" : "")}
+                    style={{ left: `calc(1.5px + (100% - 3px) * ${m.step / total})` }}
+                    aria-label={`#${m.step + 1}`}
+                    onClick={blur(() => {
+                      stopRush();
+                      setPlaying(false);
+                      seek(m.step);
+                    })}
+                  />
+                ))}
+              </div>
+              <div className="lab-buttons">
+                <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />
+                <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
+                <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} main />
+                <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
+                <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />
+                {/* One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again. */}
+                <button
+                  type="button"
+                  className="lab-speed"
+                  onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) - 1 + SPEEDS.length) % SPEEDS.length]))}
+                  title={t("Speed")}
+                  aria-label={`${t("Speed")} ${speed}×`}
+                >
+                  {speed}×
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

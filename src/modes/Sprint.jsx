@@ -373,7 +373,7 @@ export default function Sprint({ settings, onBack }) {
     <>
       <div className="mode-label">Sprint · {sprintLines} lines</div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} getText={() => buildLogText(engineRef.current)} />}
+        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} getText={() => buildLogText(engineRef.current, `SPRINT ${sprintLines}L`)} />}
         <div className="side">
           <div>
             <div className="k">{t("Hold")}</div>
@@ -388,7 +388,7 @@ export default function Sprint({ settings, onBack }) {
           </div>
           <Stat k="PPS" v={displayPPS} />
           <Stat k="Attack" v={displayAttack} />
-          {settings.showKeys && <KeyStrokes />}
+          {settings.showKeys && <KeyStrokes key={settings.keysVersion} />}
         </div>
 
         <div className="board-wrap">

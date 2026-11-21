@@ -1464,9 +1464,12 @@ function replayLines(engine) {
 }
 
 // The piece log so far as text (the log panel's copy button).
-export function buildLogText(engine) {
+// mode: what was being played, as the first word(s) of the header ("SPRINT
+// 40L", "BATTLE", "OPENING", "FINESSE"). A replay reads it back to know how to
+// judge the run: a Sprint and a Battle are not stacked the same way.
+export function buildLogText(engine, mode = "LOG") {
   if (!engine) return "";
-  return [`LOG | ${engine.placedBlocks} blocks | ${formatTime(engine.clock)}`, "", ...replayLines(engine)].join("\n");
+  return [`${mode} | ${engine.placedBlocks} blocks | ${formatTime(engine.clock)}`, "", ...replayLines(engine)].join("\n");
 }
 
 export function buildReplayText(engine, settings, summary) {
