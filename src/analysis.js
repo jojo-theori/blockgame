@@ -162,7 +162,8 @@ const engineFlag = (loss, rank) => (loss >= ENGINE_GRADES.inaccuracy && rank >= 
 //   macro      0 is placing at random, 95 and up is engine-level stacking.
 //              Battle: exp(-loss per piece / 280) on Cold Clear's losses
 //              (random play 8, a careless stacker 25-45, a tidy one 67,
-//              Cold Clear itself 90-95). Other modes: the stack evaluator.
+//              Cold Clear itself 90-95). Sprint: from the result (see
+//              sprintMacro). Other modes: the stack evaluator.
 //   dexterity  pieces per second on a log scale, 25 points a doubling, set
 //              against what players actually do:
 //              Sprint  40 lines in 2:00 is 25, 1:00 is 50, 0:30 is 75, 0:15
@@ -195,7 +196,8 @@ export function playLine(matrix, raw) {
 }
 // → Map(step of a placement → { loss, best, mine, line }); mine is null when
 // the engine never considered the spot that was played.
-export async function engineMacro({ events, frames, dealt }, evaluate, onProgress = () => {}, nodes = ENGINE_NODES) {
+// sprint: judge with the engine's Sprint weights (lines only, quads above all).
+export async function engineMacro({ events, frames, dealt, sprint = false }, evaluate, onProgress = () => {}, nodes = ENGINE_NODES) {
   const out = new Map();
   let combo = 0;
   let b2b = false;
@@ -211,9 +213,10 @@ export async function engineMacro({ events, frames, dealt }, evaluate, onProgres
         queue: dealt.slice(f.dealtCount, f.dealtCount + 5).map((id) => ID_LETTER[id]).join(""),
         hold: f.hold ? ID_LETTER[f.hold] : "",
         canHold: true,
-        b2b,
-        combo,
+        b2b: sprint ? false : b2b,
+        combo: sprint ? 0 : combo,
         incoming: 0,
+        sprint,
       },
       nodes,
     );
@@ -306,10 +309,20 @@ const median = (a) => {
 
 // events, frames: from parseLog / buildFrames. onProgress(0..1) is called as
 // it goes; the work is cut into slices so the page stays responsive.
+// Macro in a Sprint is read off the result, not the moves: how little was left
+// on the board at the end (every four cells is a piece spent for nothing; 100
+// pieces is the least 40 lines can take) and how much of the clearing was
+// done in quads. A run that stopped short counts for the part it got through.
+//   40 lines in 100 pieces, all quads: 100.   All singles in 102 pieces: 55.
+function sprintMacro(o, goal) {
+  const tidy = Math.exp(-o.left / 100);
+  return Math.round(100 * Math.min(1, o.lines / goal) * (0.6 * tidy + 0.4 * Math.min(1, o.quadShare)));
+}
+
 // ── What stood out ──
 // Things worth saying about the run as a whole, good and bad, each with a
 // weight; the summary shows the heaviest few. Rules only, no model.
-function traitsOf({ places, found, mode, lines, holds, usual }) {
+function traitsOf({ places, found, mode, lines, holds, usual, outcome }) {
   const n = places.length;
   const out = [];
   const add = (good, weight, key, vars = {}) => out.push({ good, weight, text: [key, vars] });
@@ -331,9 +344,16 @@ function traitsOf({ places, found, mode, lines, holds, usual }) {
   if (spins >= 2) add(true, 6 + spins, "Lands T-spins: {n} in this run.", { n: spins });
   if (missed >= 2) add(false, 5 + missed, "Walked past {n} T-spin chances.", { n: missed });
   if (chain >= 3) add(true, 4 + chain, "Kept back-to-back alive for {n} clears in a row.", { n: chain + 1 });
-  if (mode === "battle" ? quads >= 2 : quads >= 8) add(true, 3 + quads / 2, "Clears in quads: {n} of them.", { n: quads });
+  if (mode === "battle" && quads >= 2) add(true, 3 + quads / 2, "Clears in quads: {n} of them.", { n: quads });
   if (tucks >= 3) add(true, 4 + tucks / 2, "Good with soft drops: {n} pieces slid in under an overhang.", { n: tucks });
-  if (mode === "sprint" && lines >= 40 && n <= lines * 2.5 + 3) add(true, 6, "Nothing wasted: {n} pieces for {lines} lines.", { n, lines });
+  if (mode === "sprint" && lines >= 20) {
+    const quadLines = 4 * quads;
+    if (n <= lines * 2.5 + 3) add(true, 6, "Nothing wasted: {n} pieces for {lines} lines.", { n, lines });
+    else if (outcome.left >= 60) add(false, 6, "{n} pieces for {lines} lines: {left} cells were still on the board.", { n, lines, left: outcome.left });
+    if (quadLines >= lines * 0.8) add(true, 7, "{n} of {lines} lines went in quads.", { n: quadLines, lines });
+    else if (quadLines <= lines * 0.4) add(false, 7, "Only {n} of {lines} lines went in quads.", { n: quadLines, lines });
+    if (holds > n * 0.45) add(false, 4, "Held on {n} of {m} pieces. Each hold is a key press.", { n: holds, m: n });
+  }
 
   // Where in the game the stacking was lost: the first two bags, the last
   // third, and what lies between.
@@ -358,7 +378,7 @@ function traitsOf({ places, found, mode, lines, holds, usual }) {
   const scored = places.filter((p) => p.ev.optimal > 0).length;
   if (scored >= 20 && faults === 0) add(true, 4, "Not one wasted key press.");
   else if (scored >= 20 && faults / scored >= 0.4) add(false, 4 + (faults / scored) * 4, "{n} of {m} pieces took extra key presses.", { n: faults, m: scored });
-  if (n >= 40 && holds === 0) add(false, 3, "Never touched hold.");
+  if (mode !== "sprint" && n >= 40 && holds === 0) add(false, 3, "Never touched hold.");
 
   // The heaviest three, with room kept for one weakness when there is one.
   const byWeight = (a, b) => b.weight - a.weight;
@@ -374,9 +394,10 @@ function traitsOf({ places, found, mode, lines, holds, usual }) {
 export async function analyze({ events, frames, dealt, mode: played }, onProgress = () => {}, evaluate = null) {
   const mode = played?.mode;
   let engine = null;
-  if (mode === "battle" && evaluate && dealt) {
+  const sprint = mode === "sprint";
+  if ((mode === "battle" || sprint) && evaluate && dealt) {
     try {
-      engine = await engineMacro({ events, frames, dealt }, evaluate, (p) => onProgress(p * 0.9));
+      engine = await engineMacro({ events, frames, dealt, sprint }, evaluate, (p) => onProgress(p * 0.9));
     } catch (err) {
       console.error("Engine review failed:", err);
     }
@@ -423,9 +444,11 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
           const b = seen.best;
           const bf = features(seen.line[0].matrix);
           const text =
-            b.tspin && b.cleared && !/spin/i.test(ev.action || "")
+            !sprint && b.tspin && b.cleared && !/spin/i.test(ev.action || "")
               ? [b.cleared >= 3 ? "Missed a T-spin triple." : b.cleared === 2 ? "Missed a T-spin double." : "Missed a T-spin single.", {}]
-              : b.cleared > cleared
+              : b.cleared === 4 && cleared < 4
+                ? ["Missed a quad.", {}]
+                : b.cleared > cleared
                 ? cleared === 0
                   ? ["Missed a chance to clear {b} lines.", { b: b.cleared }]
                   : ["Missed a bigger clear: {b} lines, not {a}.", { a: cleared, b: b.cleared }]
@@ -523,6 +546,20 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
   const scored = places.filter((p) => p.ev.optimal > 0);
   const pps = total > 0 ? places.length / total : 0;
 
+  // How the run came out, the way a Sprint is judged: the share of lines that
+  // went in quads, and what was still on the board at the end (four cells a
+  // piece, so this is the same thing as pieces spent over the minimum).
+  const last = frames[frames.length - 1];
+  const lines = last.lines;
+  const goal = Math.max(lines, played?.lines || 0, 1);
+  const outcome = {
+    lines,
+    pieces: places.length,
+    quadShare: (4 * places.filter((p) => p.cleared === 4).length) / goal,
+    left: last.matrix.reduce((n, row) => n + row.filter((v) => v !== EMPTY).length, 0),
+    holds: events.filter((e) => e.kind === "hold").length,
+  };
+
   // The moments shown: the heaviest of each kind, at most ten, in play order.
   const pick = (kind, grades, n) =>
     found
@@ -544,12 +581,13 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
   onProgress(1);
   return {
     scores: {
-      macro: places.length ? round(100 * Math.exp(-regret / places.length / (engine ? ENGINE_SCALE : 6.5))) : 0,
+      macro: !places.length ? 0 : sprint ? sprintMacro(outcome, goal) : round(100 * Math.exp(-regret / places.length / (engine ? ENGINE_SCALE : 6.5))),
       dexterity: dexterityScore(pps, mode),
       finesse: finesseScore(scored.filter((p) => !p.ev.finesseFault).length, scored.length),
     },
     engine: !!engine,
-    traits: traitsOf({ places, found, mode, lines: frames[frames.length - 1].lines, holds: events.filter((e) => e.kind === "hold").length, usual }),
+    outcome,
+    traits: traitsOf({ places, found, mode, lines: frames[frames.length - 1].lines, holds: outcome.holds, usual, outcome }),
     facts: { pps, kps: total > 0 ? keys / total : 0, usual, pieces: places.length },
     moments,
   };

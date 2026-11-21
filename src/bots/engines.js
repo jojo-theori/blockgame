@@ -42,12 +42,12 @@ const ccField = (s) => s.rows.slice().reverse().join("") + "0".repeat(200);
 // For analysis: every move it weighed at this position (see review.js).
 async function ccEval(s, { nodes }, wasmInput) {
   await loadCc(wasmInput);
-  return cc.cc_eval(ccField(s), s.cur + s.queue, s.hold || " ", s.b2b, s.combo, s.incoming, nodes, s.canHold);
+  return cc.cc_eval(ccField(s), s.cur + s.queue, s.hold || " ", s.b2b, s.combo, s.incoming, nodes, s.canHold, !!s.sprint);
 }
 async function ccMove(s, { nodes }, wasmInput) {
   await loadCc(wasmInput);
   const field = ccField(s);
-  const out = cc.cc_move(field, s.cur + s.queue, s.hold || " ", s.b2b, s.combo, s.incoming, nodes, s.canHold);
+  const out = cc.cc_move(field, s.cur + s.queue, s.hold || " ", s.b2b, s.combo, s.incoming, nodes, s.canHold, !!s.sprint);
   if (!out) return "";
   const [moves] = out.split("|");
   return moves + "V";

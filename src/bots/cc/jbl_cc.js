@@ -22,17 +22,19 @@ export function _web_worker_entry_point(scope) {
  * @param {number} incoming
  * @param {number} nodes
  * @param {boolean} use_hold
+ * @param {boolean} sprint
  * @returns {string}
  */
-export function cc_eval(field, queue, hold, b2b, combo, incoming, nodes, use_hold) {
-    let deferred9_0;
-    let deferred9_1;
+export function cc_eval(field, queue, hold, b2b, combo, incoming, nodes, use_hold, sprint) {
+    let deferred10_0;
+    let deferred10_1;
     try {
         const val4 = +b2b;
         const val5 = +combo;
         const val6 = +incoming;
         const val7 = +nodes;
         const val8 = +use_hold;
+        const val9 = +sprint;
         let ptr0, len0, ptr1, len1, ptr2, len2;
         try {
             ptr0 = passStringToWasm0(field, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -47,18 +49,19 @@ export function cc_eval(field, queue, hold, b2b, combo, incoming, nodes, use_hol
             if (ptr0) { wasm.__wbindgen_free(ptr0, len0 * 1, 1); }
             throw e;
         }
-        const ret = wasm.cc_eval(ptr0, len0, ptr1, len1, ptr2, len2, val4, val5, val6, val7, val8);
-        deferred9_0 = ret[0];
-        deferred9_1 = ret[1];
+        const ret = wasm.cc_eval(ptr0, len0, ptr1, len1, ptr2, len2, val4, val5, val6, val7, val8, val9);
+        deferred10_0 = ret[0];
+        deferred10_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred9_0, deferred9_1, 1);
+        wasm.__wbindgen_free(deferred10_0, deferred10_1, 1);
     }
 }
 
 /**
  * field: 400 chars '0'/'1', 40 rows from the BOTTOM up, 10 columns each.
  * queue: current piece first, then the next pieces. hold: letter or ' '.
+ * sprint: play for line count alone (see sprint_weights), not for attack.
  * Returns "h" if it holds first, then inputs: l r c (cw) z (ccw) D (sonic drop),
  * then "|x,y,r" for the expected location (debug). Empty string if dead.
  * @param {string} field
@@ -69,17 +72,19 @@ export function cc_eval(field, queue, hold, b2b, combo, incoming, nodes, use_hol
  * @param {number} incoming
  * @param {number} nodes
  * @param {boolean} use_hold
+ * @param {boolean} sprint
  * @returns {string}
  */
-export function cc_move(field, queue, hold, b2b, combo, incoming, nodes, use_hold) {
-    let deferred9_0;
-    let deferred9_1;
+export function cc_move(field, queue, hold, b2b, combo, incoming, nodes, use_hold, sprint) {
+    let deferred10_0;
+    let deferred10_1;
     try {
         const val4 = +b2b;
         const val5 = +combo;
         const val6 = +incoming;
         const val7 = +nodes;
         const val8 = +use_hold;
+        const val9 = +sprint;
         let ptr0, len0, ptr1, len1, ptr2, len2;
         try {
             ptr0 = passStringToWasm0(field, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
@@ -94,12 +99,12 @@ export function cc_move(field, queue, hold, b2b, combo, incoming, nodes, use_hol
             if (ptr0) { wasm.__wbindgen_free(ptr0, len0 * 1, 1); }
             throw e;
         }
-        const ret = wasm.cc_move(ptr0, len0, ptr1, len1, ptr2, len2, val4, val5, val6, val7, val8);
-        deferred9_0 = ret[0];
-        deferred9_1 = ret[1];
+        const ret = wasm.cc_move(ptr0, len0, ptr1, len1, ptr2, len2, val4, val5, val6, val7, val8, val9);
+        deferred10_0 = ret[0];
+        deferred10_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
-        wasm.__wbindgen_free(deferred9_0, deferred9_1, 1);
+        wasm.__wbindgen_free(deferred10_0, deferred10_1, 1);
     }
 }
 function __wbg_get_imports() {

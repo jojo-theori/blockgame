@@ -115,7 +115,7 @@ export default function Lab({ settings, initial = "", onBack }) {
   return (
     <div className="page" style={{ "--accent": ACCENT }}>
       <h1 className="title">{t("Replay")}</h1>
-      <p className="lede">{t("Paste a log copied in Sprint or Battle to watch the run again.")}</p>
+      <p className="lede">{t("Paste a log copied in Sprint or Battle to watch the run again and have it analysed.")}</p>
       <div className="mid">
         {/* What the pasted log holds, above the box. The row is there even while
             empty, so nothing moves when a log lands. */}
@@ -308,7 +308,9 @@ function ScoreHelp({ review, mode }) {
     [
       "macro",
       "Macro",
-      review.engine
+      mode === "sprint"
+        ? ["How well the stack was built, read off the result: how little was left on the board, and how much was cleared in quads.", "40 lines in 100 pieces, all quads, is 100. All singles in 102 pieces is 55. The moves pointed out come from an engine tuned for Sprint."]
+        : review.engine
         ? ["How well the stack was built. Every move is compared with the best move of the Cold Clear engine.", "The engine itself scores 90 to 95. Stacking flat with no mistakes, but no T-spins, is about 65 to 70."]
         : ["How well the stack was built. Every move is compared with the best spot for gaps, height and flatness.", "A stack with no covered gaps scores 90 or more. In a Battle the engine is the yardstick instead."],
     ],
@@ -615,7 +617,7 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
     if (moment && !playing && next?.kind === "place") {
       // Stopped on a key moment: the piece is shown where it was put down
       // (before any line clears), ringed, so the move itself is easy to read.
-      // The better spot, if there is one, is marked beside it.
+      // The better spot is only shown by Show best, so the two never mix.
       const id = LETTER_ID[next.type];
       const shape = getShape(id, next.rot);
       const placed = frame.matrix.map((row) => row.slice());
@@ -629,7 +631,7 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
           cells.push([y, x]);
         }
       }
-      drawBoard(canvasRef.current, { matrix: placed, currentId: 0 }, { mark: cells, focus: moment.best || null });
+      drawBoard(canvasRef.current, { matrix: placed, currentId: 0 }, { mark: cells });
     } else {
       drawBoard(canvasRef.current, board);
     }
