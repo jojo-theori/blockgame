@@ -42,8 +42,7 @@ const MODES = [
   { id: "opening", label: "Opening", color: "#b14fd0", desc: "Practise openers piece by piece: TKI, PCO, DT Cannon, Albatross.", ready: true, beta: true },
   { id: "finesse", label: "Finesse", color: "#5cc45c", desc: "Place each piece in the fewest key presses.", ready: true, beta: true },
   { id: "lab", label: "Replay", color: "#3fc8b4", desc: "Watch a run again from its log.", ready: true, beta: true },
-  { id: "puzzle", label: "Puzzle", color: "#f2913d", desc: "Solve set positions.", ready: false },
-  { id: "challenge", label: "Challenge", color: "#f2cb4c", desc: "Daily goals.", ready: false },
+  { id: "sandbox", label: "Sandbox", color: "#f2913d", desc: "Build a board of your own and play it.", ready: false },
 ];
 
 // Next menu row in direction d, skipping modes that are not ready yet.

@@ -7,8 +7,7 @@ export default {
   Battle: "배틀",
   Opening: "오프닝",
   Finesse: "피네스",
-  Puzzle: "퍼즐",
-  Challenge: "챌린지",
+  Sandbox: "샌드박스",
   Settings: "설정",
   Soon: "준비 중",
   Beta: "베타",
@@ -41,8 +40,7 @@ export default {
   "One on one against the CPU or a friend on the same keyboard.": "CPU 또는 같은 키보드의 친구와 1대1로 겨룹니다.",
   "Practise openers piece by piece: TKI, PCO, DT Cannon, Albatross.": "오프너를 블록 하나씩 연습합니다.",
   "Place each piece in the fewest key presses.": "가장 적은 키 입력으로 블록을 놓습니다.",
-  "Solve set positions.": "정해진 판을 풉니다.",
-  "Daily goals.": "매일 바뀌는 목표.",
+  "Build a board of your own and play it.": "직접 만든 판으로 플레이하세요.",
   "Handling and key bindings.": "조작과 키 설정.",
 
   // Top bar
