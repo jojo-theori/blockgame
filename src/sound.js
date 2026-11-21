@@ -23,6 +23,12 @@ try {
 export function setSoundOptions(o) {
   Object.assign(opts, o);
 }
+// The sound test plays every sound, whatever is switched off for the game.
+let audition = false;
+export function setAudition(on) {
+  audition = !!on;
+}
+const on = (key) => audition || opts[key];
 
 function ac() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -218,13 +224,13 @@ export const sfx = {
   },
   // Fault: two falling buzzes. Kept above 200 Hz so small speakers carry it.
   miss: () => {
-    if (!opts.fault) return;
+    if (!on("fault")) return;
     tone({ freq: 330, type: "square", dur: 0.08, vol: 0.06, slide: 294 });
     tone({ freq: 233, type: "square", dur: 0.13, vol: 0.06, slide: 196, delay: 0.09 });
   },
   // Back-to-back: a low note answered an octave up, under the clear sound.
   b2b: () => {
-    if (!opts.b2b) return;
+    if (!on("b2b")) return;
     tone({ freq: 392, type: "square", dur: 0.09, vol: 0.035, delay: 0.1 });
     tone({ freq: 784, type: "square", dur: 0.14, vol: 0.035, delay: 0.18 });
   },
@@ -232,7 +238,7 @@ export const sfx = {
   // row, from C5 (combo 1) up two octaves to C7, then comes back down.
   // notes, spin: what the clear played, so the combo note lands after it.
   combo: (n, notes = 1, spin = false) => {
-    if (!opts.combo) return;
+    if (!on("combo")) return;
     const scale = SCALES[comboScale];
     // Up two octaves to C7, then back down the same way, and up again.
     const top = 2 * scale.length;

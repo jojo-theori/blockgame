@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { t } from "../i18n.js";
-import { sfx, attackNotes, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle, WAVES, getWave, setWave } from "../sound.js";
+import { sfx, setAudition, attackNotes, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle, WAVES, getWave, setWave } from "../sound.js";
 import { Dropdown } from "../ui.jsx";
 
 const ACCENT = "#f2cb4c";
@@ -185,6 +185,11 @@ function SoundTest({ kit, onBack }) {
     setPlaying(null);
   };
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  // Every sound plays here, including the ones switched off for the game.
+  useEffect(() => {
+    setAudition(true);
+    return () => setAudition(false);
+  }, []);
   const press = (item) => (e) => {
     e.currentTarget.blur();
     stop();
@@ -196,7 +201,7 @@ function SoundTest({ kit, onBack }) {
   return (
     <div className="page wide" style={{ "--accent": ACCENT }}>
       <h1 className="title">{t("Sound test")}</h1>
-      <p className="lede">{t("Each button plays what the game would play. Sounds switched off in Settings stay silent here too.")}</p>
+      <p className="lede">{t("Each button plays what the game would play.")}</p>
       <div className="mid">
         <div className="snd">
           <div className="snd-row">

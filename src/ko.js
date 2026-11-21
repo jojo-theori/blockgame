@@ -31,7 +31,7 @@ export default {
   "Whole tone": "홀톤",
   Chromatic: "크로매틱 (반음)",
   "Hear every sound the game makes, one at a time or as a run of clears.": "게임의 모든 소리를 하나씩, 또는 연속 상황으로 들어 보세요.",
-  "Each button plays what the game would play. Sounds switched off in Settings stay silent here too.": "버튼마다 게임에서 나는 그대로 재생합니다. 설정에서 끈 소리는 여기서도 나지 않습니다.",
+  "Each button plays what the game would play.": "버튼마다 게임에서 나는 그대로 재생합니다.",
   "Line clears": "줄 지우기",
   Runs: "연속 상황",
   Other: "기타",
