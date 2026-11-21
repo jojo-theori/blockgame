@@ -45,6 +45,12 @@ function summary(review) {
   if (review.moments.length) lines.push(["{n} moments to go through.", { n: review.moments.length }]);
   return lines;
 }
+// The same run as one of the move grades, for the icon on the summary.
+function overall(review) {
+  const scores = Object.values(review.scores);
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  return avg >= 85 ? "brilliant" : avg >= 65 ? "good" : avg >= 45 ? "inaccuracy" : "mistake";
+}
 const MAX_LINES = 400; // lines of a pasted log shown on the input page
 
 // ─── Lab: watch a run again from its copied piece log ───
@@ -670,8 +676,9 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                         </p>
                       </div>
                     ) : overview ? (
-                      <div className="lab-bubble summary">
+                      <div className={"lab-bubble summary " + overall(review)}>
                         <div className="lab-bubble-head">
+                          <GradeIcon grade={overall(review)} />
                           <b>{t("Summary")}</b>
                         </div>
                         <p>
