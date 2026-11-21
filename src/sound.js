@@ -31,7 +31,7 @@ function ac() {
 }
 
 // One oscillator note. slide: end frequency (glide). delay in seconds.
-function tone({ freq, type = "sine", dur = 0.08, vol = 0.1, slide = null, delay = 0, attack = 0.004 }) {
+export function tone({ freq, type = "sine", dur = 0.08, vol = 0.1, slide = null, delay = 0, attack = 0.004 }) {
   if (!enabled) return;
   const a = ac();
   const t = a.currentTime + delay;
@@ -49,7 +49,7 @@ function tone({ freq, type = "sine", dur = 0.08, vol = 0.1, slide = null, delay 
 }
 
 // Short filtered noise burst (thuds, garbage).
-function noise({ dur = 0.12, vol = 0.12, freq = 400, delay = 0 }) {
+export function noise({ dur = 0.12, vol = 0.12, freq = 400, delay = 0 }) {
   if (!enabled) return;
   const a = ac();
   const t = a.currentTime + delay;

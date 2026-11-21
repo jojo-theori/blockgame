@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { t } from "../i18n.js";
 import { sfx, attackNotes, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle } from "../sound.js";
+import { sfxOriginal } from "../sound-original.js";
 import { Dropdown } from "../ui.jsx";
 
 const ACCENT = "#f2cb4c";
 
 // ─── Lab: things being tried out ───
 // A list of experiments; each opens on its own page. Esc goes back a step.
-const EXPERIMENTS = [{ id: "sound", label: "Sound test", desc: "Hear every sound the game makes, one at a time or as a run of clears." }];
+const EXPERIMENTS = [
+  { id: "sound", label: "Sound test", desc: "Hear every sound the game makes, one at a time or as a run of clears." },
+  { id: "original", label: "Original sounds", desc: "The sounds as they first were, on the same buttons, to compare." },
+];
 
 export default function Experiments({ settings, onBack }) {
   const [open, setOpen] = useState(null);
@@ -23,7 +27,8 @@ export default function Experiments({ settings, onBack }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onBack, settingsOpen]);
 
-  if (open === "sound") return <SoundTest onBack={() => setOpen(null)} />;
+  if (open === "sound") return <SoundTest kit={sfx} onBack={() => setOpen(null)} />;
+  if (open === "original") return <SoundTest kit={sfxOriginal} original onBack={() => setOpen(null)} />;
   return (
     <div className="page" style={{ "--accent": ACCENT }}>
       <h1 className="title">{t("Lab")}</h1>
@@ -49,13 +54,13 @@ export default function Experiments({ settings, onBack }) {
 
 // One placement, the way the game sounds it (see trackSfx in sound.js): the
 // clear, spin or perfect clear, then back-to-back and combo on top.
-function place({ lines = 0, spin = false, mini = false, perfect = false, b2b = false, combo = 0 }) {
-  if (perfect) sfx.perfect();
-  else if (spin && lines) sfx.spin(lines, mini);
-  else if (lines) sfx.clear(lines);
-  else sfx.drop();
-  if (lines && b2b) sfx.b2b();
-  if (lines && combo >= 1) sfx.combo(combo, attackNotes(lines, spin, mini), spin);
+function place(kit, { lines = 0, spin = false, mini = false, perfect = false, b2b = false, combo = 0 }) {
+  if (perfect) kit.perfect();
+  else if (spin && lines) kit.spin(lines, mini);
+  else if (lines) kit.clear(lines);
+  else kit.drop();
+  if (lines && b2b) kit.b2b();
+  if (lines && combo >= 1) kit.combo(combo, attackNotes(lines, spin, mini), spin);
 }
 
 const SCALE_NAMES = {
@@ -75,32 +80,32 @@ const SCALE_OPTIONS = Object.keys(SCALES).map((id) => ({ id, label: SCALE_NAMES[
 const STYLE_NAMES = { arpeggio: "Arpeggio: a note a line sent, climbing", chord: "Chord: a note a line sent, together", hits: "Hits: a tap a line sent, one note" };
 const STYLE_OPTIONS = CLEAR_STYLES.map((id) => ({ id, label: STYLE_NAMES[id] }));
 
-const GROUPS = [
+const groupsFor = (kit) => [
   {
     label: "Line clears",
-    items: [1, 2, 3, 4].map((n) => ({ label: ["Single", "Double", "Triple", "Quad"][n - 1], run: () => place({ lines: n }) })),
+    items: [1, 2, 3, 4].map((n) => ({ label: ["Single", "Double", "Triple", "Quad"][n - 1], run: () => place(kit, { lines: n }) })),
   },
   {
     label: "T-spins",
     items: [
-      { label: "T-spin mini", run: () => place({ lines: 1, spin: true, mini: true }) },
-      ...[1, 2, 3].map((n) => ({ label: ["T-spin single", "T-spin double", "T-spin triple"][n - 1], run: () => place({ lines: n, spin: true }) })),
+      { label: "T-spin mini", run: () => place(kit, { lines: 1, spin: true, mini: true }) },
+      ...[1, 2, 3].map((n) => ({ label: ["T-spin single", "T-spin double", "T-spin triple"][n - 1], run: () => place(kit, { lines: n, spin: true }) })),
     ],
   },
   {
     label: "Back-to-back",
     items: [
-      { label: "Quad + bonus", run: () => place({ lines: 4, b2b: true }) },
-      { label: "T-spin single + bonus", run: () => place({ lines: 1, spin: true, b2b: true }) },
-      { label: "T-spin double + bonus", run: () => place({ lines: 2, spin: true, b2b: true }) },
-      { label: "T-spin triple + bonus", run: () => place({ lines: 3, spin: true, b2b: true }) },
-      { label: "The bonus alone", run: () => sfx.b2b() },
+      { label: "Quad + bonus", run: () => place(kit, { lines: 4, b2b: true }) },
+      { label: "T-spin single + bonus", run: () => place(kit, { lines: 1, spin: true, b2b: true }) },
+      { label: "T-spin double + bonus", run: () => place(kit, { lines: 2, spin: true, b2b: true }) },
+      { label: "T-spin triple + bonus", run: () => place(kit, { lines: 3, spin: true, b2b: true }) },
+      { label: "The bonus alone", run: () => kit.b2b() },
     ],
   },
   {
     label: "Combo",
     tight: true, // fifteen numbers on one line
-    items: Array.from({ length: 15 }, (_, i) => i + 1).map((n) => ({ label: String(n), run: () => place({ lines: 1, combo: n }) })),
+    items: Array.from({ length: 15 }, (_, i) => i + 1).map((n) => ({ label: String(n), run: () => place(kit, { lines: 1, combo: n }) })),
   },
   {
     label: "Runs",
@@ -116,22 +121,23 @@ const GROUPS = [
   {
     label: "Other",
     items: [
-      { label: "Perfect clear", run: () => place({ lines: 4, perfect: true }) },
-      { label: "Move", run: () => sfx.move() },
-      { label: "Rotate", run: () => sfx.rotate() },
-      { label: "Hold", run: () => sfx.hold() },
-      { label: "Drop", run: () => sfx.drop() },
-      { label: "Garbage", run: () => sfx.garbage() },
-      { label: "Fault", run: () => sfx.miss() },
-      { label: "Ready", run: () => sfx.ready() },
-      { label: "Go", run: () => sfx.go() },
-      { label: "Win", run: () => sfx.win() },
-      { label: "Lose", run: () => sfx.lose() },
+      { label: "Perfect clear", run: () => place(kit, { lines: 4, perfect: true }) },
+      { label: "Move", run: () => kit.move() },
+      { label: "Rotate", run: () => kit.rotate() },
+      { label: "Hold", run: () => kit.hold() },
+      { label: "Drop", run: () => kit.drop() },
+      { label: "Garbage", run: () => kit.garbage() },
+      { label: "Fault", run: () => kit.miss() },
+      { label: "Ready", run: () => kit.ready() },
+      { label: "Go", run: () => kit.go() },
+      { label: "Win", run: () => kit.win() },
+      { label: "Lose", run: () => kit.lose() },
     ],
   },
 ];
 
-function SoundTest({ onBack }) {
+function SoundTest({ kit, original = false, onBack }) {
+  const groups = groupsFor(kit);
   // A run in progress: its timers, so a new press (or leaving) cuts it short.
   const timers = useRef([]);
   const [playing, setPlaying] = useState(null);
@@ -156,15 +162,17 @@ function SoundTest({ onBack }) {
     stop();
     if (!item.steps) return item.run();
     setPlaying(item.label);
-    item.steps.forEach((step, i) => timers.current.push(setTimeout(() => place(step), i * 520)));
+    item.steps.forEach((step, i) => timers.current.push(setTimeout(() => place(kit, step), i * 520)));
     timers.current.push(setTimeout(() => setPlaying(null), item.steps.length * 520));
   };
   return (
     <div className="page wide" style={{ "--accent": ACCENT }}>
-      <h1 className="title">{t("Sound test")}</h1>
-      <p className="lede">{t("Each button plays what the game would play. Sounds switched off in Settings stay silent here too.")}</p>
+      <h1 className="title">{t(original ? "Original sounds" : "Sound test")}</h1>
+      <p className="lede">{t(original ? "The sounds before they were reworked. Nothing in the game plays these." : "Each button plays what the game would play. Sounds switched off in Settings stay silent here too.")}</p>
       <div className="mid">
         <div className="snd">
+          {!original && (
+            <>
           <div className="snd-row">
             <div className="k">{t("Line clear")}</div>
             <div className="snd-scale wide">
@@ -178,7 +186,9 @@ function SoundTest({ onBack }) {
               <span className="k small">{t("From C. Used in the game too.")}</span>
             </div>
           </div>
-          {GROUPS.map((g) => (
+            </>
+          )}
+          {groups.map((g) => (
             <div key={g.label} className="snd-row">
               <div className="k">{t(g.label)}</div>
               <div className={"snd-btns" + (g.tight ? " tight" : "")}>
