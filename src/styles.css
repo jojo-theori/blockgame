@@ -834,6 +834,24 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .lab-moment { display: flex; flex-direction: column; gap: 14px; }
 /* The bubble fills its slot, so it is one size for every comment. */
 .lab-slot { height: 118px; }
+.lab-slot.open { height: auto; }
+/* The summary: a certificate, centred, with the rank on a seal. */
+.lab-award { --rank: var(--fg); padding: 20px 18px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--fill); text-align: center; animation: appear 0.4s var(--out) both; }
+.lab-award.rank-S { --rank: #e3bf3f; }
+.lab-award.rank-A { --rank: #5cc45c; }
+.lab-award.rank-B { --rank: #41b6e6; }
+.lab-award.rank-C { --rank: #a66bd6; }
+.lab-award.rank-D { --rank: #e8903a; }
+.lab-award.rank-E { --rank: #e8505b; }
+.lab-seal { width: 54px; height: 54px; margin: 4px auto 12px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--rank); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 45%, transparent); color: var(--rank); font-size: var(--t6); font-weight: 700; line-height: 1; }
+.lab-award-title { font-size: var(--t5); font-weight: 600; color: var(--fg); line-height: 1.25; }
+.lab-award-note { margin: 5px 0 0; font-size: var(--t3); color: var(--dim); }
+.lab-traits { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; text-align: left; }
+.lab-traits li { display: flex; align-items: flex-start; gap: 8px; font-size: var(--t3); line-height: 1.45; color: var(--fg); animation: appear 0.4s var(--out) both; animation-delay: calc(0.25s + var(--i) * 0.14s); }
+.lab-traits svg { flex: none; width: 16px; height: 16px; margin-top: 1px; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.lab-traits .good svg { stroke: #5cc45c; }
+.lab-traits .bad svg { stroke: #e8903a; }
+@media (prefers-reduced-motion: reduce) { .lab-award, .lab-traits li { animation: none; } }
 .lab-quiet { height: 100%; margin: 0; display: grid; place-items: center; text-align: center; font-size: var(--t2); line-height: 1.55; color: var(--faint); }
 /* Comment bubble: filled, as wide as the panel, the brightest thing in it */
 .lab-bubble { width: 100%; height: 100%; padding: 14px 16px; border-radius: 14px; background: var(--fg); color: var(--on-fg); animation: bubble-in 0.42s cubic-bezier(0.2, 1.3, 0.4, 1) both; transform-origin: 0 24px; }

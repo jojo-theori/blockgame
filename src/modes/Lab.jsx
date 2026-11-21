@@ -35,22 +35,25 @@ const STAGES = ["Reading the log…", "Weighing every placement…", "Timing the
 const stageOf = (p) => Math.min(STAGES.length - 1, Math.floor(p * STAGES.length));
 const LINE_AHEAD = 3; // pieces of the queue the better line goes on for
 const KIND_NAMES = { macro: "Macro", dexterity: "Dexterity", finesse: "Finesse" };
-// The run as a whole, in a few short sentences: how it went, where the most
-// was lost, and how many moments there are to go through.
-function summary(review) {
+// The run as a whole: a rank from the three scores together, a title that
+// goes with it, and which of the three carried it or held it back.
+const RANKS = [
+  [90, "S", "Near flawless"],
+  [80, "A", "A strong run"],
+  [65, "B", "A solid run"],
+  [50, "C", "Room to grow"],
+  [35, "D", "An uneven run"],
+  [0, "E", "Back to basics"],
+];
+function verdict(review) {
   const kinds = Object.keys(KIND_NAMES);
-  const avg = kinds.reduce((sum, k) => sum + review.scores[k], 0) / kinds.length;
-  const worst = kinds.reduce((a, b) => (review.scores[b] < review.scores[a] ? b : a));
-  const lines = [[avg >= 85 ? "A clean run." : avg >= 65 ? "A solid run on the whole." : avg >= 45 ? "An uneven run." : "A run with a lot to tidy up."]];
-  lines.push(review.scores[worst] >= 85 ? ["All three areas held up."] : ["{kind} cost the most.", { kind: KIND_NAMES[worst] }]);
-  if (review.moments.length) lines.push(["{n} moments to go through.", { n: review.moments.length }]);
-  return lines;
-}
-// The same run as one of the move grades, for the icon on the summary.
-function overall(review) {
-  const scores = Object.values(review.scores);
-  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  return avg >= 85 ? "brilliant" : avg >= 65 ? "good" : avg >= 45 ? "inaccuracy" : "mistake";
+  // Macro counts double: quick, exact hands do not make up for a poor stack.
+  const avg = (2 * review.scores.macro + review.scores.dexterity + review.scores.finesse) / 4;
+  const [, rank, title] = RANKS.find(([min]) => avg >= min);
+  const sorted = [...kinds].sort((a, b) => review.scores[b] - review.scores[a]);
+  const [best, worst] = [sorted[0], sorted[sorted.length - 1]];
+  const even = review.scores[best] - review.scores[worst] < 10;
+  return { rank, title, note: even ? ["Even across all three."] : ["Strongest in {best}, weakest in {worst}.", { best: KIND_NAMES[best], worst: KIND_NAMES[worst] }] };
 }
 const MAX_LINES = 400; // lines of a pasted log shown on the input page
 
@@ -293,6 +296,34 @@ function Typed({ text, instant }) {
       {n < text.length && <i className="lab-caret" aria-hidden="true" />}
       <span style={{ visibility: "hidden" }}>{text.slice(n)}</span>
     </>
+  );
+}
+
+// The summary, set out like a certificate so it never reads as one of the
+// move comments: a seal with the rank, the title, then what stood out.
+function Award({ review }) {
+  const v = verdict(review);
+  const [key, vars] = v.note;
+  return (
+    <div className={"lab-award rank-" + v.rank}>
+      <div className="lab-seal" aria-label={v.rank}>
+        {v.rank}
+      </div>
+      <div className="lab-award-title">{t(v.title)}</div>
+      <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>
+      {review.traits.length > 0 && (
+        <ul className="lab-traits">
+          {review.traits.map((trait, n) => (
+            <li key={trait.text[0]} className={trait.good ? "good" : "bad"} style={{ "--i": n }}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                {trait.good ? <path d="M5.5 12.5l4.2 4.2L18.5 8" /> : <path d="M12 6.5v7M12 17.2v.3" />}
+              </svg>
+              <span>{t(trait.text[0], trait.text[1])}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -671,7 +702,7 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                 <div className="lab-moment">
                   {/* The comment's slot keeps one height, so the buttons under it
                       never move; away from a key moment there is only a quiet note. */}
-                  <div className="lab-slot">
+                  <div className={"lab-slot" + (overview ? " open" : "")}>
                     {moment ? (
                       // While the replay runs, comments it passes just appear: the pop
                       // and the typing are for a moment the player stops on.
@@ -690,15 +721,7 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                         </p>
                       </div>
                     ) : overview ? (
-                      <div className={"lab-bubble summary " + overall(review)}>
-                        <div className="lab-bubble-head">
-                          <GradeIcon grade={overall(review)} />
-                          <b>{t("Summary")}</b>
-                        </div>
-                        <p>
-                          <Typed text={summary(review).map(([key, vars]) => t(key, vars && { ...vars, kind: vars.kind && t(vars.kind) })).join(" ")} />
-                        </p>
-                      </div>
+                      <Award review={review} />
                     ) : (
                       <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
                     )}
@@ -708,7 +731,7 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                   <div className="lab-moment-nav">
                     {overview ? (
                       <button type="button" className="btn primary compact" onClick={blur(() => jump(1))} disabled={!moments.length}>
-                        {t("See key moments")}
+                        {moments.length ? t("See {n} key moments", { n: moments.length }) : t("No key moments")}
                       </button>
                     ) : (
                       <>
@@ -720,10 +743,10 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                           <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Back to start")}</span>
                         </button>
                     {moment?.best && (
-                      <button type="button" className="btn compact lab-best" onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
+                      <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
                         <svg viewBox="0 0 24 24" aria-hidden="true">
                           {shownLine ? (
-                            <path d="M7.5 7.5l9 9M16.5 7.5l-9 9" />
+                            <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none" />
                           ) : (
                             <>
                               <path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6z" />

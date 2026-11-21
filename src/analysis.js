@@ -142,9 +142,35 @@ const ID_LETTER = " ITLJSZO";
 const ENGINE_NODES = 2500;
 // In the engine's own units. Measured on solo runs: Cold Clear replaying its
 // own play loses about 40 a move, a plain stacker 150, a careless one 850.
-const ENGINE_GRADES = { inaccuracy: 150, mistake: 300, blunder: 600 };
+// The engine does not agree with itself to the point: replaying its own games
+// it "loses" 30 a move, and about one move in fifteen by 150 or more, always
+// to a move it ranked near the top. So a small loss is noise, not a mistake:
+//   - the first ENGINE_FLOOR of every loss is forgiven in the score;
+//   - a move is only pointed out when the loss is large and the engine had
+//     several better moves (ENGINE_RANK), or when it is very large.
+// With this, Cold Clear's own play is flagged about once in a hundred moves.
+const ENGINE_FLOOR = 80;
 const ENGINE_CAP = 800; // one disaster should not sink the whole score
-const ENGINE_SCALE = 350;
+const ENGINE_RANK = 5;
+const ENGINE_GRADES = { inaccuracy: 300, mistake: 450, blunder: 700 };
+const ENGINE_SCALE = 280;
+const engineCost = (loss) => Math.min(Math.max(0, loss - ENGINE_FLOOR), ENGINE_CAP);
+const engineFlag = (loss, rank) => (loss >= ENGINE_GRADES.inaccuracy && rank >= ENGINE_RANK) || loss >= ENGINE_GRADES.blunder;
+
+// ── The three scores, 0 to 100 ──
+// Each has both ends fixed, so a number means the same thing in every run:
+//   macro      0 is placing at random, 95 and up is engine-level stacking.
+//              Battle: exp(-loss per piece / 280) on Cold Clear's losses
+//              (random play 8, a careless stacker 25-45, a tidy one 67,
+//              Cold Clear itself 90-95). Other modes: the stack evaluator.
+//   dexterity  pieces per second on a log scale: 0.25 PPS is 0, every
+//              doubling adds 25, 4 PPS is 100. (A first-day player sits
+//              around 0.4-0.5 PPS, so 15-25.)
+//   finesse    the share of key presses that were needed, stretched so that
+//              40% (every piece walked across tap by tap) is 0 and 100% is 100.
+const clamp = (n) => Math.max(0, Math.min(100, n));
+export const dexterityScore = (pps) => (pps > 0 ? Math.round(clamp((100 * Math.log2(pps / 0.25)) / 4)) : 0);
+export const finesseScore = (need, used) => (used ? Math.round(clamp((100 * (need / used - 0.4)) / 0.6)) : 100);
 const cellKey = (cells) => cells.map(([r, c]) => r * 10 + c).sort((x, y) => x - y).join(",");
 // A line of moves ({ id, cells }, each on the board the one before left)
 // played out: the board after each, and with the piece still on it.
@@ -163,7 +189,7 @@ export function playLine(matrix, raw) {
 }
 // → Map(step of a placement → { loss, best, mine, line }); mine is null when
 // the engine never considered the spot that was played.
-export async function engineMacro({ events, frames, dealt }, evaluate, onProgress = () => {}) {
+export async function engineMacro({ events, frames, dealt }, evaluate, onProgress = () => {}, nodes = ENGINE_NODES) {
   const out = new Map();
   let combo = 0;
   let b2b = false;
@@ -183,7 +209,7 @@ export async function engineMacro({ events, frames, dealt }, evaluate, onProgres
         combo,
         incoming: 0,
       },
-      ENGINE_NODES,
+      nodes,
     );
     const id = LETTER_ID[ev.type];
     const shape = getShape(id, ev.rot);
@@ -194,7 +220,9 @@ export async function engineMacro({ events, frames, dealt }, evaluate, onProgres
       const mine = res.moves.filter((m) => m.id === id && m.key === key).sort((p, q) => q.value - p.value)[0] || null;
       // The plan is the line after the best move, when it starts with it.
       const plan = res.plan.length && cellKey(res.plan[0].cells) === res.best.key ? res.plan : [res.best];
-      out.set(i, { loss: mine ? Math.max(0, res.best.value - mine.value) : null, best: res.best, mine, line: playLine(f.matrix, plan.slice(0, 4)) });
+      // rank: how many of the engine's moves it valued above the one played.
+      const rank = mine ? res.moves.filter((m) => m.value > mine.value).length : null;
+      out.set(i, { loss: mine ? Math.max(0, res.best.value - mine.value) : null, rank, best: res.best, mine, line: playLine(f.matrix, plan.slice(0, 4)) });
     }
     const cleared = frames[i + 1].lines - frames[i].lines;
     if (cleared) {
@@ -272,6 +300,68 @@ const median = (a) => {
 
 // events, frames: from parseLog / buildFrames. onProgress(0..1) is called as
 // it goes; the work is cut into slices so the page stays responsive.
+// ── What stood out ──
+// Things worth saying about the run as a whole, good and bad, each with a
+// weight; the summary shows the heaviest few. Rules only, no model.
+function traitsOf({ places, found, mode, lines, holds, usual }) {
+  const n = places.length;
+  const out = [];
+  const add = (good, weight, key, vars = {}) => out.push({ good, weight, text: [key, vars] });
+  const act = (p) => p.ev.action || "";
+  const spins = places.filter((p) => /spin/i.test(act(p)) && p.cleared).length;
+  const quads = places.filter((p) => p.cleared === 4).length;
+  const tucks = places.filter((p) => p.tucked && !/spin/i.test(act(p))).length;
+  const missed = found.filter((m) => /^Missed a T-spin/.test(m.text[0])).length;
+  const slow = found.filter((m) => m.grade === "slow").length;
+  const faults = places.filter((p) => p.ev.finesseFault >= 1).length;
+  let chain = 0;
+  let run = 0;
+  for (const p of places) {
+    if (!p.cleared) continue;
+    run = p.ev.b2b ? run + 1 : 0;
+    chain = Math.max(chain, run);
+  }
+  if (places.some((p) => p.ev.pc)) add(true, 10, "Pulled off a perfect clear.");
+  if (spins >= 2) add(true, 6 + spins, "Lands T-spins: {n} in this run.", { n: spins });
+  if (missed >= 2) add(false, 5 + missed, "Walked past {n} T-spin chances.", { n: missed });
+  if (chain >= 3) add(true, 4 + chain, "Kept back-to-back alive for {n} clears in a row.", { n: chain + 1 });
+  if (mode === "battle" ? quads >= 2 : quads >= 8) add(true, 3 + quads / 2, "Clears in quads: {n} of them.", { n: quads });
+  if (tucks >= 3) add(true, 4 + tucks / 2, "Good with soft drops: {n} pieces slid in under an overhang.", { n: tucks });
+  if (mode === "sprint" && lines >= 40 && n <= lines * 2.5 + 3) add(true, 6, "Nothing wasted: {n} pieces for {lines} lines.", { n, lines });
+
+  // Where in the game the stacking was lost: the first two bags, the last
+  // third, and what lies between.
+  if (n >= 30) {
+    const late = Math.max(15, Math.floor((n * 2) / 3));
+    const mean = (list) => list.reduce((a, p) => a + (p.lost || 0), 0) / Math.max(1, list.length);
+    const phase = { opening: mean(places.slice(0, 14)), middle: mean(places.slice(14, late)), end: mean(places.slice(late)) };
+    const all = mean(places);
+    if (phase.opening < 0.35 && phase.opening < all * 0.6) add(true, 5, "Knows the opening: the first two bags went down clean.");
+    const [worst, at] = Object.entries(phase).sort((a, b) => b[1] - a[1])[0];
+    if (at > 1.2 && at > all * 1.5) {
+      add(false, 5 + at, { opening: "The opening is where it slipped.", middle: "The midgame is the weak spot.", end: "It came apart towards the end." }[worst]);
+    }
+  }
+
+  const timed = places.map((p) => p.dt).filter((d) => d !== null && d > 0);
+  if (slow >= 3) add(false, 3 + slow, "{n} long hesitations broke the pace.", { n: slow });
+  else if (timed.length >= 30 && usual > 0) {
+    const spread = Math.sqrt(timed.reduce((a, d) => a + (d - usual) ** 2, 0) / timed.length) / usual;
+    if (spread < 0.35) add(true, 3, "Kept an even pace from start to finish.");
+  }
+  const scored = places.filter((p) => p.ev.optimal > 0).length;
+  if (scored >= 20 && faults === 0) add(true, 4, "Not one wasted key press.");
+  else if (scored >= 20 && faults / scored >= 0.4) add(false, 4 + (faults / scored) * 4, "{n} of {m} pieces took extra key presses.", { n: faults, m: scored });
+  if (n >= 40 && holds === 0) add(false, 3, "Never touched hold.");
+
+  // The heaviest three, with room kept for one weakness when there is one.
+  const byWeight = (a, b) => b.weight - a.weight;
+  const bad = out.filter((t) => !t.good).sort(byWeight);
+  const good = out.filter((t) => t.good).sort(byWeight);
+  const picked = [...good.slice(0, bad.length ? 2 : 3), ...bad.slice(0, good.length >= 2 ? 1 : 3 - Math.min(good.length, 2))];
+  return picked.slice(0, 3);
+}
+
 // evaluate: asks the engine about a position (review.js's evalPosition). With
 // it, a Battle is judged by Cold Clear; without it (or if it fails) and in
 // every other mode, by the stack evaluator above.
@@ -302,16 +392,28 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
     const best = bestDrop(before, id, mode);
     const dt = prevT === null ? null : ev.t - prevT;
     prevT = ev.t;
-    places.push({ i, ev, dt });
+    // tucked: it went under something, so no straight drop puts it there.
+    const shape = getShape(id, ev.rot);
+    let tucked = false;
+    for (let r = 0; r < shape.length; r++) {
+      for (let c = 0; c < shape.length; c++) {
+        if (!shape[r][c]) continue;
+        for (let y = ev.placed[1] + r - 1; y >= 0; y--) if (before[y]?.[ev.placed[0] + c]) tucked = true;
+      }
+    }
+    let lost = 0; // macro loss of this move, in comparable units (about 1 = a slip)
+    const place = { i, ev, dt, cleared, tucked };
+    places.push(place);
 
     const seen = engine?.get(i);
     if (seen) {
       // Macro by the engine: what its best move was worth, less this one.
       // A spot it never weighed is left alone.
       if (seen.loss !== null) {
-        regret += Math.min(seen.loss, ENGINE_CAP);
+        regret += engineCost(seen.loss);
+        lost = engineCost(seen.loss) / 100;
         const special = /spin|quad|perfect/i.test(ev.action || "") || ev.pc;
-        if (seen.loss >= ENGINE_GRADES.inaccuracy && !special) {
+        if (engineFlag(seen.loss, seen.rank) && !special) {
           const b = seen.best;
           const bf = features(seen.line[0].matrix);
           const text =
@@ -343,6 +445,7 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
       // Macro: how much worse than the best straight drop.
       const loss = mine - best.cost;
       regret += Math.max(0, loss);
+      lost = Math.max(0, loss) / 3;
       const special = /spin|quad|perfect/i.test(ev.action || "") || ev.pc;
       if (loss >= 7 && !special) {
         // Worded as a verdict on the move, the way a game review reads: what was
@@ -364,6 +467,7 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
         found.push({ step: i, kind: "macro", grade: "brilliant", weight: -loss, text: ["Found a spot no straight drop reaches. It beats every one of them.", {}] });
       }
     }
+    place.lost = lost;
     // Battle: a T-spin double or triple that was there and not taken. (In a
     // Sprint it would only cost time, so it is not held against the player.)
     if (!seen && mode === "battle" && id === 2 && !/spin/i.test(ev.action || "")) {
@@ -436,11 +540,12 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
   onProgress(1);
   return {
     scores: {
-      macro: places.length ? round(100 * Math.exp(-regret / places.length / (engine ? ENGINE_SCALE : 5))) : 0,
-      dexterity: round(100 * (1 - Math.exp(-pps / 1.5))),
-      finesse: used ? round((100 * need) / used) : 100,
+      macro: places.length ? round(100 * Math.exp(-regret / places.length / (engine ? ENGINE_SCALE : 6.5))) : 0,
+      dexterity: dexterityScore(pps),
+      finesse: finesseScore(need, used),
     },
     engine: !!engine,
+    traits: traitsOf({ places, found, mode, lines: frames[frames.length - 1].lines, holds: events.filter((e) => e.kind === "hold").length, usual }),
     facts: { pps, kps: total > 0 ? keys / total : 0, usual, pieces: places.length },
     moments,
   };
