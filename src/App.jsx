@@ -43,6 +43,7 @@ const MODES = [
   { id: "finesse", label: "Finesse", color: "#5cc45c", desc: "Place each piece in the fewest key presses.", ready: true, beta: true },
   { id: "lab", label: "Replay", color: "#3fc8b4", desc: "Watch a run again from its log.", ready: true, beta: true },
   { id: "sandbox", label: "Sandbox", color: "#f2913d", desc: "Build a board of your own and play it.", ready: false },
+  { id: "experiments", label: "Lab", color: "#f2cb4c", desc: "Things being tried out, just for fun.", ready: false },
 ];
 
 // Next menu row in direction d, skipping modes that are not ready yet.

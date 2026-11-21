@@ -8,6 +8,7 @@ export default {
   Opening: "오프닝",
   Finesse: "피네스",
   Sandbox: "샌드박스",
+  Lab: "실험실",
   Settings: "설정",
   Soon: "준비 중",
   Beta: "베타",
@@ -41,6 +42,7 @@ export default {
   "Practise openers piece by piece: TKI, PCO, DT Cannon, Albatross.": "오프너를 블록 하나씩 연습합니다.",
   "Place each piece in the fewest key presses.": "가장 적은 키 입력으로 블록을 놓습니다.",
   "Build a board of your own and play it.": "직접 만든 판으로 플레이하세요.",
+  "Things being tried out, just for fun.": "재미로 시도해 보는 기능들.",
   "Handling and key bindings.": "조작과 키 설정.",
 
   // Top bar
