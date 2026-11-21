@@ -90,7 +90,7 @@ export const SCALES = {
 //   arpeggio  one after another, climbing
 //   chord     together: the stronger the clear, the fuller the sound
 export const CLEAR_STYLES = ["arpeggio", "chord", "hits"];
-const CLEAR_NOTES = [261.63, 392, 523.25, 783.99, 1046.5];
+const CLEAR_NOTES = [261.63, 392, 523.25, 783.99, 1046.5, 1567.98];
 // Notes for a clear, by the size of its attack in the game's table (game.js):
 // single 1, double 2, triple 3, quad 4; T-spin single 3 (as much as a
 // triple), double 4 (as much as a quad), triple 5; a mini 1.
@@ -139,21 +139,21 @@ export function setComboScale(name) {
   }
 }
 
+const SPIN_ROOT = 2; // the rung a T-spin stands on: C5, an octave over a plain clear
 const SPIN_LEAD = 0.06; // length of the twist before a T-spin's notes
 // The notes of a clear. after: seconds to wait first.
 // Only the root and the top note are played: the stronger the attack, the
 // wider the leap (a fifth, an octave, an octave and a fifth, two octaves).
 // The notes between would say the same thing with more noise. Hits has no
 // pitch to leap with, so it still counts them all out.
-// root: which note of the ladder to stand on. A T-spin stands one up, on G,
-// so it is told from a plain clear by where it starts.
-function clearNotes(notes, after = 0, root = 0) {
+// root, top: the two rungs of the ladder to play (the same rung: one note).
+function clearNotes(notes, after = 0, root = 0, top = Math.min(Math.max(notes, 1), CLEAR_NOTES.length) - 1) {
   const n = Math.min(Math.max(notes, 1), CLEAR_NOTES.length);
   if (clearStyle === "hits") {
     for (let i = 0; i < n; i++) tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: after + i * CLEAR_STEP });
     return;
   }
-  const played = n - 1 <= root ? [root] : [root, n - 1];
+  const played = top <= root ? [root] : [root, top];
   played.forEach((at, i) => {
     const last = i === played.length - 1;
     if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[at], type: "triangle", dur: 0.24, vol: 0.1 / Math.sqrt(played.length), delay: after });
@@ -172,13 +172,16 @@ export const sfx = {
   // results of a placement
   // A line clear: one to four notes by its attack, in the chosen style (see CLEAR_STYLES).
   clear: (lines) => clearNotes(attackNotes(lines)),
-  // A T-spin is the same thing after a quick upward twist, standing on G
-  // where a plain clear stands on C: same top note for the same attack.
+  // A T-spin comes after a quick upward twist and stands an octave above a
+  // plain clear, on C5. From there it leaps like a plain clear does: nothing
+  // for a mini, a fifth for a single, an octave for a double, an octave and
+  // a fifth for a triple.
   // A mini gets a smaller twist: quieter, and up a fifth, not an octave.
   spin: (lines, mini = false) => {
     if (mini) tone({ freq: 523.25, type: "sine", dur: SPIN_LEAD, vol: 0.04, slide: 783.99 });
     else tone({ freq: 523.25, type: "sine", dur: SPIN_LEAD, vol: 0.07, slide: 1046.5 });
-    clearNotes(attackNotes(lines, true, mini), SPIN_LEAD, 1);
+    const size = mini ? 0 : Math.min(Math.max(lines, 1), 3); // mini, single, double, triple
+    clearNotes(attackNotes(lines, true, mini), SPIN_LEAD, SPIN_ROOT, SPIN_ROOT + size);
   },
   perfect: () => {
     [523, 659, 784, 1047, 1319, 2093].forEach((f, i) => tone({ freq: f, type: "triangle", dur: 0.22, vol: 0.08, delay: i * 0.06 }));
