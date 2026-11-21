@@ -723,6 +723,9 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                   {speed}×
                 </button>
               </div>
+              <button type="button" className="btn lab-menu" onClick={onMenu}>
+                {t("Main menu")}
+              </button>
             </div>
           </div>
         </div>

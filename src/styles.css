@@ -806,6 +806,7 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
   transition: background 0.2s var(--out);
 }
 .lab-speed:hover { background: var(--hover); }
+.lab-menu { width: 100%; height: 36px; margin-top: 4px; }
 
 
 /* Loading: score slots that pulse, the stage being worked on, and a bar in
