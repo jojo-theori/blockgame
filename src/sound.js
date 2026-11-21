@@ -118,7 +118,7 @@ export function setClearStyle(name) {
 }
 // Seconds from the placement to the end of the clear's own notes, which is
 // where the combo note comes in.
-const clearSpan = (notes) => (clearStyle === "chord" ? 0.07 : Math.max(notes, 1) * CLEAR_STEP + 0.02);
+const clearSpan = (notes) => (clearStyle === "chord" ? 0.07 : (clearStyle === "hits" ? Math.max(notes, 1) : Math.min(Math.max(notes, 1), 2)) * CLEAR_STEP + 0.02);
 
 const SCALE_KEY = "jbl-combo-scale";
 let comboScale = "major";
@@ -141,13 +141,22 @@ export function setComboScale(name) {
 
 const SPIN_LEAD = 0.06; // length of the twist before a T-spin's notes
 // The notes of a clear. after: seconds to wait first.
+// Only the root and the top note are played: the stronger the attack, the
+// wider the leap (a fifth, an octave, an octave and a fifth, two octaves).
+// The notes between would say the same thing with more noise. Hits has no
+// pitch to leap with, so it still counts them all out.
 function clearNotes(notes, after = 0) {
   const n = Math.min(Math.max(notes, 1), CLEAR_NOTES.length);
-  for (let i = 0; i < n; i++) {
-    if (clearStyle === "hits") tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: after + i * CLEAR_STEP });
-    else if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: 0.2 + 0.03 * n, vol: 0.1 / Math.sqrt(n), delay: after });
-    else tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: i === n - 1 ? 0.18 : 0.08, vol: 0.09, delay: after + i * CLEAR_STEP });
+  if (clearStyle === "hits") {
+    for (let i = 0; i < n; i++) tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: after + i * CLEAR_STEP });
+    return;
   }
+  const played = n === 1 ? [0] : [0, n - 1];
+  played.forEach((at, i) => {
+    const last = i === played.length - 1;
+    if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[at], type: "triangle", dur: 0.24, vol: 0.1 / Math.sqrt(played.length), delay: after });
+    else tone({ freq: CLEAR_NOTES[at], type: "triangle", dur: last ? 0.18 : 0.08, vol: 0.09, delay: after + i * CLEAR_STEP });
+  });
 }
 
 const CLEAR_STEP = 0.06; // seconds between the hits of a line clear
