@@ -166,12 +166,15 @@ export const sfx = {
     tone({ freq: 784, type: "square", dur: 0.14, vol: 0.035, delay: 0.18 });
   },
   // Combo: one short note that climbs the chosen scale with every clear in a
-  // row, from C5 (combo 1) up two octaves to C7, where it stays.
+  // row, from C5 (combo 1) up two octaves to C7, then comes back down.
   // lines, spin: what was cleared, so the note lands after the clear's own notes.
   combo: (n, lines = 1, spin = false) => {
     if (!opts.combo) return;
     const scale = SCALES[comboScale];
-    const step = Math.min(Math.max(n, 1), 2 * scale.length + 1) - 1;
+    // Up two octaves to C7, then back down the same way, and up again.
+    const top = 2 * scale.length;
+    const at = (Math.max(n, 1) - 1) % (2 * top);
+    const step = at > top ? 2 * top - at : at;
     const semitones = 12 * Math.floor(step / scale.length) + scale[step % scale.length];
     tone({ freq: 523.25 * 2 ** (semitones / 12), type: "sine", dur: 0.1, vol: 0.07, delay: clearSpan(lines) + (spin ? SPIN_LEAD : 0) });
   },
