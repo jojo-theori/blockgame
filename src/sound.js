@@ -116,7 +116,12 @@ export const sfx = {
   perfect: () => {
     [523, 659, 784, 1047, 1319, 2093].forEach((f, i) => tone({ freq: f, type: "triangle", dur: 0.22, vol: 0.08, delay: i * 0.06 }));
   },
-  miss: () => opts.fault && tone({ freq: 180, type: "square", dur: 0.12, vol: 0.05, slide: 120 }),
+  // Fault: two falling buzzes. Kept above 200 Hz so small speakers carry it.
+  miss: () => {
+    if (!opts.fault) return;
+    tone({ freq: 330, type: "square", dur: 0.08, vol: 0.06, slide: 294 });
+    tone({ freq: 233, type: "square", dur: 0.13, vol: 0.06, slide: 196, delay: 0.09 });
+  },
   // Back-to-back: a low note answered an octave up, under the clear sound.
   b2b: () => {
     if (!opts.b2b) return;
@@ -158,7 +163,9 @@ export function sfxForAction(action) {
 // Call once per frame with an engine: plays lock / clear / spin / perfect
 // clear / hold / garbage / top-out sounds by comparing with last frame.
 const seen = new WeakMap();
-export function trackSfx(engine, { topout = true } = {}) {
+// fault: sound a wasted key press on the piece just placed (off where the
+// mode judges finesse itself and already sounds it).
+export function trackSfx(engine, { topout = true, fault = true } = {}) {
   const prev = seen.get(engine);
   const now = {
     placed: engine.placedBlocks,
@@ -177,11 +184,12 @@ export function trackSfx(engine, { topout = true } = {}) {
     else if (/Spin/i.test(action) && lines > 0) sfx.spin(lines);
     else if (lines > 0) sfx.clear(lines);
     else sfx.drop();
+    // The last placement in the log says how it went.
+    const log = engine.replay;
+    let last = log.length - 1;
+    while (last >= 0 && log[last].kind !== "place") last--;
+    if (fault && log[last]?.finesseFault > 0) sfx.miss();
     if (lines > 0) {
-      // The last placement in the log says whether the back-to-back bonus held.
-      const log = engine.replay;
-      let last = log.length - 1;
-      while (last >= 0 && log[last].kind !== "place") last--;
       if (log[last]?.b2b) sfx.b2b();
       if (engine.combo >= 1) sfx.combo(engine.combo, lines);
     }

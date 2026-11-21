@@ -119,7 +119,7 @@ export default {
   Inset: "오목",
   "All sounds": "전체 소리",
   Fault: "실수",
-  "A wrong or wasteful placement in Finesse and Opening": "피네스와 오프닝에서 잘못 놓았을 때",
+  "A wasted key press on any piece, or a wrong spot in Finesse and Opening": "키를 낭비했을 때, 피네스·오프닝에서 잘못 놓았을 때",
   "Back-to-back": "백투백",
   "A quad or spin clear right after another": "쿼드나 스핀을 연달아 지웠을 때",
   Combo: "콤보",
