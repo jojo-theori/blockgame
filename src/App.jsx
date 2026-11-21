@@ -12,6 +12,7 @@ import Opening from "./modes/Opening.jsx";
 import Finesse from "./modes/Finesse.jsx";
 import Lab from "./modes/Lab.jsx";
 import Settings from "./modes/Settings.jsx";
+import Experiments from "./modes/Experiments.jsx";
 import ComingSoon from "./modes/ComingSoon.jsx";
 import { KeyHints, TopBar, FocusWarning } from "./ui.jsx";
 import { useFocusWarning } from "./display.js";
@@ -43,7 +44,7 @@ const MODES = [
   { id: "finesse", label: "Finesse", color: "#5cc45c", desc: "Place each piece in the fewest key presses.", ready: true, beta: true },
   { id: "lab", label: "Replay", color: "#3fc8b4", desc: "Watch a run again from its log.", ready: true, beta: true },
   { id: "sandbox", label: "Sandbox", color: "#f2913d", desc: "Build a board of your own and play it.", ready: false },
-  { id: "experiments", label: "Lab", color: "#f2cb4c", desc: "Things being tried out, just for fun.", ready: false },
+  { id: "experiments", label: "Lab", color: "#f2cb4c", desc: "Things being tried out, just for fun.", ready: true, beta: true },
 ];
 
 // Next menu row in direction d, skipping modes that are not ready yet.
@@ -244,6 +245,7 @@ export default function App() {
         {view === "opening" && <Opening settings={settings} onBack={goMenu} />}
         {view === "finesse" && <Finesse settings={settings} onBack={goMenu} />}
         {view === "lab" && <Lab settings={settings} initial={labLog} onBack={goMenu} />}
+        {view === "experiments" && <Experiments settings={settings} onBack={goMenu} />}
         {current && !current.ready && <ComingSoon label={t(current.label)} color={current.color} onBack={goMenu} />}
       </main>
 
