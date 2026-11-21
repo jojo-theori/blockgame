@@ -23,10 +23,11 @@ function modeName(m, tail = " · ") {
   return t(MODE_NAMES[m.mode]) + detail + tail;
 }
 const NO_MOMENTS = [];
+// Short labels on the score row (the help beside it spells them out).
 const SCORES = [
-  ["macro", "Macro", "Stack planning, whatever the speed"],
-  ["dexterity", "Dexterity", "Raw speed of the hands"],
-  ["finesse", "Finesse", "How few key presses each placement took"],
+  ["macro", "MCR", "Stack planning, whatever the speed"],
+  ["dexterity", "DXT", "Raw speed of the hands"],
+  ["finesse", "FNS", "How few key presses each placement took"],
 ];
 const GRADES = { brilliant: "Brilliant", good: "Good", inaccuracy: "Inaccuracy", mistake: "Mistake", blunder: "Blunder", slow: "Slow", waste: "Wasted keys" };
 const BEAT_MS = 400; // one event per beat at 1× (so 4× shows ten a second)
@@ -243,7 +244,7 @@ const KIND_ICONS = {
 };
 function KindIcon({ kind }) {
   return (
-    <svg className="lab-kind-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className={"lab-kind-icon " + kind} viewBox="0 0 24 24" aria-hidden="true">
       {KIND_ICONS[kind]}
     </svg>
   );
@@ -296,6 +297,59 @@ function Typed({ text, instant }) {
       {n < text.length && <i className="lab-caret" aria-hidden="true" />}
       <span style={{ visibility: "hidden" }}>{text.slice(n)}</span>
     </>
+  );
+}
+
+// What the three scores mean and where the bar sits, on hover (or focus) of a
+// small question mark at the end of the score row. Macro is judged differently
+// in a Battle (against the engine) than elsewhere, so its text follows the run.
+function ScoreHelp({ review }) {
+  const { pps, keysPer, needPer } = review.facts;
+  const rows = [
+    [
+      "macro",
+      "Macro",
+      null,
+      review.engine
+        ? ["How well the stack was built. Every move is compared with the best move of the Cold Clear engine.", "The engine itself scores 90 to 95. Stacking flat with no mistakes, but no T-spins, is about 65 to 70."]
+        : ["How well the stack was built. Every move is compared with the best spot for gaps, height and flatness.", "A stack with no covered gaps scores 90 or more. In a Battle the engine is the yardstick instead."],
+    ],
+    [
+      "dexterity",
+      "Dexterity",
+      t("{n} PPS", { n: pps.toFixed(2) }),
+      ["How fast the pieces go down, in pieces per second.", "0.5 PPS is 25, 1.5 PPS (intermediate) is 65, 3 PPS (advanced) is 90, 4 PPS is 100."],
+    ],
+    [
+      "finesse",
+      "Finesse",
+      keysPer ? t("{a} keys a piece (least: {b})", { a: keysPer.toFixed(1), b: needPer.toFixed(1) }) : null,
+      ["Whether each piece went down in the fewest key presses.", "Needed presses over presses made: 70% is 50, 85% (intermediate) is 75, none wasted is 100."],
+    ],
+  ];
+  return (
+    <span className="lab-help">
+      <button type="button" aria-label={t("About the scores")}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.9M12 16.9v.2" />
+        </svg>
+      </button>
+      <span className="lab-tip" role="tooltip">
+        {rows.map(([kind, name, mine, lines]) => (
+          <span key={kind} className="lab-tip-row">
+            <b>
+              <KindIcon kind={kind} />
+              {t(name)}
+              {mine && <i>{mine}</i>}
+            </b>
+            {lines.map((line) => (
+              <span key={line}>{t(line)}</span>
+            ))}
+          </span>
+        ))}
+      </span>
+    </span>
   );
 }
 
@@ -667,6 +721,7 @@ function Viewer({ replay, look, keysOff, onClose, onMenu }) {
           <div className="lab-side">
             {/* The scores: soft pulses while they are worked out, then the numbers. */}
             <div className="lab-top">
+              {review && typeof review === "object" && <ScoreHelp review={review} />}
               {review !== null && (
                 <div className={"lab-scores" + (typeof review === "number" ? " waiting" : "")}>
                   {SCORES.map(([key, label, hint], n) => (

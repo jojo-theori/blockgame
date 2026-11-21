@@ -546,7 +546,8 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
     },
     engine: !!engine,
     traits: traitsOf({ places, found, mode, lines: frames[frames.length - 1].lines, holds: events.filter((e) => e.kind === "hold").length, usual }),
-    facts: { pps, kps: total > 0 ? keys / total : 0, usual, pieces: places.length },
+    // keysPer / needPer: key presses a piece, as played and at the least possible.
+    facts: { pps, kps: total > 0 ? keys / total : 0, usual, pieces: places.length, keysPer: scored.length ? used / scored.length : 0, needPer: scored.length ? need / scored.length : 0 },
     moments,
   };
 }

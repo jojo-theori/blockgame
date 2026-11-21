@@ -829,12 +829,24 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 @media (prefers-reduced-motion: reduce) { .lab-wait, .lab-loading > i::after { animation: none; } }
 
 /* Review: scores, then the comment on the move the replay is on */
-.lab-scores { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+.lab-scores { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; padding-right: 36px; }
 .lab-scores .v { margin-top: 4px; font-size: var(--t6); font-variant-numeric: tabular-nums; color: var(--fg); }
 .lab-moment { display: flex; flex-direction: column; gap: 14px; }
 /* The bubble fills its slot, so it is one size for every comment. */
 .lab-slot { height: 118px; }
 .lab-slot.open { height: auto; }
+/* Help on the scores: a question mark at the end of the row, its text on hover. */
+.lab-top { position: relative; }
+.lab-help { position: absolute; top: -5px; right: -4px; z-index: 5; }
+.lab-help button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--faint); cursor: help; transition: color 0.2s var(--out); }
+.lab-help:hover button, .lab-help button:focus-visible { color: var(--fg); }
+.lab-help svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.lab-tip { position: absolute; top: calc(100% + 6px); right: 0; width: 300px; display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: 12px; background: var(--menu); border: 1px solid var(--line); box-shadow: 0 12px 32px var(--shadow); text-align: left; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.18s var(--out), transform 0.18s var(--out), visibility 0.18s; pointer-events: none; }
+.lab-help:hover .lab-tip, .lab-help:focus-within .lab-tip { opacity: 1; visibility: visible; transform: none; }
+.lab-tip-row { display: flex; flex-direction: column; gap: 3px; font-size: var(--t2); line-height: 1.5; color: var(--dim); }
+.lab-tip-row b { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; font-size: var(--t3); font-weight: 600; color: var(--fg); }
+.lab-tip-row b .lab-kind-icon { width: 14px; height: 14px; }
+.lab-tip-row b i { margin-left: auto; font-style: normal; font-weight: 400; font-size: var(--t2); color: var(--dim); font-variant-numeric: tabular-nums; }
 /* The summary: a certificate, centred, with the rank on a seal. */
 .lab-award { --rank: var(--fg); padding: 20px 18px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--fill); text-align: center; animation: appear 0.4s var(--out) both; }
 .lab-award.rank-S { --rank: #e3bf3f; }
@@ -867,6 +879,8 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .lab-kind-icon { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .lab-score-k { display: flex; align-items: center; gap: 2px; letter-spacing: 0.02em; white-space: nowrap; }
 .lab-score-k .lab-kind-icon { width: 13px; height: 13px; }
+/* The bolt is a narrow shape in a square box: pull the text in beside it. */
+.lab-score-k .lab-kind-icon.dexterity, .lab-tip-row .lab-kind-icon.dexterity { margin: 0 -2px 0 -3px; }
 .lab-bubble p { margin: 0; font-size: var(--t3); line-height: 1.55; }
 /* Typing caret: takes no room, so the text never jumps when it goes. */
 .lab-caret { display: inline-block; width: 0; height: 1em; vertical-align: -0.12em; box-shadow: 1.5px 0 0 0 currentColor; animation: lab-caret 0.7s steps(2) infinite; }
