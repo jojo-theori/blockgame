@@ -157,8 +157,15 @@ export default function App() {
 
   // Dev: typing "lizzy" / "jojo" swaps the solo key profile (see dev.js).
   const [devProfile, keysVersion] = useDevProfiles();
-  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${theme}` };
+  // A finished game's log, handed to Replay from its result screen.
+  const [labLog, setLabLog] = useState("");
+  const analyze = useCallback((text) => {
+    setLabLog(text);
+    setView("lab");
+  }, []);
+  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${theme}`, analyze };
   const goMenu = () => {
+    setLabLog("");
     setSettingsOpen(false);
     setView("menu");
   };
@@ -236,7 +243,7 @@ export default function App() {
         {view === "battle" && <Battle settings={settings} onBack={goMenu} />}
         {view === "opening" && <Opening settings={settings} onBack={goMenu} />}
         {view === "finesse" && <Finesse settings={settings} onBack={goMenu} />}
-        {view === "lab" && <Lab settings={settings} onBack={goMenu} />}
+        {view === "lab" && <Lab settings={settings} initial={labLog} onBack={goMenu} />}
         {current && !current.ready && <ComingSoon label={t(current.label)} color={current.color} onBack={goMenu} />}
       </main>
 

@@ -301,6 +301,7 @@ export default {
   Save: "저장",
   Close: "닫기",
   "Discard changes": "변경 취소",
+  Analyze: "분석하기",
   "Double-click to reset to {v}": "두 번 클릭하면 {v}로 돌아갑니다",
   "Click to type a value": "클릭해서 값 입력",
 };

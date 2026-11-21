@@ -357,6 +357,10 @@ canvas { display: block; }
 .veil .grid2 .v { font-size: var(--t4); margin-top: 4px; }
 .veil .row-btns { flex-direction: column; align-items: stretch; gap: 8px; }
 .veil .btn { height: 34px; font-size: var(--t2); }
+.btn-pair { display: flex; gap: 6px; }
+.btn-pair .btn { flex: 1 1 0; min-width: 0; padding-inline: 8px; white-space: nowrap; }
+.btn.replay { background: #3fc8b4; border-color: transparent; color: #04201c; }
+.btn.replay:hover { background: #55d6c3; }
 .veil .row-btns + .keys { margin-top: 24px; }
 
 .count {

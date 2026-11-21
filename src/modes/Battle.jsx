@@ -115,20 +115,32 @@ function SeatMenu({ k, title, items, cursor, side, copied }) {
       {k && <div className="k">{k}</div>}
       <div className="title">{title}</div>
       <div className="row-btns">
-        {items.map((it, i) => (
-          <button key={it.label} className={"btn" + (it.kind ? " " + it.kind : "") + (cursor === i ? " cursor" : "")} onClick={() => it.run(side)}>
-            {it.copy && copied ? (
-              <>
-                <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 12.5l4.5 4.5L19 7.5" />
-                </svg>
-                {t("Copied!")}
-              </>
-            ) : (
-              t(it.label)
-            )}
-          </button>
-        ))}
+        {items.map((it, i) => {
+          if (it.beside) return null; // drawn in the row of the button before it
+          const button = (b, at) => (
+            <button key={b.label} className={"btn" + (b.kind ? " " + b.kind : "") + (cursor === at ? " cursor" : "")} onClick={() => b.run(side)}>
+              {b.copy && copied ? (
+                <>
+                  <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" />
+                  </svg>
+                  {t("Copied!")}
+                </>
+              ) : (
+                t(b.label)
+              )}
+            </button>
+          );
+          const next = items[i + 1];
+          return next?.beside ? (
+            <div key={it.label} className="btn-pair">
+              {button(it, i)}
+              {button(next, i + 1)}
+            </div>
+          ) : (
+            button(it, i)
+          );
+        })}
       </div>
     </div>
   );
@@ -433,6 +445,8 @@ export default function Battle({ settings, onBack }) {
       })
       .catch((err) => console.error("Copy failed:", err));
   }, [logModes]);
+  const { analyze } = settings;
+  const analyzeLog = useCallback((side) => analyze(buildLogText((side ? engine2Ref : engine1Ref).current, logModes[side])), [analyze, logModes]);
   const menuItems = useMemo(
     () =>
       phase === "paused"
@@ -446,11 +460,12 @@ export default function Battle({ settings, onBack }) {
           ? [
               { label: "Rematch", kind: "primary", run: startGame },
               { label: "Copy log", copy: true, run: copyLog },
+              { label: "Analyze", kind: "replay", beside: true, run: analyzeLog },
               { label: "Mode options", run: toSetup },
               { label: "Main menu", kind: "ghost", run: onBack },
             ]
           : null,
-    [phase, resume, startGame, toSetup, copyLog, onBack],
+    [phase, resume, startGame, toSetup, copyLog, analyzeLog, onBack],
   );
   const ownMenus = humanSeats === 2;
   // Cursors of the left and right seat, kept per phase so each menu opens on

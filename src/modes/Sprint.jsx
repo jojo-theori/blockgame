@@ -325,6 +325,26 @@ export default function Sprint({ settings, onBack }) {
       console.error("Copy failed:", e);
     }
   };
+  // Copy the log, or take it straight to Replay.
+  const logButtons = (
+    <div className="btn-pair">
+      <button className="btn" onClick={copyReplay}>
+        {copied ? (
+          <>
+            <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            </svg>
+            {t("Copied!")}
+          </>
+        ) : (
+          t("Copy log")
+        )}
+      </button>
+      <button className="btn replay" onClick={() => settings.analyze(stats.replayText)}>
+        {t("Analyze")}
+      </button>
+    </div>
+  );
 
   // ─── SELECT SCREEN ───
   if (phase === "select") {
@@ -425,18 +445,7 @@ export default function Sprint({ settings, onBack }) {
                 <button className="btn primary" onClick={startGame}>
                   {t("Again")}
                 </button>
-                <button className="btn" onClick={copyReplay}>
-                  {copied ? (
-                    <>
-                      <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M5 12.5l4.5 4.5L19 7.5" />
-                      </svg>
-                      {t("Copied!")}
-                    </>
-                  ) : (
-                    t("Copy log")
-                  )}
-                </button>
+                {logButtons}
                 <button className="btn ghost" onClick={onBack}>
                   {t("Main menu")}
                 </button>
@@ -453,20 +462,7 @@ export default function Sprint({ settings, onBack }) {
                 <button className="btn primary" onClick={startGame}>
                   {t("Again")}
                 </button>
-                {stats?.replayText && (
-                  <button className="btn" onClick={copyReplay}>
-                    {copied ? (
-                    <>
-                      <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M5 12.5l4.5 4.5L19 7.5" />
-                      </svg>
-                      {t("Copied!")}
-                    </>
-                  ) : (
-                    t("Copy log")
-                  )}
-                  </button>
-                )}
+                {stats?.replayText && logButtons}
                 <button className="btn ghost" onClick={onBack}>
                   {t("Main menu")}
                 </button>

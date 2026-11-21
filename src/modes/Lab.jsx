@@ -37,9 +37,10 @@ const KIND_NAMES = { macro: "Macro", dexterity: "Dexterity", finesse: "Finesse" 
 const MAX_LINES = 400; // lines of a pasted log shown on the input page
 
 // ─── Lab: watch a run again from its copied piece log ───
-export default function Lab({ settings, onBack }) {
-  const [text, setText] = useState("");
-  const [open, setOpen] = useState(false);
+export default function Lab({ settings, initial = "", onBack }) {
+  // A log handed over from a result screen opens straight into its replay.
+  const [text, setText] = useState(initial);
+  const [open, setOpen] = useState(!!initial);
   const [error, setError] = useState("");
   const settingsOpen = !!settings.settingsOpen;
 
