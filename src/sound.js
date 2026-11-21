@@ -82,19 +82,21 @@ export const SCALES = {
   wholeTone: [0, 2, 4, 6, 8, 10],
   chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
 };
-// A clear says how hard it hits: one note for every line it sends (before
-// back-to-back and combo), from C4 G4 C5 G5 C6 G6 (root and fifth, no third,
-// so they sit under any combo scale). A clear that sends nothing is one soft
-// note. Three ways to play the notes:
+// A clear says how hard it hits: one note, and one more for every line it
+// sends (before back-to-back and combo), from C4 G4 C5 G5 C6 G6 C7 (root and
+// fifth, no third, so they sit under any combo scale). Three ways to play
+// the notes:
 //   hits      counted out on one note
 //   arpeggio  one after another, climbing
 //   chord     together: the stronger the clear, the fuller the sound
 export const CLEAR_STYLES = ["arpeggio", "chord", "hits"];
-const CLEAR_NOTES = [261.63, 392, 523.25, 783.99, 1046.5, 1567.98];
-// Lines sent, as in the game's attack table (game.js).
+const CLEAR_NOTES = [261.63, 392, 523.25, 783.99, 1046.5, 1567.98, 2093];
+// Notes for a clear: one more than the lines it sends in the game's attack
+// table (game.js). Single 1, double 2, triple 3, quad 5; T-spin single 3,
+// double 5, triple 7; a mini 1.
 export function attackNotes(lines, spin = false, mini = false) {
-  if (spin) return mini ? 0 : [0, 2, 4, 6][Math.min(lines, 3)];
-  return [0, 0, 1, 2, 4][Math.min(lines, 4)];
+  if (spin) return 1 + (mini ? 0 : [0, 2, 4, 6][Math.min(lines, 3)]);
+  return 1 + [0, 0, 1, 2, 4][Math.min(lines, 4)];
 }
 const STYLE_KEY = "jbl-clear-style";
 let clearStyle = "arpeggio";
@@ -138,11 +140,9 @@ export function setComboScale(name) {
 }
 
 const SPIN_LEAD = 0.06; // length of the twist before a T-spin's notes
-// One note a line sent. after: seconds to wait first.
+// The notes of a clear. after: seconds to wait first.
 function clearNotes(notes, after = 0) {
-  // Nothing sent: a single soft, short note.
-  if (notes <= 0) return tone({ freq: CLEAR_NOTES[0], type: "sine", dur: 0.07, vol: 0.05, delay: after });
-  const n = Math.min(notes, CLEAR_NOTES.length);
+  const n = Math.min(Math.max(notes, 1), CLEAR_NOTES.length);
   for (let i = 0; i < n; i++) {
     if (clearStyle === "hits") tone({ freq: 392, type: "triangle", dur: 0.07, vol: 0.1, delay: after + i * CLEAR_STEP });
     else if (clearStyle === "chord") tone({ freq: CLEAR_NOTES[i], type: "triangle", dur: 0.2 + 0.03 * n, vol: 0.1 / Math.sqrt(n), delay: after });
@@ -159,7 +159,7 @@ export const sfx = {
   hold: () => tone({ freq: 440, type: "sine", dur: 0.09, vol: 0.07, slide: 330 }),
   drop: () => tone({ freq: 800, type: "sine", dur: 0.08, vol: 0.12 }),
   // results of a placement
-  // A line clear: one note a line sent, in the chosen style (see CLEAR_STYLES).
+  // A line clear: a note, plus one a line sent, in the chosen style (see CLEAR_STYLES).
   clear: (lines) => clearNotes(attackNotes(lines)),
   // A T-spin is the same thing after a quick upward twist, which marks the
   // spin: a T-spin double sounds as full as a quad, a triple fuller still.
