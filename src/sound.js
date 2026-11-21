@@ -81,7 +81,7 @@ export const sfx = {
     );
   },
   perfect: () => {
-    [523, 659, 784, 1047, 1319].forEach((f, i) => tone({ freq: f, type: "triangle", dur: 0.22, vol: 0.08, delay: i * 0.06 }));
+    [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone({ freq: f, type: "triangle", dur: 0.22, vol: 0.08, delay: i * 0.06 }));
   },
   miss: () => opts.fault && tone({ freq: 180, type: "square", dur: 0.12, vol: 0.05, slide: 120 }),
   // Back-to-back: a low note answered an octave up, under the clear sound.
