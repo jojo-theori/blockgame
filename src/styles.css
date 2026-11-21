@@ -653,6 +653,26 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .dev-note svg circle { fill: #2fa84a; }
 .dev-note svg path { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
+/* Settings → Skin: one row per skin, its name and a strip of sample cells */
+.skin-list { display: flex; flex-direction: column; gap: 6px; }
+.skin-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 46px;
+  padding: 0 14px 0 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: background 0.2s var(--out), border-color 0.2s var(--out), color 0.2s var(--out);
+}
+.skin-list button:hover { background: var(--hover); color: var(--fg); }
+.skin-list button.on { border-color: var(--fg); color: var(--fg); background: var(--fill); }
+.skin-list canvas { flex: none; display: block; }
+
 /* ─── Lab ─── */
 .lab-box {
   width: 100%;
@@ -699,11 +719,8 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .lab-back { display: inline-flex; align-items: center; gap: 5px; height: 28px; margin-left: -8px; padding: 0 9px 0 6px; border: 0; border-radius: 999px; background: transparent; color: var(--dim); font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; transition: background 0.2s var(--out), color 0.2s var(--out); }
 .lab-back:hover { background: var(--hover); color: var(--fg); }
 .lab-title { justify-content: space-between; }
-.lab-top > .lab-icon.round { margin-left: auto; width: 36px; height: 36px; background: var(--fill); }
-.lab-top > .lab-icon.round svg { width: 18px; height: 18px; }
 .lab-back svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .lab-top { display: flex; align-items: center; min-height: 44px; }
-.lab-top > .lab-analyze { flex: 1; height: 40px; }
 .lab-transport { margin-top: auto; display: flex; flex-direction: column; gap: 14px; }
 
 /* Scrubber with the key moments on it. The playhead is a white line, so it
@@ -782,18 +799,6 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 }
 .lab-speed:hover { background: var(--hover); }
 
-/* Analyze: the one coloured button. Same type as the others. */
-.btn.lab-analyze {
-  gap: 7px;
-  padding: 0 17px 0 14px;
-  border: 0;
-  /* Teal through blue to violet, deep enough to carry white text. */
-  background: linear-gradient(120deg, #17b890 0%, #2b93e6 52%, #7c64f2 100%);
-  color: #fff;
-  box-shadow: 0 6px 22px -8px rgba(43, 147, 230, 0.75);
-}
-.btn.lab-analyze:hover { filter: brightness(1.12); background: linear-gradient(120deg, #17b890 0%, #2b93e6 52%, #7c64f2 100%); color: #fff; }
-.lab-analyze svg { width: 15px; height: 15px; fill: currentColor; }
 
 /* Loading: score slots that pulse, the stage being worked on, and a bar in
    the mode's colour with a light passing over it. */

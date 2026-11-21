@@ -24,10 +24,80 @@ export function prep(canvas, w, h) {
   return ctx;
 }
 
-export function cell(ctx, x, y, size, color, alpha = 1) {
+// ─── Block skins ───
+// How one cell of a piece is painted. All of them are drawn from the piece's
+// colour (no image files), so they follow any colour the game uses.
+export const SKINS = ["flat", "bevel", "gloss", "outline", "inset"];
+let skin = "flat";
+export function setSkin(name) {
+  skin = SKINS.includes(name) ? name : "flat";
+}
+
+// A colour moved towards white (amount > 0) or black (amount < 0), 0..1.
+function shade(color, amount) {
+  let hex = color.replace("#", "");
+  if (hex.length === 3) hex = [...hex].map((c) => c + c).join("");
+  const to = amount > 0 ? 255 : 0;
+  const k = Math.abs(amount);
+  const ch = [0, 2, 4].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - k) + to * k));
+  return `rgb(${ch.join(",")})`;
+}
+
+// One cell. `as` paints it in a given skin (the settings previews); see-through
+// cells (guides, hints) are always flat, whatever the skin.
+export function cell(ctx, x, y, size, color, alpha = 1, as = skin) {
   ctx.globalAlpha = alpha;
+  const [l, t, s] = [x + 0.5, y + 0.5, size - 1];
+  const style = alpha < 0.8 ? "flat" : as;
   ctx.fillStyle = color;
-  ctx.fillRect(x + 0.5, y + 0.5, size - 1, size - 1);
+  if (style === "bevel") {
+    // Lit from the top left: light top and left edges, dark bottom and right.
+    const b = Math.max(2, Math.round(s * 0.16));
+    ctx.fillRect(l, t, s, s);
+    ctx.fillStyle = shade(color, 0.38);
+    ctx.beginPath();
+    ctx.moveTo(l, t);
+    ctx.lineTo(l + s, t);
+    ctx.lineTo(l + s - b, t + b);
+    ctx.lineTo(l + b, t + b);
+    ctx.lineTo(l + b, t + s - b);
+    ctx.lineTo(l, t + s);
+    ctx.fill();
+    ctx.fillStyle = shade(color, -0.4);
+    ctx.beginPath();
+    ctx.moveTo(l + s, t + s);
+    ctx.lineTo(l, t + s);
+    ctx.lineTo(l + b, t + s - b);
+    ctx.lineTo(l + s - b, t + s - b);
+    ctx.lineTo(l + s - b, t + b);
+    ctx.lineTo(l + s, t);
+    ctx.fill();
+  } else if (style === "gloss") {
+    // A soft top-to-bottom fall-off with a bright band across the top.
+    const g = ctx.createLinearGradient(0, t, 0, t + s);
+    g.addColorStop(0, shade(color, 0.3));
+    g.addColorStop(0.5, color);
+    g.addColorStop(1, shade(color, -0.32));
+    ctx.fillStyle = g;
+    ctx.fillRect(l, t, s, s);
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
+    ctx.fillRect(l + 1, t + 1, s - 2, Math.max(2, Math.round(s * 0.2)));
+  } else if (style === "outline") {
+    // A dark body inside a rim of the piece's colour.
+    const w = Math.max(2, Math.round(s * 0.12));
+    ctx.fillRect(l, t, s, s);
+    ctx.fillStyle = shade(color, -0.72);
+    ctx.fillRect(l + w, t + w, s - 2 * w, s - 2 * w);
+  } else if (style === "inset") {
+    // A lighter square set into a darker frame.
+    const w = Math.max(3, Math.round(s * 0.2));
+    ctx.fillStyle = shade(color, -0.28);
+    ctx.fillRect(l, t, s, s);
+    ctx.fillStyle = shade(color, 0.2);
+    ctx.fillRect(l + w, t + w, s - 2 * w, s - 2 * w);
+  } else {
+    ctx.fillRect(l, t, s, s);
+  }
   ctx.globalAlpha = 1;
 }
 

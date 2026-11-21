@@ -11,6 +11,9 @@ import {
 } from "../keys.js";
 
 import { Segmented, KeyName, ConfirmDialog } from "../ui.jsx";
+import { SKINS, cell, prep } from "../render.js";
+import { COLORS } from "../game.js";
+import { sfx } from "../sound.js";
 
 const PROFILE_LIST = [
   { id: "solo", label: "Solo" },
@@ -44,6 +47,8 @@ export default function Settings({
   setSoundEnabled,
   soundOpts,
   setSoundOpts,
+  skin,
+  setSkin,
   onClose,
 }) {
   // Key edits are a draft until Save; leaving without saving drops them.
@@ -147,6 +152,7 @@ export default function Settings({
           options={[
             { id: "game", label: "Handling" },
             { id: "sound", label: "Sound" },
+            { id: "skin", label: "Skin" },
             { id: "keys", label: "Keys" },
           ]}
           value={section}
@@ -204,6 +210,28 @@ export default function Settings({
                   onChange={(on) => (row.key ? setSoundOpts((o) => ({ ...o, [row.key]: on })) : row.set(on))}
                 />
               </div>
+            ))}
+          </div>
+        )}
+
+        {section === "skin" && (
+          <div className="skin-list" role="radiogroup" aria-label={t("Skin")}>
+            {SKINS.map((name) => (
+              <button
+                key={name}
+                type="button"
+                role="radio"
+                aria-checked={skin === name}
+                className={skin === name ? "on" : ""}
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  if (name !== skin) sfx.tick();
+                  setSkin(name);
+                }}
+              >
+                <span className="k">{t(SKIN_NAMES[name])}</span>
+                <SkinPreview name={name} />
+              </button>
             ))}
           </div>
         )}
@@ -281,6 +309,19 @@ export default function Settings({
     </div>
     </div>
   );
+}
+
+// The seven pieces' colours and the garbage grey, one cell each, in a skin.
+const SKIN_NAMES = { flat: "Flat", bevel: "Bevel", gloss: "Gloss", outline: "Outline", inset: "Inset" };
+const PREVIEW_CELL = 24;
+function SkinPreview({ name }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const ids = [6, 3, 7, 5, 1, 4, 2, 8];
+    const ctx = prep(ref.current, ids.length * PREVIEW_CELL, PREVIEW_CELL);
+    ids.forEach((id, i) => cell(ctx, i * PREVIEW_CELL, 0, PREVIEW_CELL, COLORS[id], 1, name));
+  }, [name]);
+  return <canvas ref={ref} width={8 * PREVIEW_CELL} height={PREVIEW_CELL} />;
 }
 
 // Slider with the default marked on the track. Double-click the slider to go

@@ -361,8 +361,7 @@ function Viewer({ replay, keysOff, onClose, onMenu }) {
       if (result.moments.length) seek(result.moments[0].step);
     });
   };
-  // Run once when the replay opens; the button only comes back after the
-  // analysis has been closed.
+  // Runs once, when the replay opens.
   const began = useRef(false);
   useEffect(() => {
     if (began.current) return;
@@ -370,11 +369,6 @@ function Viewer({ replay, keysOff, onClose, onMenu }) {
     startAnalysis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const runAnalysis = () => {
-    setPlaying(false);
-    setReview(0);
-    startAnalysis();
-  };
   const moments = review && typeof review === "object" ? review.moments : NO_MOMENTS;
   const momentAt = moments.findIndex((m) => m.step === step);
   const moment = momentAt >= 0 ? moments[momentAt] : null;
@@ -593,17 +587,8 @@ function Viewer({ replay, keysOff, onClose, onMenu }) {
               on top, the timeline and transport at the bottom, level with the
               foot of the board. Nothing here changes the page's layout. */}
           <div className="lab-side">
-            {/* Analyze across the panel, and the scores in its place afterwards. */}
+            {/* The scores: soft pulses while they are worked out, then the numbers. */}
             <div className="lab-top">
-              {review === null && (
-                <button type="button" className="btn lab-analyze" onClick={blur(runAnalysis)}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    {/* Two sparkles with curved sides: a large one and a small one. */}
-                    <path d="M10 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5zM18.5 13.5c.3 2.4 1.6 3.7 4 4-2.4.3-3.7 1.6-4 4-.3-2.4-1.6-3.7-4-4 2.4-.3 3.7-1.6 4-4z" />
-                  </svg>
-                  {t("Analyze my run")}
-                </button>
-              )}
               {review !== null && (
                 <div className={"lab-scores" + (typeof review === "number" ? " waiting" : "")}>
                   {SCORES.map(([key, label, hint], n) => (
@@ -623,20 +608,6 @@ function Viewer({ replay, keysOff, onClose, onMenu }) {
                     </div>
                   ))}
                 </div>
-              )}
-              {/* Across from the scores it belongs to: puts the analysis away
-                  and leaves the replay where it is. */}
-              {review && typeof review === "object" && (
-                <IconButton
-                  icon="close"
-                  label="Close analysis"
-                  round
-                  onClick={blur(() => {
-                    stopRush();
-                    setLine(null);
-                    setReview(null);
-                  })}
-                />
               )}
             </div>
             {typeof review === "number" && (
