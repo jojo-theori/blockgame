@@ -141,7 +141,7 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   // larger, to keep each square big enough for a camera; the scores then sit
   // a little higher to clear it.
   const code = (link && qr(link)) || qr(location.origin + location.pathname);
-  const big = !!code && code.length > 33;
+  const big = !!code && code.length > 29;
   const down = time ? (big ? 12 : 60) : 0;
   scores.forEach(([label, value], i) => {
     const x = cx + (i - (scores.length - 1) / 2) * 250;
