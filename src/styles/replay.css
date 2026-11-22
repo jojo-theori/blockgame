@@ -77,6 +77,8 @@
 .lab-phone .lab-stats { grid-area: 3 / 1 / 4 / 3; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .lab-phone .lab-side { grid-area: 4 / 1 / 5 / 3; position: static; width: auto; zoom: var(--unzoom); padding-bottom: 32px; }
 .lab-phone .lab-transport { order: -1; margin-top: 0; }
+.lab-phone .lab-buttons { justify-content: space-between; margin-left: 0; }
+.lab-phone .lab-speed { margin-left: 0; }
 .main:has(.lab-phone) { align-items: flex-start; overflow-y: auto; margin-top: 52px; padding: 8px 12px 0; }
 .app:has(.lab-phone) .ftr { display: none; }
 
