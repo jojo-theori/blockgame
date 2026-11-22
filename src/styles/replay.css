@@ -180,7 +180,7 @@
 .lab-award.rank-C { --rank: #a66bd6; }
 .lab-award.rank-D { --rank: #e8903a; }
 .lab-award.rank-E { --rank: #e8505b; }
-.lab-seal { width: 54px; height: 54px; margin: 4px auto 12px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--rank); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 45%, transparent); color: var(--rank); font-size: var(--t6); font-weight: 700; line-height: 1; }
+.lab-seal { width: 54px; height: 54px; margin: 4px auto 12px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--rank); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 45%, transparent); color: var(--rank); font-size: var(--t6); font-weight: 700; line-height: 1; letter-spacing: -0.02em; white-space: nowrap; }
 .lab-award-title { font-size: var(--t5); font-weight: 600; color: var(--fg); line-height: 1.25; }
 .lab-award-note { margin: 5px 0 0; font-size: var(--t3); color: var(--dim); }
 .lab-traits { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; text-align: left; }

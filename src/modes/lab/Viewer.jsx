@@ -43,7 +43,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   const [playing, setPlaying] = useState(false);
   // Esc pauses, as in the game modes: the menu is the way out.
   const [menu, setMenu] = useState(null); // null, or { wasPlaying }
-  const [speed, setSpeed] = useState(4); // starts fast; the button steps down from there
+  const [speed, setSpeed] = useState(1); // the real pace; the button steps through the others
   const clockRef = useRef(0);
 
   const seek = useCallback(
