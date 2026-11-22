@@ -12,26 +12,16 @@ import { selectKey, keyLabel } from "../../keys.js";
 import { pathAt } from "../../trace.js";
 import { replayLink } from "../../pack.js";
 import { runLink } from "../../compact.js";
-import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, SCORES, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
-import { ScoreHelp, Award } from "./Summary.jsx";
+import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
+import { Award, ScoreHelp } from "./Summary.jsx";
 import { KindIcon, GradeIcon } from "./icons.jsx";
-import { Typed, CountUp } from "./motion.jsx";
+import { Typed } from "./motion.jsx";
 
 export default function Viewer({ replay, shared = false, look, keysOff, onClose, onMenu }) {
   const { events, frames, dealt } = replay;
   const total = events.length;
   // A link that opens this run for anyone (the run itself rides in the link).
   const [linked, setLinked] = useState(false);
-  // On a phone there is no hover: a tap anywhere on the score row shows what
-  // the scores mean, and a tap elsewhere puts it away.
-  const [helpOpen, setHelpOpen] = useState(false);
-  const topRef = useRef(null);
-  useEffect(() => {
-    if (!helpOpen) return;
-    const away = (e) => !topRef.current?.contains(e.target) && setHelpOpen(false);
-    document.addEventListener("pointerdown", away);
-    return () => document.removeEventListener("pointerdown", away);
-  }, [helpOpen]);
   const copyLink = () =>
     replayLink(replay.text)
       .then((url) => navigator.clipboard.writeText(url))
@@ -48,9 +38,10 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
   // then the transport and the review under it, and the page scrolls. 372 is
   // the board and its narrow side column, centred. They are as large as the
   // width allows, but no taller than what the summary above and the controls
-  // below (340 px in all, with a little air) leave of the screen's height.
+  // below (352 px in all, with a little air) leave of the screen's height, so
+  // that nothing on a phone ever scrolls.
   const phone = usePhone();
-  const zoom = phone ? Math.min((window.innerWidth - 40) / 372, Math.max(0.7, (window.innerHeight - 340) / 560), 1.15) : fit;
+  const zoom = phone ? Math.min((window.innerWidth - 40) / 372, Math.max(0.45, (window.innerHeight - 352) / 560), 1.15) : fit;
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -419,30 +410,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
               on top, the timeline and transport at the bottom, level with the
               foot of the board. Nothing here changes the page's layout. */}
           <div className="lab-side">
-            {/* The scores: soft pulses while they are worked out, then the numbers. */}
-            <div ref={topRef} className={"lab-top" + (helpOpen ? " help-open" : "") + (overview && review && typeof review === "object" ? " in-card" : "")} onClick={phone ? () => setHelpOpen((v) => !v) : undefined}>
-              {review && typeof review === "object" && <ScoreHelp review={review} mode={replay.mode.mode} />}
-              {review !== null && (
-                <div className={"lab-scores" + (typeof review === "number" ? " waiting" : "")}>
-                  {SCORES.map(([key, label, hint], n) => (
-                    <div key={key} title={t(hint)} className={typeof review === "number" && review * SCORES.length > n ? "on" : ""}>
-                      <div className="k lab-score-k">
-                        <KindIcon kind={key} />
-                        {t(label)}
-                      </div>
-                      {/* A soft pulse holds the place while the score is worked out. */}
-                      {typeof review === "number" ? (
-                        <div className="v lab-wait" style={{ "--i": n }} />
-                      ) : (
-                        <div className="v">
-                          <CountUp to={review.scores[key]} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* The scores live in the summary card (Summary.jsx). */}
             {typeof review === "number" && (
               <div className="lab-loading">
                 <div className="lab-stage">
@@ -501,6 +469,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                         home is the mark at the top left, so the last row is not needed). */}
                     {phone && overview && (
                       <span className="lab-slot-close">
+                        {review && typeof review === "object" && <ScoreHelp review={review} mode={replay.mode.mode} button />}
                         <IconButton icon={linked ? "check" : "link"} label={linked ? "Link copied" : "Copy link"} size="m" variant="filled" onClick={blur(copyLink)} />
                       </span>
                     )}
@@ -598,7 +567,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                 {phone && !overview && review && typeof review === "object" && (
                   <>
                     <span className="lab-hop lab-hop-mid">
-                      <IconButton icon="up" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
+                      <IconButton icon="back" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
                       <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
                         <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next")}</span>
                         <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Restart")}</span>

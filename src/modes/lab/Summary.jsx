@@ -24,7 +24,17 @@ function verdict(review) {
 // What the three scores mean and where the bar sits, on hover (or focus) of a
 // small question mark at the end of the score row. Macro is judged differently
 // in a Battle (against the engine) than elsewhere, so its text follows the run.
-export function ScoreHelp({ review, mode }) {
+export function ScoreHelp({ review, mode, button = false }) {
+  // As a round button of its own (a phone, beside the link): a tap opens it,
+  // a tap elsewhere puts it away.
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e) => !ref.current?.contains(e.target) && setOpen(false);
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [open]);
   const rows = [
     [
       "macro",
@@ -45,13 +55,17 @@ export function ScoreHelp({ review, mode }) {
     ["finesse", "Finesse", ["The share of pieces placed without a wasted key press.", "70% is the usual mark for moving on to harder things."]],
   ];
   return (
-    <span className="lab-help">
-      <button type="button" aria-label={t("About the scores")}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.9M12 16.9v.2" />
-        </svg>
-      </button>
+    <span ref={ref} className={"lab-help" + (button ? " as-button" : "") + (open ? " open" : "")}>
+      {button ? (
+        <IconButton icon="help" label="About the scores" size="m" variant="filled" onClick={() => setOpen((on) => !on)} />
+      ) : (
+        <button type="button" aria-label={t("About the scores")}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.9M12 16.9v.2" />
+          </svg>
+        </button>
+      )}
       <span className="lab-tip" role="tooltip">
         {rows.map(([kind, name, lines]) => (
           <span key={kind} className="lab-tip-row">
