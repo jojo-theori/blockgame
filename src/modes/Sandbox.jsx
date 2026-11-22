@@ -246,7 +246,6 @@ export default function Sandbox({ settings, onBack }) {
   const rafRef = useRef(null);
   const lastTimeRef = useRef(0);
   const loopRef = useRef(null);
-  const countdownRef = useRef(null); // unused (no countdown), kept for usePause
   const keysRef = useRef(buildKeyMap(loadKeyBindings().solo));
   const run = useRef({ spawns: 0, history: [], seqLen: 0, random: true });
   const [hud, setHud] = useState({ pieces: 0, lines: 0, undo: 0 });
@@ -427,7 +426,6 @@ export default function Sandbox({ settings, onBack }) {
     phase,
     setPhase,
     rafRef,
-    countdownRef,
     lastTimeRef,
     loopRef,
     engineRef,

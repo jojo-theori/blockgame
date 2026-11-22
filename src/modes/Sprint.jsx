@@ -5,7 +5,7 @@ import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { Stat, SetupInfo, Countdown, KeyHints, ReplayLog, KeyStrokes, PauseMenu } from "../ui.jsx";
-import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions } from "../display.js";
+import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions, useCountdown } from "../display.js";
 import { useFit } from "../fit.js";
 
 const SPRINT_OPTIONS = [1, 20, 40, 100, 1000];
@@ -28,7 +28,6 @@ export default function Sprint({ settings, onBack }) {
 
   // select | countdown | playing | completed | gameover
   const [phase, setPhase] = useState("select");
-  const [countdownText, setCountdownText] = useState("");
   const [displayTime, setDisplayTime] = useState("0:00.00");
   const [displayLines, setDisplayLines] = useState(40);
   const [displayPPS, setDisplayPPS] = useState("0.00");
@@ -182,11 +181,11 @@ export default function Sprint({ settings, onBack }) {
     rafRef.current = requestAnimationFrame(gameLoopRef.current);
   }, []);
 
-  const countdownRef = useRef(null);
+  const [countdownText, countdown, cancelCountdown] = useCountdown();
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     // The engine is made now, not at "Go", so the countdown can show the pieces
     // that are coming. The seed keeps that order when start() resets it.
     const s = settingsRef.current;
@@ -201,14 +200,8 @@ export default function Sprint({ settings, onBack }) {
     setPhase("countdown");
     setDisplayAction("");
     actionPieceRef.current = -1;
-    setCountdownText("Ready");
-    countdownRef.current = setTimeout(() => {
-      setCountdownText("Go");
-      countdownRef.current = setTimeout(() => {
-        launchGame();
-      }, 500);
-    }, 700);
-  }, [launchGame, sprintLines, render]);
+    countdown(launchGame, 700, 500);
+  }, [launchGame, sprintLines, render, cancelCountdown, countdown]);
 
   // Coming from the setup screen the canvases only exist once the game view is up.
   useEffect(() => {
@@ -219,17 +212,17 @@ export default function Sprint({ settings, onBack }) {
     phase,
     setPhase,
     rafRef,
-    countdownRef,
+    cancelCountdown,
     lastTimeRef,
     loopRef: gameLoopRef,
     engineRef,
     restart: startGame,
   });
-  const toSetup = () => {
+  const toSetup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     setPhase("select");
-  };
+  }, [cancelCountdown]);
 
   const settingsOpen = !!settings.settingsOpen;
   // A new skin shows at once, even on a paused board.
@@ -298,7 +291,7 @@ export default function Sprint({ settings, onBack }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [phase, startGame, stats, onBack, pause, resume, settingsOpen]);
+  }, [phase, startGame, stats, onBack, pause, resume, settingsOpen, toSetup]);
 
   // Reload bindings whenever entering select (settings may have been edited)
   useEffect(() => {
@@ -311,9 +304,9 @@ export default function Sprint({ settings, onBack }) {
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (countdownRef.current) clearTimeout(countdownRef.current);
+      cancelCountdown();
     };
-  }, []);
+  }, [cancelCountdown]);
 
   const copyReplay = async () => {
     if (!stats?.replayText) return;

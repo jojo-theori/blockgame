@@ -1,6 +1,6 @@
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { t } from "../i18n.js";
-import { usePlaying, useDisplayToggles, useSettingsDialog, tune, heldActions } from "../display.js";
+import { usePlaying, useDisplayToggles, useSettingsDialog, tune, heldActions, useCountdown } from "../display.js";
 import { ROWS, CELL, BlockEngine, buildLogText } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
 import { BotPlayer } from "../bots/player.js";
@@ -249,7 +249,6 @@ export default function Battle({ settings, onBack }) {
   // Room for the logs and the key input is always kept, so J and K never move
   // or rescale the boards.
   const zoom = useFit(2 * (SIDE_W + BOARD_W + METER_W + HOLD_W + 46) + 56 + 2 * LOG_W, 600);
-  const [countdownText, setCountdownText] = useState("");
   const [, forceUpdate] = useState(0);
   const [winner, setWinner] = useState(null); // "p1" | "p2"
 
@@ -261,7 +260,7 @@ export default function Battle({ settings, onBack }) {
   const lastTimeRef = useRef(0);
   const phaseRef = useRef("select");
   const settingsRef = useRef(settings);
-  const countdownRef = useRef(null);
+  const [countdownText, countdown, cancelCountdown] = useCountdown();
   const loopRef = useRef(null);
 
   // Key map per player
@@ -362,18 +361,14 @@ export default function Battle({ settings, onBack }) {
   }, [left, right, leftLevel, rightLevel, leftBot, rightBot]);
 
   const runCountdown = useCallback(() => {
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     setPhase("countdown");
-    setCountdownText("Ready");
-    countdownRef.current = setTimeout(() => {
-      setCountdownText("Go");
-      countdownRef.current = setTimeout(launch, 500);
-    }, 700);
-  }, [launch]);
+    countdown(launch, 700, 500);
+  }, [launch, cancelCountdown, countdown]);
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     reloadKeys();
     // Same seed on both sides: both players get exactly the same pieces.
     const seed = Math.floor(Math.random() * 2 ** 31);
@@ -383,14 +378,14 @@ export default function Battle({ settings, onBack }) {
     cpusRef.current = [];
     setWinner(null);
     runCountdown();
-  }, [runCountdown, reloadKeys, leftHandicap, rightHandicap]);
+  }, [runCountdown, reloadKeys, leftHandicap, rightHandicap, cancelCountdown]);
 
   // Pause (Esc). A match is shared, so nothing restarts from a single key:
   // rematch and exit live in the pause menu.
   const pausedFromRef = useRef(null);
   const pause = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     pausedFromRef.current = phaseRef.current;
     // Let go of every held key so nothing keeps moving after the pause.
     for (const e of [engine1Ref.current, engine2Ref.current]) {
@@ -399,7 +394,7 @@ export default function Battle({ settings, onBack }) {
     }
     phaseRef.current = "paused";
     setPhase("paused");
-  }, []);
+  }, [cancelCountdown]);
   const resume = useCallback(() => {
     if (pausedFromRef.current === "countdown") {
       runCountdown();
@@ -413,9 +408,9 @@ export default function Battle({ settings, onBack }) {
   usePlaying(phase === "playing" || phase === "countdown");
   const toSetup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     setPhase("select");
-  }, []);
+  }, [cancelCountdown]);
 
   const settingsOpen = !!settings.settingsOpen;
 
@@ -550,9 +545,9 @@ export default function Battle({ settings, onBack }) {
   useEffect(
     () => () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (countdownRef.current) clearTimeout(countdownRef.current);
+      cancelCountdown();
     },
-    [],
+    [cancelCountdown],
   );
 
   // ─── SELECT SCREEN ───
