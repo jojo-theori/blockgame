@@ -70,25 +70,27 @@
    comment (or the summary), then the board at nearly the whole width with one
    narrow column beside it for a small hold and queue and the run's facts,
    then the timeline and the transport, which stay at the foot of the screen
-   while the page scrolls, with buttons large enough for a thumb. The board is
+   (on a tall screen the spare height goes above and below the board; the
+   two fixed rows are the hold's and the queue's, so the facts keep the foot
+   of the board), and while the page scrolls, with buttons large enough for a thumb. The board is
    scaled to the screen's width; everything else is at the page's own size. */
-.play.lab-phone { width: var(--phone-w); display: grid; grid-template-columns: 1fr 280px 92px 1fr; grid-template-rows: auto auto auto auto 1fr auto auto auto; gap: 12px 0; height: auto; align-items: start; }
+.play.lab-phone { width: var(--phone-w); display: grid; grid-template-columns: 1fr 280px 92px 1fr; grid-template-rows: auto auto 1fr 60px 238px auto 1fr auto auto auto; gap: 12px 0; height: auto; min-height: calc((100dvh - 60px) * var(--unzoom)); align-items: start; }
 .lab-phone > .rlog, .lab-phone .keys, .lab-phone .lab-stats > .stat:has(.lab-mode) { display: none; }
 .lab-phone > .side, .lab-phone .lab-side, .lab-phone .lab-transport { display: contents; }
 .lab-phone > .side canvas { zoom: 0.6; }
-.lab-phone > .board-wrap { grid-area: 3 / 2 / 6 / 3; }
-.lab-phone > .side:not(.right) > :first-child { grid-area: 3 / 3; padding-left: 12px; }
-.lab-phone > .side.right > :first-child { grid-area: 4 / 3; padding-left: 12px; }
-.lab-phone .lab-stats { grid-area: 5 / 3; padding-left: 12px; align-self: end; display: flex; flex-direction: column; gap: 12px; }
+.lab-phone > .board-wrap { grid-area: 4 / 2 / 7 / 3; }
+.lab-phone > .side:not(.right) > :first-child { grid-area: 4 / 3; padding-left: 12px; }
+.lab-phone > .side.right > :first-child { grid-area: 5 / 3; padding-left: 12px; }
+.lab-phone .lab-stats { grid-area: 6 / 3; padding-left: 12px; align-self: end; display: flex; flex-direction: column; gap: 12px; }
 .lab-phone .lab-stats .v { font-size: var(--t4); white-space: nowrap; }
 .lab-phone .lab-top, .lab-phone .lab-loading, .lab-phone .lab-moment, .lab-phone .lab-trackrow, .lab-phone .lab-buttons, .lab-phone .lab-foot { grid-column: 1 / -1; zoom: var(--unzoom); text-align: left; }
 .lab-phone .lab-top { grid-row: 1; }
 .lab-phone .lab-loading, .lab-phone .lab-moment { grid-row: 2; }
-.lab-phone .lab-trackrow { grid-row: 6; position: sticky; bottom: 68px; z-index: 6; display: flex; align-items: center; gap: 14px; padding: 12px 0; background: var(--bg); }
+.lab-phone .lab-trackrow { grid-row: 8; position: sticky; bottom: 68px; z-index: 6; display: flex; align-items: center; gap: 14px; padding: 12px 0; background: var(--bg); }
 .lab-phone .lab-track { flex: 1; }
-.lab-phone .lab-buttons { grid-row: 7; position: sticky; bottom: 0; z-index: 7; justify-content: flex-start; gap: 6.4px; margin-left: 0; zoom: calc(var(--unzoom) * 1.25); padding: 6px 0; background: var(--bg); }
+.lab-phone .lab-buttons { grid-row: 9; position: sticky; bottom: 0; z-index: 7; justify-content: flex-start; gap: 6.4px; margin-left: 0; zoom: calc(var(--unzoom) * 1.25); padding: 6px 0; background: var(--bg); }
 /* The last row ends the page, clear of the phone's own bar; its buttons are 48 px tall. */
-.lab-phone .lab-foot { grid-row: 8; margin-top: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.lab-phone .lab-foot { grid-row: 10; margin-top: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
 .lab-phone .lab-foot .lab-menu { height: 48px; }
 .lab-phone .lab-foot > :last-child { width: 48px; height: 48px; }
 .lab-phone .lab-speed { margin-left: 0; }
