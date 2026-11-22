@@ -467,6 +467,12 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                           <span className="lab-kind" title={t(KIND_NAMES[moment.kind])}>
                             <KindIcon kind={moment.kind} />
                           </span>
+                          {/* On a phone the way back to the summary is on the comment itself. */}
+                          {phone && (
+                            <button type="button" className="lab-bubble-close" aria-label={t("Back to summary")} onClick={blur(restart)}>
+                              <Icon name="close" size={18} />
+                            </button>
+                          )}
                         </div>
                         <p>
                           <Typed text={t(moment.text[0], moment.text[1])} instant={playing} />
@@ -496,7 +502,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                   </div>
                   {/* Previous and Next come first and never move; Show best joins
                       them on the right when there is a better line to show. */}
-                  <div className="lab-moment-nav">
+                  <div className={"lab-moment-nav" + (overview ? " at-overview" : "")}>
                     {overview ? (
                       <button type="button" className="btn primary compact" onClick={blur(() => jump(1))} disabled={!moments.length}>
                         {moments.length ? t("See {n} key moments", { n: moments.length }) : t("No key moments")}
@@ -568,6 +574,12 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                 <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
                 <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />
                 {!phone && speedButton}
+                {/* On a phone the way into the key moments ends this row. */}
+                {phone && overview && review && typeof review === "object" && (
+                  <button type="button" className="btn primary compact lab-keys" onClick={blur(() => jump(1))} disabled={!moments.length}>
+                    {moments.length ? t("{n} key moments", { n: moments.length }) : t("No key moments")}
+                  </button>
+                )}
               </div>
               <div className="lab-foot">
                 <button type="button" className="btn lab-menu" onClick={onMenu}>

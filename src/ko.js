@@ -77,6 +77,7 @@ export default {
   Move: "이동",
   "Sound on": "소리 켜기",
   "Sound off": "소리 끄기",
+  "{n} key moments": "주요 포인트 {n}곳",
   "Menu": "메뉴",
   "{n} more": "{n}개 더",
   "Click a piece above to add it, and here to take it out.": "위에서 눌러 넣고, 여기서 눌러 빼세요.",

@@ -86,12 +86,22 @@
 .lab-phone .lab-loading, .lab-phone .lab-moment { grid-row: 2; }
 .lab-phone .lab-trackrow { grid-row: 6; position: sticky; bottom: 68px; z-index: 6; display: flex; align-items: center; gap: 14px; padding: 12px 0; background: var(--bg); }
 .lab-phone .lab-track { flex: 1; }
-.lab-phone .lab-buttons { grid-row: 7; position: sticky; bottom: 0; z-index: 7; justify-content: center; gap: 14px; margin-left: 0; zoom: calc(var(--unzoom) * 1.3); padding: 6px 0; background: var(--bg); }
+.lab-phone .lab-buttons { grid-row: 7; position: sticky; bottom: 0; z-index: 7; justify-content: flex-start; gap: 6.4px; margin-left: 0; zoom: calc(var(--unzoom) * 1.25); padding: 6px 0; background: var(--bg); }
 /* The last row ends the page, clear of the phone's own bar; its buttons are 48 px tall. */
 .lab-phone .lab-foot { grid-row: 8; margin-top: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
 .lab-phone .lab-foot .lab-menu { height: 48px; }
 .lab-phone .lab-foot > :last-child { width: 48px; height: 48px; }
 .lab-phone .lab-speed { margin-left: 0; }
+.lab-phone .lab-keys { margin-left: auto; height: 40px; padding: 0 12px; zoom: 0.8; white-space: nowrap; }
+/* The comment, a little shorter, with the way back at its right. */
+.lab-phone .lab-slot { height: 108px; }
+.lab-phone .lab-slot.open { height: auto; }
+.lab-phone .lab-bubble { padding: 10px 10px 10px 14px; }
+.lab-phone .lab-bubble-head { margin-bottom: 4px; }
+.lab-phone .lab-bubble p { font-size: var(--t2); padding-right: 4px; }
+.lab-phone .lab-close { display: none; }
+.lab-bubble-close { flex: none; width: 36px; height: 36px; margin: -4px -4px -4px 0; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; opacity: 0.55; cursor: pointer; }
+.lab-phone .lab-moment-nav.at-overview { display: none; }
 /* The review, tightened for a phone. The scores run as one line of text at
    the top left, the question mark after them; a tap anywhere on the line
    shows what they mean. The summary is a strip: seal, words, and at the right
