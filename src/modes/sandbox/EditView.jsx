@@ -5,7 +5,7 @@ import { ROWS, COLORS, PIECE_NAMES } from "../../game.js";
 import { BOARD_W, BOARD_H } from "../../render.js";
 import { sfx } from "../../sound.js";
 import { Dropdown, Checkbox, Segmented, ActionMenu, PieceIcon, GarbageIcon, Swatch, Chip, ChipGrid, Well, IconButton, Icon, HelpTip, Tip, Kbd } from "../../ui.jsx";
-import { ACCENT, PIECES, PAINTS, nextTitle, ERASE_MODES, ORDER_CELLS, TOOL_KEYS, CHIP_KEYS, ERASE_KEYS, ORDER_KEYS, TURN_KEYS, HOLD_KEY, keyCap } from "./store.js";
+import { ACCENT, PIECES, PAINTS, nextTitle, ERASE_MODES, ORDER_CELLS, TOOL_KEYS, CHIP_KEYS, ERASE_KEYS, ORDER_KEYS, TURN_KEYS, HOLD_KEY, CLEAR_KEY, keyCap } from "./store.js";
 import { EraseIcon } from "./parts.jsx";
 import { DRAW_ICONS } from "./drawIcons.jsx";
 
@@ -19,6 +19,7 @@ const SHORTCUT_HELP = [
   [caps(ORDER_KEYS.slice(0, 4)), "Add I, T, L or J to the order"],
   [caps(ORDER_KEYS.slice(4)), "Add S, Z or O to the order"],
   [["⌫"], "Take the last one off the order"],
+  [[keyCap(CLEAR_KEY)], "Empty the order"],
   [[keyCap(HOLD_KEY)], "Change the hold"],
   [["ENTER"], "Play"],
 ];
@@ -88,6 +89,7 @@ export default function EditView(p) {
             <Chip
               tone="danger"
               tip={t("Clear all")}
+              keys={[keyCap(CLEAR_KEY)]}
               style={{ visibility: order.length ? "visible" : "hidden" }}
               onClick={(e) => {
                 e.currentTarget.blur();

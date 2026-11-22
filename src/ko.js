@@ -101,6 +101,7 @@ export default {
   "Add S, Z or O to the order": "순서에 S, Z, O 추가",
   "Take the last one off the order": "순서의 마지막 블록 빼기",
   "Change the hold": "홀드 바꾸기",
+  "Empty the order": "순서 모두 지우기",
   Sandbox: "샌드박스",
   Lab: "실험실",
   Settings: "설정",

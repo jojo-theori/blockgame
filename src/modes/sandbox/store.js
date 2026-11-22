@@ -46,7 +46,8 @@ export const ERASE_KEYS = ["KeyA", "KeyS", "KeyZ", "KeyX"]; // two by two
 export const ORDER_KEYS = ["KeyJ", "KeyK", "KeyL", "Semicolon", "KeyN", "KeyM", "Comma"];
 export const TURN_KEYS = ["KeyR", "KeyT"]; // left, right
 export const HOLD_KEY = "KeyH";
-export const keyCap = (code) => ({ Semicolon: ";", Comma: "," })[code] || code.replace("Key", "");
+export const CLEAR_KEY = "Period"; // empties the piece order
+export const keyCap = (code) => ({ Semicolon: ";", Comma: ",", Period: "." })[code] || code.replace("Key", "");
 
 // ── Examples ──
 // Boards that come with the Sandbox, added to the list once (delete one and it

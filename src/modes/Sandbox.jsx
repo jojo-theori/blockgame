@@ -14,13 +14,13 @@ import { useFit } from "../fit.js";
 import ListView from "./sandbox/ListView.jsx";
 import EditView from "./sandbox/EditView.jsx";
 import PlayView from "./sandbox/PlayView.jsx";
-import { emptyBoard, EMPTY, NONE, bags, newId, blank, loadList, saveList, nextTitle, eraseCells, PIECES, PAINTS, ERASE_MODES, TOOL_KEYS, CHIP_KEYS, ERASE_KEYS, ORDER_KEYS, TURN_KEYS, HOLD_KEY } from "./sandbox/store.js";
+import { emptyBoard, EMPTY, NONE, bags, newId, blank, loadList, saveList, nextTitle, eraseCells, PIECES, PAINTS, ERASE_MODES, TOOL_KEYS, CHIP_KEYS, ERASE_KEYS, ORDER_KEYS, TURN_KEYS, HOLD_KEY, CLEAR_KEY } from "./sandbox/store.js";
 import { Preview } from "./sandbox/parts.jsx";
 
 const TOOLS = ["piece", "cell", "erase"];
+const NO_TOGGLES = {};
 
 export default function Sandbox({ settings, onBack }) {
-  useDisplayToggles(settings);
   // ─── Saved boards, and the one open ───
   const [items, setItems] = useState(loadList);
   const [currentId, setCurrentId] = useState(null);
@@ -70,6 +70,9 @@ export default function Sandbox({ settings, onBack }) {
 
   // list | edit | playing | paused | gameover | out
   const [phase, setPhase] = useState("list");
+  // J and K show and hide the piece log and the key input while playing; in
+  // the editor those keys add pieces to the order, so the toggles stay out.
+  useDisplayToggles(phase === "list" || phase === "edit" ? NO_TOGGLES : settings);
   // Edit and play share one layout and one scale, so the board keeps its size
   // and place when switching between them.
   const zoom = useFit(840, 600);
@@ -483,6 +486,11 @@ export default function Sandbox({ settings, onBack }) {
     const orderAt = ORDER_KEYS.indexOf(code);
     if (orderAt >= 0) {
       addPiece(PIECES[orderAt]);
+      return true;
+    }
+    if (code === CLEAR_KEY) {
+      if (order.length) sfx.tick();
+      setOrder([]);
       return true;
     }
     if (code === HOLD_KEY) {
