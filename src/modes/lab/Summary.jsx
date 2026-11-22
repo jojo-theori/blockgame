@@ -8,6 +8,7 @@ import { Button, Icon, IconButton } from "../../ui.jsx";
 import { loadName, saveName, NAME_MAX, NAME_PLACEHOLDER } from "../../name.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePhone } from "../../fit.js";
 import { KindIcon } from "./icons.jsx";
 
 function verdict(review) {
@@ -234,16 +235,20 @@ function RankCardView({ what: given, onClose }) {
 // move comments: a seal with the rank, the title, then what stood out.
 export function Award({ review, card, mode }) {
   const v = verdict(review);
-  // What the scores mean, behind a question mark in the card's corner: on
-  // hover, or on a tap (which must not also open the card).
-  const [help, setHelp] = useState(false);
-  const helpRef = useRef(null);
-  useEffect(() => {
-    if (!help) return;
-    const away = (e) => !helpRef.current?.contains(e.target) && setHelp(false);
-    document.addEventListener("pointerdown", away);
-    return () => document.removeEventListener("pointerdown", away);
-  }, [help]);
+  const phone = usePhone();
+  const scores = (
+    <div className="lab-award-scores">
+      {SCORES.map(([kind, label]) => (
+        <div key={kind}>
+          <div className="k lab-score-k">
+            <KindIcon kind={kind} />
+            {t(label)}
+          </div>
+          <div className="v">{review.scores[kind]}</div>
+        </div>
+      ))}
+    </div>
+  );
   const [key, vars] = v.note;
   // The card to keep: opened large first, saved from there.
   const [shown, setShown] = useState(null);
@@ -293,34 +298,19 @@ export function Award({ review, card, mode }) {
           }}
         />
       )}
-      {/* The three scores, across the top of the summary. */}
-      <div className="lab-award-scores">
-        {SCORES.map(([kind, label]) => (
-          <div key={kind}>
-            <div className="k lab-score-k">
-              <KindIcon kind={kind} />
-              {t(label)}
-            </div>
-            <div className="v">{review.scores[kind]}</div>
-          </div>
-        ))}
-        {mode && (
-          <span
-            ref={helpRef}
-          className={"lab-award-help" + (help ? " open" : "")}
-            onClick={(e) => {
-              e.stopPropagation();
-              setHelp((on) => !on);
-            }}
-            onKeyDown={(e) => e.stopPropagation()}
-            onPointerLeave={() => setHelp(false)}
-          >
-            <ScoreHelp review={review} mode={mode} />
-          </span>
-        )}
-      </div>
+      {/* The three scores: across the top of the card, or on a phone beside its title. */}
+      {!phone && scores}
+      {mode && (
+        // What the scores mean. A tap here must not also open the card.
+        <span className="lab-award-help" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <ScoreHelp review={review} mode={mode} button={phone} />
+        </span>
+      )}
       <RankSeal letter={v.letter} step={v.step} />
-      <div className="lab-award-title">{t(v.title)}</div>
+      <div className="lab-award-head">
+        <div className="lab-award-title">{t(v.title)}</div>
+        {phone && scores}
+      </div>
       <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>
       {review.traits.length > 0 && (
         <ul className="lab-traits">

@@ -29,6 +29,7 @@ export const PATHS = {
     </>
   ),
   prev: <path d="M14.5 6.5 9 12l5.5 5.5" />,
+  undo: <path d="M8.5 13.5 4.5 9.5l4-4M4.5 9.5h9.250a5 5 0 0 1 0 10H9" />,
   up: <path d="M6.5 14.5 12 9l5.5 5.5" />,
   down: <path d="M6.5 9.5 12 15l5.5-5.5" />,
   first: <path d="M17 6.5 11.5 12l5.5 5.5M7.5 6.5v11" />,

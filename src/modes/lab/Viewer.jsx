@@ -13,7 +13,7 @@ import { pathAt } from "../../trace.js";
 import { replayLink } from "../../pack.js";
 import { runLink } from "../../compact.js";
 import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
-import { Award, ScoreHelp } from "./Summary.jsx";
+import { Award } from "./Summary.jsx";
 import { KindIcon, GradeIcon } from "./icons.jsx";
 import { Typed } from "./motion.jsx";
 
@@ -469,7 +469,6 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                         home is the mark at the top left, so the last row is not needed). */}
                     {phone && overview && (
                       <span className="lab-slot-close">
-                        {review && typeof review === "object" && <ScoreHelp review={review} mode={replay.mode.mode} button />}
                         <IconButton icon={linked ? "check" : "link"} label={linked ? "Link copied" : "Copy link"} size="m" variant="filled" onClick={blur(copyLink)} />
                       </span>
                     )}
@@ -549,11 +548,11 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
               {phone && speedButton}
               </div>
               <div className="lab-buttons">
-                {/* A phone has no room for the jumps to either end: the timeline does that. */}
+                {/* A phone has no room for the jumps to either end or the single steps: the timeline does that. */}
                 {!phone && <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />}
-                <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
+                {!phone && <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />}
                 {!phone && playButton}
-                <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
+                {!phone && <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />}
                 {!phone && <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />}
                 {!phone && speedButton}
                 {/* On a phone the way into the key moments ends this row. */}
@@ -562,12 +561,12 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                     {moments.length ? t("{n} key moments", { n: moments.length }) : t("No key moments")}
                   </button>
                 )}
-                {/* And once among them, the way from one to the next in the middle of
-                    the row, and the engine's line at its end when there is one. */}
+                {/* And once among them: back to the one before at the left, on to the
+                    next in the middle, and the engine's line at the end when there is one. */}
                 {phone && !overview && review && typeof review === "object" && (
                   <>
+                    <IconButton icon="undo" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
                     <span className="lab-hop lab-hop-mid">
-                      <IconButton icon="back" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
                       <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
                         <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next")}</span>
                         <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Restart")}</span>
