@@ -19,7 +19,7 @@ export function EraseIcon({ mode }) {
 export function Preview({ board }) {
   const ref = useRef(null);
   useEffect(() => {
-    drawPicture(ref.current, board, 9);
+    drawPicture(ref.current, board, 3);
   }, [board]);
-  return <canvas ref={ref} className="sb-thumb" width={COLS * 9} height={ROWS * 9} />;
+  return <canvas ref={ref} className="sb-thumb" width={COLS * 3} height={ROWS * 3} />;
 }

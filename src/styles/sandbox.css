@@ -54,8 +54,9 @@
   overflow-y: auto;
   display: grid;
   width: 100%;
-  /* Never wider than the list itself, so a narrow window does not scroll sideways. */
-  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+  /* One column in the middle of the page, for now. */
+  grid-template-columns: min(360px, 100%);
+  justify-content: center;
   align-content: start;
   gap: 10px;
   margin-top: 8px;
@@ -64,12 +65,13 @@
 }
 .sb-none { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--faint); font-size: var(--t2); }
 .sb-item { position: relative; display: flex; transition: background 0.18s var(--out); flex-direction: column; gap: 10px; padding: 12px; border-radius: 16px; background: var(--fill); animation: appear 0.3s var(--out) both; animation-delay: calc(var(--i, 0) * 35ms); }
-.sb-item-main { flex: 1; display: flex; gap: 14px; align-items: flex-start; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sb-item-main { flex: 1; display: flex; gap: 14px; align-items: center; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 /* The whole card reacts: it is one click target (play). */
 .sb-item:hover { background: var(--hover); }
 .sb-item:hover .sb-item-title { color: var(--accent); }
-.sb-thumb { width: 60px; height: 120px; flex: none; border-radius: 4px; }
-.sb-item-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: 2px; }
+/* Drawn about as tall as the three lines of text beside it (parts.jsx sets the size). */
+.sb-thumb { flex: none; border-radius: 3px; }
+.sb-item-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .sb-item-title { font-size: var(--t4); font-weight: 500; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.15s var(--out); }
 .sb-item-meta { font-size: var(--t2); color: var(--faint); }
 .sb-item-more { position: absolute; top: 8px; right: 8px; }
