@@ -137,6 +137,18 @@ export function Award({ review, card }) {
   const [key, vars] = v.note;
   // The card to keep: opened large first, saved from there.
   const [shown, setShown] = useState(null);
+  // A taste of the card: it leans a little toward the pointer, with a glow under it.
+  const lean = (e) => {
+    const el = e.currentTarget;
+    const box = el.getBoundingClientRect();
+    const x = (e.clientX - box.left) / box.width - 0.5;
+    const y = (e.clientY - box.top) / box.height - 0.5;
+    el.style.setProperty("--rx", `${(-y * 7).toFixed(2)}deg`);
+    el.style.setProperty("--ry", `${(x * 9).toFixed(2)}deg`);
+    el.style.setProperty("--gx", `${((x + 0.5) * 100).toFixed(1)}%`);
+    el.style.setProperty("--gy", `${((y + 0.5) * 100).toFixed(1)}%`);
+  };
+  const rest = (e) => ["--rx", "--ry"].forEach((k) => e.currentTarget.style.setProperty(k, "0deg"));
   const open = () => {
     setShown({ ...v, ...card, title: t(v.title), date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
   };
@@ -147,6 +159,8 @@ export function Award({ review, card }) {
       tabIndex={0}
       aria-label={t("Show the card")}
       onClick={open}
+      onPointerMove={lean}
+      onPointerLeave={rest}
       onKeyDown={(e) => {
         if (e.key !== "Enter") return;
         e.preventDefault();
@@ -170,6 +184,7 @@ export function Award({ review, card }) {
           ))}
         </ul>
       )}
+      <div className="lab-award-hint">{t("Click to save")}</div>
     </div>
   );
 }

@@ -185,11 +185,16 @@
 .lab-award.rank-C { --rank: #a66bd6; }
 .lab-award.rank-D { --rank: #e8903a; }
 .lab-award.rank-E { --rank: #e8505b; }
-/* The summary opens the card: it lifts a little under the pointer to say so. */
-.lab-award.open { cursor: pointer; transition: transform 0.22s var(--out), border-color 0.22s var(--out), box-shadow 0.22s var(--out); }
-.lab-award.open:hover { transform: translateY(-2px) scale(1.015); border-color: color-mix(in srgb, var(--rank) 55%, var(--line)); box-shadow: 0 14px 34px -18px var(--rank); }
+/* The summary opens the card. Under the pointer it lifts, leans toward it and
+   glows where the pointer is, as the card itself will. */
+.lab-award.open { --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 0%; cursor: pointer; overflow: hidden; transform: perspective(700px) rotateX(var(--rx)) rotateY(var(--ry)); transition: transform 0.2s var(--out), border-color 0.22s var(--out), box-shadow 0.22s var(--out); will-change: transform; }
+.lab-award.open::after { content: ""; position: absolute; inset: 0; background: radial-gradient(220px circle at var(--gx) var(--gy), color-mix(in srgb, var(--rank) 26%, transparent), transparent 70%); opacity: 0; transition: opacity 0.25s var(--out); pointer-events: none; }
+.lab-award.open:hover { transform: perspective(700px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-2px) scale(1.015); border-color: color-mix(in srgb, var(--rank) 55%, var(--line)); box-shadow: 0 14px 34px -18px var(--rank); }
+.lab-award.open:hover::after { opacity: 1; }
 .lab-award.open:hover .lab-seal { transform: scale(1.06); }
 .lab-award.open .lab-seal { transition: transform 0.25s var(--out); }
+.lab-award-hint { margin-top: 14px; font-size: var(--t1); letter-spacing: 0.04em; color: var(--faint); transition: color 0.2s var(--out); }
+.lab-award.open:hover .lab-award-hint { color: var(--rank); }
 .lab-award.open:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 /* The seal. The letter and its step are two boxes centred on one line, so the
    + or − sits on the letter's middle rather than on the text baseline. */
