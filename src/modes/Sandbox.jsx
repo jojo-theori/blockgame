@@ -6,136 +6,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
 import { BlockEngine, COLS, ROWS, CELL, COLORS, PIECE_NAMES, getShape, buildLogText } from "../game.js";
 import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
-import { drawBoard, drawHold, drawQueue, drawPicture, cell as paintCell, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
+import { drawBoard, drawHold, drawQueue, cell as paintCell, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { Stat, KeyHints, ReplayLog, KeyStrokes, PauseMenu, Dropdown, Checkbox, Segmented, ConfirmDialog, ActionMenu, PieceIcon, GarbageIcon, Swatch } from "../ui.jsx";
 import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions } from "../display.js";
 import { useFit } from "../fit.js";
-
-const ACCENT = "#f2913d";
-const STORE = "jbl-sandbox";
-const PIECES = [1, 2, 3, 4, 5, 6, 7]; // I T L J S Z O
-// Cell paint: the seven piece colours and garbage grey.
-const PAINTS = [...PIECES, 8];
-
-const emptyBoard = () => Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
-const EMPTY = emptyBoard();
-const NONE = [];
-const shuffled = (a) => {
-  const b = a.slice();
-  for (let i = b.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [b[j], b[i]];
-  }
-  return b;
-};
-const bags = (n) => Array.from({ length: n }, () => shuffled(PIECES)).flat();
-
-// ─── Saved boards ───
-// Kept in this browser for now; everything that touches storage is here, so
-// it can move to an account later.
-const LIST = "jbl-sandboxes";
-const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const blank = (title) => ({ id: newId(), title, board: emptyBoard(), marks: emptyBoard(), order: [], hold: 0, randomAfter: true, gravity: false, updatedAt: Date.now() });
-function loadList() {
-  try {
-    const list = JSON.parse(localStorage.getItem(LIST) || "null");
-    if (Array.isArray(list)) return list.filter((b) => Array.isArray(b.board) && b.board.length === ROWS);
-    // First run with lists: bring over the one board the editor used to keep.
-    const one = JSON.parse(localStorage.getItem(STORE) || "null");
-    if (one && Array.isArray(one.board) && one.board.length === ROWS) return [{ ...blank("Board 1"), ...one, id: newId(), title: "Board 1" }];
-  } catch {
-    /* ignore */
-  }
-  return [];
-}
-function saveList(list) {
-  try {
-    localStorage.setItem(LIST, JSON.stringify(list));
-  } catch {
-    /* ignore */
-  }
-}
-const nextTitle = (list) => {
-  let n = list.length + 1;
-  while (list.some((b) => b.title === `Board ${n}`)) n++;
-  return `Board ${n}`;
-};
-
-// The cells an erase at this point would clear, for each erase mode.
-function eraseCells(board, marks, mode, at) {
-  if (!at) return [];
-  const [r0, c0] = at;
-  if (mode === "row") return board[r0].map((v, c) => [r0, c]).filter(([r, c]) => board[r][c]);
-  if (mode === "column") return board.map((row, r) => [r, c0]).filter(([r, c]) => board[r][c]);
-  if (!board[r0][c0]) return [];
-  if (mode === "piece") {
-    const id = marks[r0][c0];
-    if (!id) return [at];
-    const out = [];
-    marks.forEach((row, r) => row.forEach((v, c) => v === id && board[r][c] && out.push([r, c])));
-    return out;
-  }
-  return [at];
-}
-
-// Small 3×3 picture of what an erase mode takes away (lit cells).
-const ERASE_LIT = {
-  cell: [4],
-  row: [3, 4, 5],
-  column: [1, 4, 7],
-  piece: [1, 3, 4, 5],
-};
-function EraseIcon({ mode }) {
-  const lit = ERASE_LIT[mode];
-  return (
-    <svg className="erase-icon" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-      {Array.from({ length: 9 }, (_, i) => (
-        <rect key={i} x={(i % 3) * 5} y={Math.floor(i / 3) * 5} width="4" height="4" fill="currentColor" opacity={lit.includes(i) ? 1 : 0.22} />
-      ))}
-    </svg>
-  );
-}
-const ERASE_MODES = [
-  ["cell", "Cell"],
-  ["row", "Row"],
-  ["column", "Column"],
-  ["piece", "Piece"],
-];
-
-// A board's small picture for the list.
-function Preview({ board }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    drawPicture(ref.current, board, 9);
-  }, [board]);
-  return <canvas ref={ref} className="sb-thumb" width={COLS * 9} height={ROWS * 9} />;
-}
-
-// The two ways to draw, as pictures: a whole piece, or one cell at a time.
-const DRAW_ICONS = {
-  piece: (
-    <svg className="sb-draw-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="3.5" y="12" width="5.2" height="5.2" rx="0.8" />
-      <rect x="9.4" y="12" width="5.2" height="5.2" rx="0.8" />
-      <rect x="15.3" y="12" width="5.2" height="5.2" rx="0.8" />
-      <rect x="9.4" y="6.1" width="5.2" height="5.2" rx="0.8" />
-    </svg>
-  ),
-  cell: (
-    <svg className="sb-draw-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="8.6" y="8.6" width="6.8" height="6.8" rx="1" />
-    </svg>
-  ),
-  erase: (
-    <svg className="sb-draw-icon line" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M8 20h12M5.5 15.5l9-9a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L12 17l-3 3H7l-1.5-1.5a2 2 0 0 1 0-3Z" />
-      <path d="M9.5 11.5l4 4" />
-    </svg>
-  ),
-};
-
-const ORDER_CELLS = 21; // cells in the piece-order box: 7 across, 3 down
+import { ACCENT, PIECES, PAINTS, emptyBoard, EMPTY, NONE, bags, LIST, newId, blank, loadList, saveList, nextTitle, eraseCells, ERASE_MODES, ORDER_CELLS } from "./sandbox/store.js";
+import { EraseIcon, Preview } from "./sandbox/parts.jsx";
+import { DRAW_ICONS } from "./sandbox/drawIcons.jsx";
 
 export default function Sandbox({ settings, onBack }) {
   useDisplayToggles(settings);
