@@ -1,0 +1,30 @@
+<!-- The OG image (public/og.png). Regenerate with:
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 --screenshot=public/og.png "file://$PWD/scripts/og.html"
+-->
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#0a0a0a}canvas{display:block}</style></head><body><canvas id="c" width="1200" height="630"></canvas><script>
+const W=1200,H=630; const c=document.getElementById('c'); const x=c.getContext('2d');
+x.fillStyle='#0a0a0a'; x.fillRect(0,0,W,H);
+x.strokeStyle='rgba(255,255,255,0.035)'; x.lineWidth=1; x.beginPath(); for(let i=0;i<=W;i+=20){x.moveTo(i+0.5,0);x.lineTo(i+0.5,H);} for(let j=0;j<=H;j+=20){x.moveTo(0,j+0.5);x.lineTo(W,j+0.5);} x.stroke();
+const shapes={I:[[0,0],[1,0],[2,0],[3,0]],T:[[1,0],[0,1],[1,1],[2,1]],L:[[2,0],[0,1],[1,1],[2,1]],J:[[0,0],[0,1],[1,1],[2,1]],S:[[1,0],[2,0],[0,1],[1,1]],Z:[[0,0],[1,0],[1,1],[2,1]],O:[[0,0],[1,0],[0,1],[1,1]]};
+const bg=[['T',2,3],['L',9,24],['I',14,1],['S',3,20],['O',22,26],['Z',26,2],['J',33,9],['T',37,27],['I',33,19],['Z',8,12],['O',57,28],['S',56,1]];
+x.fillStyle='#151515'; for(const [k,gx,gy] of bg) for(const [a,b] of shapes[k]) x.fillRect((gx+a)*20+1,(gy+b)*20+1,18,18);
+const C={I:'#41b6e6',T:'#b14fd0',L:'#f2913d',J:'#3d6fe0',S:'#5cc45c',Z:'#e8505b',O:'#f2cb4c',G:'#5a5a5a'};
+const cell=30, bx=820, by=120, cols=10, rows=13;
+x.fillStyle='#050505'; x.fillRect(bx,by,cols*cell,rows*cell);
+x.strokeStyle='#141414'; x.beginPath(); for(let i=1;i<cols;i++){x.moveTo(bx+i*cell+0.5,by);x.lineTo(bx+i*cell+0.5,by+rows*cell);} for(let j=1;j<rows;j++){x.moveTo(bx,by+j*cell+0.5);x.lineTo(bx+cols*cell,by+j*cell+0.5);} x.stroke();
+x.strokeStyle='#262626'; x.strokeRect(bx+0.5,by+0.5,cols*cell-1,rows*cell-1);
+const stack=['......OO..','JJ..T.OOS.','JZZTTLLLSS','JJZZTLGGGS','GGGG.GGGGG'];
+const tr=rows-stack.length;
+stack.forEach((line,r)=>[...line].forEach((ch,col)=>{ if(ch==='.') return; x.fillStyle=C[ch]; x.fillRect(bx+col*cell+1, by+(tr+r)*cell+1, cell-2, cell-2); }));
+// ghost of a T in the TSD slot, and the T above it
+const T=[[1,0],[0,1],[1,1],[2,1]];
+for(let b=0;b<4;b++){ x.fillStyle=C.I; x.fillRect(bx+9*cell+1, by+(2+b)*cell+1, cell-2, cell-2); }
+x.fillStyle='#ebebeb'; x.font='700 210px "Helvetica Neue", Helvetica, Arial, sans-serif';
+x.letterSpacing='-9px'; x.fillText('JBL', 92, 296); x.letterSpacing='0px';
+x.fillStyle='#8a8a8a'; x.font='500 23px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.letterSpacing='4px'; x.fillText("JOJO'S BLOCKGAME LABORATORY", 104, 350);
+const modes=[['SPRINT','#41b6e6'],['BATTLE','#e8505b'],['OPENING','#b14fd0'],['FINESSE','#5cc45c'],['REPLAY','#3fc8b4'],['SANDBOX','#f2913d']];
+x.font='500 16px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.letterSpacing='2px';
+let px=100, py=408; const rr=(X,Y,w,h,r)=>{x.beginPath(); x.moveTo(X+r,Y); x.arcTo(X+w,Y,X+w,Y+h,r); x.arcTo(X+w,Y+h,X,Y+h,r); x.arcTo(X,Y+h,X,Y,r); x.arcTo(X,Y,X+w,Y,r); x.closePath();};
+modes.forEach(([n,col])=>{ const tw=x.measureText(n).width; const w=tw+54, h=42; if(px+w>740){px=100; py+=54;} rr(px,py,w,h,21); x.fillStyle='rgba(255,255,255,0.06)'; x.fill(); x.fillStyle=col; x.beginPath(); x.arc(px+21,py+21,5,0,Math.PI*2); x.fill(); x.fillStyle='#d0d0d0'; x.fillText(n, px+35, py+27); px+=w+10; });
+x.letterSpacing='1px'; x.fillStyle='#555'; x.font='400 18px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.fillText('jbl.umjo.me', 104, 580);
+</script></body></html>
