@@ -35,10 +35,10 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   const fit = useFit(1260, 600);
   // On a phone (someone who scanned a card's QR code) the screen is laid out
   // tall instead: the board as wide as it goes with hold and next beside it,
-  // then the transport and the review under it, and the page scrolls. 412 is
-  // the board and one side column.
+  // then the transport and the review under it, and the page scrolls. 372 is
+  // the board and its narrow side column.
   const phone = window.innerWidth < 720;
-  const zoom = phone ? Math.min(1, (window.innerWidth - 24) / 412) : fit;
+  const zoom = phone ? Math.min(1, (window.innerWidth - 24) / 372) : fit;
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
