@@ -279,6 +279,8 @@
 .lab-cardview-actions { display: flex; align-items: center; gap: 8px; height: var(--h-m); }
 /* Naming the card: the field takes the place of the buttons under it. */
 .lab-cardview-name { display: flex; align-items: center; gap: 8px; height: var(--h-m); }
-.lab-cardview-name input { width: 190px; height: var(--h-m); padding: 0 16px; border: 0; border-radius: var(--r-pill); background: var(--fill); color: var(--fg); font: inherit; font-size: var(--t3); outline: 1px solid var(--line); }
+/* The count sits inside the field, at its end. */
+.lab-cardview-field { position: relative; display: block; }
+.lab-cardview-name input { width: 230px; height: var(--h-m); padding: 0 58px 0 16px; border: 0; border-radius: var(--r-pill); background: var(--fill); color: var(--fg); font: inherit; font-size: var(--t3); outline: 1px solid var(--line); }
 .lab-cardview-name input:focus { outline-color: var(--fg); }
-.lab-cardview-count { min-width: 38px; font-size: var(--t2); color: var(--faint); font-variant-numeric: tabular-nums; }
+.lab-cardview-count { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: var(--t2); color: var(--faint); font-variant-numeric: tabular-nums; pointer-events: none; }

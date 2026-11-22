@@ -149,27 +149,29 @@ function RankCardView({ what: given, onClose }) {
             keep();
           }}
         >
-          <input
-            autoFocus
-            value={draft}
-            maxLength={NAME_MAX}
-            placeholder={NAME_PLACEHOLDER}
-            aria-label={t("Name")}
-            spellCheck={false}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              // Typing here must not reach the replay's own keys.
-              e.stopPropagation();
-              if (e.key === "Escape") setDraft(null);
-            }}
-          />
-          <span className="lab-cardview-count">
-            {draft.length}/{NAME_MAX}
+          <span className="lab-cardview-field">
+            <input
+              autoFocus
+              value={draft}
+              maxLength={NAME_MAX}
+              placeholder={NAME_PLACEHOLDER}
+              aria-label={t("Name")}
+              spellCheck={false}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                // Typing here must not reach the replay's own keys.
+                e.stopPropagation();
+                if (e.key === "Escape") setDraft(null);
+              }}
+            />
+            <span className="lab-cardview-count">
+              {draft.length}/{NAME_MAX}
+            </span>
           </span>
-          <IconButton icon="close" label="Cancel" onClick={() => setDraft(null)} />
           <Button variant="primary" size="s" type="submit">
             {t("Save")}
           </Button>
+          <IconButton icon="close" label="Cancel" onClick={() => setDraft(null)} />
         </form>
       )}
       <div className="lab-cardview-actions" style={{ display: draft !== null ? "none" : undefined }} onClick={(e) => e.stopPropagation()}>
