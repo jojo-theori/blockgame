@@ -596,7 +596,7 @@ const PAGES = {
           <div key={r.letter + r.step} className={"lab-award still rank-" + r.letter}>
             <RankSeal letter={r.letter} step={r.step} />
             <div className="lab-award-title">{t(r.title)}</div>
-            <div className="lab-award-points">{r.min}</div>
+            <div className="lab-award-note">{r.min}+</div>
           </div>
         ))}
       </div>

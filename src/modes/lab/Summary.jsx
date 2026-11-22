@@ -91,7 +91,6 @@ export function Award({ review, card }) {
         <IconButton icon="download" label="Save as image" onClick={save} />
       </div>
       <RankSeal letter={v.letter} step={v.step} />
-      <div className="lab-award-points">{v.points}</div>
       <div className="lab-award-title">{t(v.title)}</div>
       <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>
       {review.traits.length > 0 && (

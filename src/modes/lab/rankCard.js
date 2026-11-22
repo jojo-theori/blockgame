@@ -1,6 +1,8 @@
 // The run's rank as a picture to keep or post: a tall card (1080 × 1350)
 // drawn on a canvas and handed over as a PNG. Laid out like a gift card: a
 // field of the rank's colours, a glass panel on it, the seal in the middle.
+import { qr } from "../../qr.js";
+
 const W = 1080;
 const H = 1350;
 // Per letter: the seal's colours (as replay.css draws them), then the three
@@ -21,8 +23,8 @@ function rounded(ctx, x, y, w, h, r) {
   ctx.roundRect(x, y, w, h, r);
 }
 
-// what: { letter, step, title, points, scores: [[label, value]], name, mode, vs, date }
-export function drawRankCard({ letter, step, title, points, scores, name, mode, vs, date }) {
+// what: { letter, step, title, scores: [[label, value]], name, mode, vs, date }
+export function drawRankCard({ letter, step, title, scores, name, mode, vs, date }) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -125,16 +127,31 @@ export function drawRankCard({ letter, step, title, points, scores, name, mode, 
   if (step) text(step, left + lw + 8, cy, size * 0.62, 800, seal[0], "left");
 
   text(title, cx, 790, 66, 700, "#ffffff");
-  text(String(points), cx, 866, 40, 600, "rgba(255, 255, 255, 0.62)");
   scores.forEach(([label, value], i) => {
     const x = cx + (i - (scores.length - 1) / 2) * 250;
-    text(label, x, 980, 28, 600, "rgba(255, 255, 255, 0.5)");
-    text(String(value), x, 1046, 70, 700, "#ffffff");
+    text(label, x, 912, 28, 600, "rgba(255, 255, 255, 0.5)");
+    text(String(value), x, 978, 70, 700, "#ffffff");
   });
 
   // Whose run, and what it was.
   text(name, m + 56, H - m - 112, 40, 700, "#ffffff", "left");
   text([mode, vs].filter(Boolean).join("  ·  "), m + 56, H - m - 60, 30, 500, "rgba(255, 255, 255, 0.62)", "left");
+
+  // Where to play: the site's address as a QR code, on a light tile.
+  // (A link to the run itself is too long to scan at this size.)
+  const code = qr(location.origin + location.pathname);
+  if (code) {
+    const tile = 150;
+    const pad = 12;
+    const x0 = W - m - 56 - tile;
+    const y0 = H - m - 44 - tile;
+    rounded(ctx, x0, y0, tile, tile, 22);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    const cell = (tile - 2 * pad) / code.length;
+    ctx.fillStyle = "#0a0a0d";
+    code.forEach((row, y) => row.forEach((on, x) => on && ctx.fillRect(x0 + pad + x * cell, y0 + pad + y * cell, cell + 0.5, cell + 0.5)));
+  }
   return canvas;
 }
 

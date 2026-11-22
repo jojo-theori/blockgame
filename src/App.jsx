@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { saveRecent } from "./recent.js";
+import { toast } from "./ui/toast.js";
 import { unpack, HASH } from "./pack.js";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
@@ -99,14 +100,9 @@ export default function App() {
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
   const [menuIdx, setMenuIdx] = useState(0);
-  // Entering the Lab code says so for a moment ("Lab on" / "Lab off").
+  // The Lab code as it is being entered; a toast says when it lands.
   const codeRef = useRef({ keys: [], at: 0 });
-  const [labNote, setLabNote] = useState("");
-  useEffect(() => {
-    if (!labNote) return;
-    const id = setTimeout(() => setLabNote(""), 3000);
-    return () => clearTimeout(id);
-  }, [labNote]);
+  const [, setLabTick] = useState(0); // the menu is drawn again when Lab comes or goes
   const focusLost = useFocusWarning();
   useKeyNav();
   const rowRefs = useRef([]);
@@ -159,7 +155,8 @@ export default function App() {
       code.keys = [...code.keys, e.code].slice(-wanted.length);
       if (code.keys.join() === wanted.join()) {
         code.keys = [];
-        setLabNote(toggleLab());
+        toast(toggleLab());
+        setLabTick((n) => n + 1);
         setMenuIdx(0);
         sfx.select();
         return;
@@ -195,6 +192,9 @@ export default function App() {
 
   // Dev: typing "lizzy" / "jojo" swaps the solo key profile (see dev.js).
   const [devProfile, keysVersion] = useDevProfiles();
+  useEffect(() => {
+    if (devProfile) toast(`${devProfile} keys`);
+  }, [devProfile, keysVersion]);
   // A finished game's log, handed to Replay from its result screen.
   const [labLog, setLabLog] = useState("");
   const analyze = useCallback((text) => {
@@ -232,15 +232,6 @@ export default function App() {
       )}
 
       <FocusWarning show={focusLost} />
-      {(labNote || devProfile) && (
-        <div className="dev-note">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="9.5" />
-            <path d="M7.8 12.4l2.9 2.9 5.5-6" />
-          </svg>
-          {labNote || `${devProfile} keys`}
-        </div>
-      )}
       <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} sound={soundEnabled} setSound={setSoundEnabled} onSettings={openSettings} />
       {settingsOpen && (
         <Settings
