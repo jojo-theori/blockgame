@@ -36,10 +36,10 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
   // On a phone (someone who scanned a card's QR code) the screen is laid out
   // tall instead: the board as wide as it goes with hold and next beside it,
   // then the transport and the review under it, and the page scrolls. 372 is
-  // the board and its narrow side column: a narrower screen scales them down,
-  // a wider one leaves them their size and moves the column to the far edge.
+  // the board and its narrow side column, kept to four fifths of their size at
+  // most (a taller board pushes the transport off a phone's screen) and centred.
   const phone = usePhone();
-  const zoom = phone ? Math.min(1, (window.innerWidth - 24) / 372) : fit;
+  const zoom = phone ? Math.min(0.8, (window.innerWidth - 24) / 372) : fit;
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -322,6 +322,20 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
     fn();
   };
 
+  // One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again.
+  // It ends the row of transport buttons; on a phone it sits beside the timeline.
+  const speedButton = (
+                <button
+                  type="button"
+                  className="lab-speed"
+                  onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) - 1 + SPEEDS.length) % SPEEDS.length]))}
+                  title={t("Speed")}
+                  aria-label={`${t("Speed")} ${speed}×`}
+                >
+                  {speed}×
+                </button>
+  );
+
   return (
     <>
       <div className="mode-label">
@@ -501,6 +515,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
             )}
 
             <div className="lab-transport">
+              <div className="lab-trackrow">
               <div className="lab-track">
                 <input
                   type="range"
@@ -532,22 +547,15 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                   />
                 ))}
               </div>
+              {phone && speedButton}
+              </div>
               <div className="lab-buttons">
                 <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />
                 <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
                 <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} variant="lead" />
                 <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
                 <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />
-                {/* One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again. */}
-                <button
-                  type="button"
-                  className="lab-speed"
-                  onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) - 1 + SPEEDS.length) % SPEEDS.length]))}
-                  title={t("Speed")}
-                  aria-label={`${t("Speed")} ${speed}×`}
-                >
-                  {speed}×
-                </button>
+                {!phone && speedButton}
               </div>
               <div className="lab-foot">
                 <button type="button" className="btn lab-menu" onClick={onMenu}>
