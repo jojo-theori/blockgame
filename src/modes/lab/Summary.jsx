@@ -2,7 +2,8 @@
 import { t } from "../../i18n.js";
 import { KIND_NAMES, SCORES } from "./consts.js";
 import { pointsOf, rankOf } from "./rank.js";
-import { drawRankCard, drawFoilMask, saveRankCard, FOIL } from "./rankCard.js";
+import { drawRankCard, saveRankCard } from "./rankCard.js";
+import { foilOf } from "../../holo/foils.js";
 import { Button, IconButton } from "../../ui.jsx";
 import { loadName, saveName, NAME_MAX, NAME_PLACEHOLDER } from "../../name.js";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -105,12 +106,8 @@ function RankCardView({ what: given, onClose }) {
     setEditing(false);
   };
   const src = useMemo(() => drawRankCard(what).toDataURL("image/png"), [what]);
-  // Where this rank's foil sits (nowhere on the low ranks: they are matte).
-  const foil = FOIL[what.letter];
-  const mask = useMemo(() => {
-    const url = drawFoilMask(what)?.toDataURL("image/png");
-    return url ? { maskImage: `url(${url})`, WebkitMaskImage: `url(${url})` } : null;
-  }, [what]);
+  // This rank's foil (none on the lowest: it is matte).
+  const foil = useMemo(() => foilOf(what), [what]);
   const cardRef = useRef(null);
   useEffect(() => {
     const key = (e) => {
@@ -135,6 +132,17 @@ function RankCardView({ what: given, onClose }) {
     el.style.setProperty("--ry", `${(x * 20).toFixed(2)}deg`);
     el.style.setProperty("--gx", `${((x + 0.5) * 100).toFixed(1)}%`);
     el.style.setProperty("--gy", `${((y + 0.5) * 100).toFixed(1)}%`);
+    // What the foils read (see holo/index.css): where the pointer is, and
+    // where their layers should sit for it.
+    const px = x + 0.5;
+    const py = y + 0.5;
+    el.style.setProperty("--pointer-x", `${(px * 100).toFixed(1)}%`);
+    el.style.setProperty("--pointer-y", `${(py * 100).toFixed(1)}%`);
+    el.style.setProperty("--background-x", `${(37 + px * 26).toFixed(2)}%`);
+    el.style.setProperty("--background-y", `${(33 + py * 34).toFixed(2)}%`);
+    el.style.setProperty("--pointer-from-left", px.toFixed(3));
+    el.style.setProperty("--pointer-from-top", py.toFixed(3));
+    el.style.setProperty("--pointer-from-center", Math.min(1, Math.hypot(x, y) * 2).toFixed(3));
   };
   const rest = () => ["--rx", "--ry"].forEach((k) => cardRef.current.style.setProperty(k, "0deg"));
   return createPortal(
@@ -147,12 +155,10 @@ function RankCardView({ what: given, onClose }) {
         onClose();
       }}
     >
-      <div ref={cardRef} className="lab-cardview-card" onClick={(e) => e.stopPropagation()}>
+      <div ref={cardRef} className="lab-cardview-card card" data-rarity={foil?.rarity} style={foil?.card} onClick={(e) => e.stopPropagation()}>
         <img src={src} alt="" draggable={false} />
-        {foil?.wash && <i className="lab-foil" style={{ opacity: foil.wash }} />}
-        {mask && <i className="lab-foil" style={{ ...mask, opacity: foil.strength }} />}
-        {mask && foil.grain && <i className={"lab-foil-grain " + foil.grain} style={mask} />}
-        <i className="lab-glare" />
+        {foil && <div className="card__shine" style={foil.shine} />}
+        {foil ? <div className="card__glare" /> : <i className="lab-glare" />}
       </div>
       {/* The buttons and the name field share one place and trade it with a fade. */}
       <div className="lab-cardview-foot" onClick={(e) => e.stopPropagation()}>
