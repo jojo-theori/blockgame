@@ -1,0 +1,40 @@
+/* ─── Battle seats ─── */
+.seats { display: flex; align-items: stretch; justify-content: center; gap: 20px; }
+.seat {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 20px 20px 18px;
+  border-radius: 18px;
+  background: var(--fill);
+  text-align: left;
+}
+.seat-name { font-size: var(--t6); font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: var(--seat); transition: color 0.3s var(--out); }
+.seat-sub { font-size: var(--t2); color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.seat-fields { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+.vs { align-self: center; display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: var(--t2); color: var(--faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.swap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--faint);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.swap > * { grid-area: 1 / 1; transition: opacity 0.18s var(--out), transform 0.25s var(--out); }
+.swap-vs { font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; }
+.swap svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(0.8); }
+.swap:hover, .swap:focus-visible { background: var(--hover); color: var(--fg); }
+.swap:hover .swap-vs, .swap:focus-visible .swap-vs { opacity: 0; transform: scale(0.8); }
+.swap:hover svg, .swap:focus-visible svg { opacity: 1; transform: none; }
+.swap:active svg { transform: rotate(180deg); }
+.slot-note { margin: 20px 0 0; min-height: 1.6em; text-align: center; }
+

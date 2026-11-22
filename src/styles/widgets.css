@@ -1,0 +1,512 @@
+/* ─── Dropdown ─── */
+.dd { position: relative; width: 100%; }
+.dd-btn {
+  width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--fg);
+  font-size: var(--t2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s var(--out);
+}
+.dd-btn:hover, .dd.open .dd-btn { background: var(--hover); }
+.dd-chev { width: 14px; height: 14px; fill: none; stroke: var(--dim); stroke-width: 1.6; transition: transform 0.25s var(--out); }
+.dd.open .dd-chev { transform: rotate(180deg); }
+.dd-menu {
+  position: absolute;
+  z-index: 50;
+  top: 0;
+  left: -4px;
+  right: -4px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 12px;
+  background: var(--menu);
+  box-shadow: 0 12px 32px var(--shadow);
+  opacity: 0;
+  transform: scale(0.96);
+  pointer-events: none;
+  transition: opacity 0.16s var(--out), transform 0.22s var(--out);
+}
+.dd.open .dd-menu { opacity: 1; transform: none; pointer-events: auto; }
+.dd-menu li { opacity: 0; transform: none; transition: opacity 0.18s var(--out), transform 0.22s var(--out); }
+.dd.open .dd-menu li { opacity: 1; transform: none; transition-delay: calc(var(--i, 0) * 30ms); }
+.dd-menu button {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dim);
+  font-size: var(--t2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+.dd-menu button:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.dd-menu button.on { color: var(--fg); }
+.dd-menu button:disabled { color: var(--muted); cursor: default; }
+.dd-note { font-size: var(--t1); color: var(--faint); text-transform: none; letter-spacing: 0.02em; }
+
+/* Battle: the seat cards fill the height between the title and the actions. */
+.page > .opts.fill { flex: 1; min-height: 0; margin-bottom: 0; padding-bottom: 8px; justify-content: stretch; }
+.opts.fill .seats { flex: 1; min-height: 0; width: 100%; }
+.opts.fill .seat { width: 280px; padding: 22px 22px 20px; }
+.seat-id { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 16px 0; }
+.opts.fill .seat-name { font-size: var(--t7); line-height: 1; letter-spacing: -0.01em; }
+.opts.fill .seat-fields { margin-top: 0; }
+
+/* Inline warning (e.g. both seats are CPU) */
+.warn { display: inline-flex; align-items: center; gap: 8px; color: #f2cb4c; }
+.warn svg { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+
+/* ─── Opening stages ─── */
+.preview.stages { height: auto; overflow: visible; gap: 6px; }
+.stages button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fill);
+  color: var(--dim);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s var(--out), box-shadow 0.2s var(--out);
+}
+.stages button:hover { background: var(--hover); }
+.stages button.on { background: var(--hover); box-shadow: 0 0 0 1px var(--accent); }
+.stages .stage-all { flex-direction: row; justify-content: center; align-items: center; height: 30px; padding: 0 10px; font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; }
+.stages .stage-all.on { color: var(--fg); }
+.stages button.on .k { color: var(--fg); }
+/* Unavailable openers: no fill or outline and much darker text, so they read
+   as "not here yet" next to the selectable cards. (Colour, not opacity: the
+   entrance animation would override opacity.) */
+.oplist button.off,
+.oplist button.off:hover { cursor: default; background: transparent; border-color: transparent; color: var(--muted); }
+.oplist button.off .ds,
+.oplist button.off .nm .small { color: var(--muted); }
+.oplist .tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  margin-left: 8px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--menu);
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.08em;
+  vertical-align: 2px;
+}
+
+/* Current choice in a dropdown: check mark, full colour, not clickable */
+.dd-label { display: inline-flex; align-items: center; gap: 8px; }
+.dd-check { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
+.dd-menu button.on:disabled { color: var(--fg); cursor: default; background: var(--fill); }
+.dd-menu button.on .dd-check { visibility: visible; }
+
+/* Arrow key glyph inside buttons and key caps */
+.key-arrow { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+.key-arrow .kbd-arrow { width: 9px; height: 9px; }
+.kbd .key-arrow .kbd-arrow { width: 7px; height: 7px; }
+.kbd { gap: 4px; }
+.keybtn .key-arrow .kbd-arrow { width: 10px; height: 10px; }
+
+/* ─── Slider extras ─── */
+.slider-track { position: relative; display: flex; align-items: center; }
+.slider-def {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 10px;
+  margin: -5px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--faint);
+  pointer-events: none;
+  transition: opacity 0.2s var(--out);
+}
+.slider-def.at { opacity: 0; }
+.slider .num {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: text;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s var(--out);
+}
+.slider .num:hover { text-decoration-color: var(--faint); }
+.slider .num-edit {
+  width: auto;
+  min-width: 2ch;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--fg);
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: right;
+  outline: none;
+}
+/* Static setup blocks (nothing in them changes height) sit midway between
+   the title and the actions. */
+.page > .opts.center { margin-top: auto; margin-bottom: auto; padding-top: 0; }
+
+/* Big vertical choice buttons (Sprint lines) */
+.choice-list { display: flex; flex-direction: column; gap: 8px; width: 280px; }
+.choice-list button {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--dim);
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s var(--out), background 0.2s var(--out), border-color 0.2s var(--out);
+}
+.choice-list button:hover { background: var(--hover); color: var(--fg); }
+.choice-list button.on { color: var(--fg); background: var(--hover); border-color: var(--accent); }
+.choice-list .n { font-size: var(--t5); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.choice-list .u { font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.choice-list button.on .u { color: var(--dim); }
+
+/* ─── Multi-select chips ─── */
+.multi { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  min-width: 40px;
+  justify-content: center;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--dim);
+  font-size: var(--t3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.chip-btn:hover { background: var(--hover); color: var(--fg); }
+.chip-btn.on { background: var(--fg); color: var(--on-fg); }
+.chip-dot { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+
+/* ─── Switch ─── */
+.switch-row {
+  width: 100%;
+  max-width: 280px; /* same as .choice-list */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px 10px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--fill);
+  color: var(--dim);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.switch-row:hover { background: var(--hover); }
+.switch-row.on { color: var(--fg); }
+.switch-text { display: flex; flex-direction: column; gap: 2px; }
+.switch-label { font-size: var(--t3); letter-spacing: 0.06em; text-transform: uppercase; }
+.switch-hint { font-size: var(--t1); color: var(--faint); }
+.switch {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--track);
+  transition: background 0.25s var(--out);
+}
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dim);
+  transition: transform 0.28s var(--out), background 0.25s var(--out);
+}
+.switch-row.on .switch { background: var(--accent); }
+.switch-row.on .switch .knob { transform: translateX(16px); background: var(--knob-on); }
+.opt.switches { width: 100%; align-items: center; gap: 8px; }
+
+
+/* ─── Replay log (Sprint, left of the play area; never moves the board) ─── */
+.play { position: relative; }
+.rlog {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: calc(100% + 28px);
+  width: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: none;
+}
+.rlog.right { right: auto; left: calc(100% + 28px); }
+.rlog-head { display: flex; align-items: center; gap: 6px; }
+.rlog-copy {
+  width: 20px;
+  height: 20px;
+  margin: -4px 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.rlog-copy:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.rlog-copy:disabled { opacity: 0.4; cursor: default; }
+.rlog-copy svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.rlog-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 35%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 35%);
+}
+.rlog-row {
+  flex: none;
+  display: grid;
+  grid-template-columns: 26px 46px 22px 32px 1fr;
+  align-items: center;
+  height: 22px;
+  font-size: 10px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  animation: rlog-in 0.2s var(--out) both;
+}
+.rlog-n, .rlog-t, .rlog-dim { color: var(--faint); }
+/* The piece number is smaller and dimmer so it never reads as part of the time. */
+.rlog-n { font-size: 9px; opacity: 0.7; }
+.rlog-p { display: inline-flex; align-items: center; gap: 5px; color: var(--fg, #eee); }
+.rlog-p i { width: 6px; height: 6px; border-radius: 1.5px; display: block; }
+.rlog-keys.bad { color: var(--bad); }
+.rlog-tag { color: var(--fg, #eee); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; }
+@keyframes rlog-in { from { opacity: 0; transform: translateY(4px); } }
+/* Needs ~200px beside the play area; narrower windows have no room for it. */
+@media (max-width: 960px) { .rlog { display: none; } }
+@media (prefers-reduced-motion: reduce) { .rlog-row { animation: none; } }
+
+/* ─── Key input display (in-game, bottom of the left column) ─── */
+.side > .strokes { margin-top: auto; }
+.strokes { display: flex; flex-direction: column; gap: 4px; }
+.strokes > .k { margin-bottom: 6px; }
+.strokes-row { display: flex; gap: 4px; }
+.stroke {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  background: var(--cap);
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: background 0.12s var(--out), color 0.12s var(--out);
+}
+.stroke.wide { width: 108px; }
+.stroke.on { background: var(--fg); color: var(--on-fg); transition-duration: 0s; }
+.stroke .key-arrow .kbd-arrow { width: 7px; height: 7px; }
+
+/* Settings → Display */
+.opts.switches { gap: 8px; }
+.key-msg { min-height: 1.6em; margin: 0 0 8px; font-size: var(--t2); color: var(--dim); }
+.key-msg .err { margin: 0; }
+.actions .btn.primary:disabled { background: var(--cap); border-color: transparent; color: var(--faint); filter: none; cursor: default; }
+
+/* ─── Top bar: language, theme, full screen (always visible) ─── */
+.topbar { position: absolute; z-index: 40; top: 10px; right: calc(var(--edge) - 8px); display: flex; gap: 2px; }
+.top-btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dim);
+  font: inherit;
+  font-size: var(--t1);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.top-btn:hover, .top-btn:focus-visible { background: var(--hover); color: var(--fg); }
+.top-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+html, body { transition: background-color 0.25s var(--out), color 0.25s var(--out); }
+/* Theme switch: one slow cross-fade of the whole page. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.45s; animation-timing-function: ease-in-out; }
+.seat-row { display: flex; flex-direction: column; gap: 8px; }
+.seat-hc { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; padding-left: 4px; }
+
+/* Dropdowns carry a faint hairline (inset, so sizes don't change). */
+.dd-btn { box-shadow: inset 0 0 0 1px var(--stroke); }
+.dd-menu { box-shadow: inset 0 0 0 1px var(--stroke), 0 12px 32px var(--shadow); }
+.veil.pause .row-btns { flex-direction: column; align-items: stretch; }
+
+/* Battle menus worked by each seat's own keys: the button that seat is on. */
+.btn.cursor { outline: 2px solid var(--fg); outline-offset: -2px; }
+.btn.primary.cursor { outline-offset: 2px; }
+
+/* Keyboard navigation: the control the keys are on. */
+.page button:focus-visible, .veil button:focus-visible, .dialog button:focus-visible, .dd-menu button:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: -2px;
+}
+.page .btn.primary:focus-visible, .veil .btn.primary:focus-visible, .dialog .btn.primary:focus-visible,
+.page .group button:focus-visible, .dialog .group button:focus-visible {
+  outline-offset: 2px;
+}
+
+/* ─── Stepper (− value +) ─── */
+.stepper { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; background: var(--fill); }
+.step-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: background 0.2s var(--out), color 0.2s var(--out);
+}
+.step-btn:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.step-btn:disabled { color: var(--muted); cursor: default; }
+.step-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.step-v { min-width: 30px; text-align: center; font-size: var(--t3); font-variant-numeric: tabular-nums; color: var(--fg); }
+
+/* ─── Danger button (flat, red) ─── */
+.btn.danger { background: rgba(232, 80, 91, 0.1); border-color: transparent; color: var(--bad); }
+.btn.danger:hover, .btn.danger:focus-visible { background: rgba(232, 80, 91, 0.18); color: var(--bad); }
+.btn.danger:disabled { background: var(--fill); color: var(--muted); }
+
+/* ─── Confirm dialog ─── */
+.dialog-back {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+  animation: fadeIn 0.18s var(--out) both;
+}
+.dialog {
+  width: min(360px, 100%);
+  padding: 26px 24px 22px;
+  border-radius: 18px;
+  background: var(--menu);
+  box-shadow: inset 0 0 0 1px var(--stroke), 0 24px 60px var(--shadow);
+  animation: dialog-in 0.24s var(--out) both;
+}
+.dialog-title { font-size: var(--t4); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg); }
+.dialog-body { margin: 10px 0 0; font-size: var(--t2); line-height: 1.6; color: var(--dim); }
+.dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+.dialog-actions .btn { height: 40px; }
+/* Settings dialog: fixed height, so switching sections never resizes it. */
+.settings-dialog { width: min(540px, 100%); height: min(700px, 100%); display: flex; flex-direction: column; padding-bottom: 20px; }
+.settings-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.settings-dialog .settings { flex: 1; max-width: none; margin-top: 20px; }
+.settings-foot { display: flex; justify-content: flex-end; gap: 8px; padding-top: 16px; }
+.settings-foot .btn { height: 40px; min-width: 96px; }
+.settings-foot .btn.ghost { color: var(--fg); }
+.settings-foot .btn.ghost:disabled { color: var(--faint); background: transparent; cursor: default; }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) { .dialog, .dialog-back { animation: none; } }
+/* Fixed line boxes: Latin and Hangul names (or "CPU") must give the same height. */
+.seat-name, .seat .seat-name { line-height: 1.1; height: 1.1em; white-space: nowrap; overflow: visible; }
+.seat-sub, .seat .seat-sub { line-height: 16px; height: 16px; white-space: nowrap; }
+/* The note under the seats is either a warning (with icon) or a sentence; give
+   it one fixed line box so the seats above never change height. */
+.slot-note { height: 20px; min-height: 0; line-height: 20px; white-space: nowrap; }
+.slot-note .warn { vertical-align: top; height: 20px; }
+
+/* ─── Focus warning (game keeps running) ─── */
+.focus-warn {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s var(--out);
+  cursor: pointer;
+}
+.focus-warn.on { opacity: 1; pointer-events: auto; }
+.focus-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: var(--menu);
+  box-shadow: inset 0 0 0 1px var(--stroke), 0 16px 40px var(--shadow);
+  color: #f2cb4c;
+  transform: translateY(4px);
+  transition: transform 0.22s var(--out);
+}
+.focus-warn.on .focus-card { transform: none; }
+.focus-card svg { flex: none; width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+.focus-title { font-size: var(--t3); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg); }
+.focus-sub { margin-top: 4px; font-size: var(--t2); color: var(--dim); }
+
