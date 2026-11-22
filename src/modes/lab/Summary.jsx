@@ -3,7 +3,7 @@ import { t } from "../../i18n.js";
 import { KIND_NAMES, SCORES } from "./consts.js";
 import { pointsOf, rankOf } from "./rank.js";
 import { drawRankCard, saveRankCard } from "./rankCard.js";
-import { IconButton, Button } from "../../ui.jsx";
+import { Button } from "../../ui.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { KindIcon } from "./icons.jsx";
@@ -105,8 +105,16 @@ function RankCardView({ what, onClose }) {
   };
   const rest = () => ["--rx", "--ry"].forEach((k) => cardRef.current.style.setProperty(k, "0deg"));
   return createPortal(
-    <div className="lab-cardview" onPointerMove={lean} onPointerLeave={rest} onClick={onClose}>
-      <div ref={cardRef} className="lab-cardview-card" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="lab-cardview"
+      onPointerMove={lean}
+      onPointerLeave={rest}
+      onClick={(e) => {
+        e.stopPropagation(); // the card under it opened this: a click here must not open it again
+        onClose();
+      }}
+    >
+      <div ref={cardRef} className={"lab-cardview-card holo-" + what.letter} onClick={(e) => e.stopPropagation()}>
         <img src={src} alt="" draggable={false} />
       </div>
       <div className="lab-cardview-actions" onClick={(e) => e.stopPropagation()}>
@@ -129,15 +137,23 @@ export function Award({ review, card }) {
   const [key, vars] = v.note;
   // The card to keep: opened large first, saved from there.
   const [shown, setShown] = useState(null);
-  const open = (e) => {
-    e.currentTarget.blur();
+  const open = () => {
     setShown({ ...v, ...card, title: t(v.title), date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
   };
   return (
-    <div className={"lab-award rank-" + v.letter}>
-      <div className="lab-award-save">
-        <IconButton icon="download" label="Save as image" onClick={open} />
-      </div>
+    <div
+      className={"lab-award open rank-" + v.letter}
+      role="button"
+      tabIndex={0}
+      aria-label={t("Show the card")}
+      onClick={open}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter") return;
+        e.preventDefault();
+        e.stopPropagation();
+        open();
+      }}
+    >
       {shown && <RankCardView what={shown} onClose={() => setShown(null)} />}
       <RankSeal letter={v.letter} step={v.step} />
       <div className="lab-award-title">{t(v.title)}</div>

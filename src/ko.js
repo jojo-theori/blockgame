@@ -80,6 +80,7 @@ export default {
   "{n} more": "{n}개 더",
   "Click a piece above to add it, and here to take it out.": "위에서 눌러 넣고, 여기서 눌러 빼세요.",
   Shortcuts: "단축키",
+  "Show the card": "카드 보기",
   "The rank of a run, out of 130 points. The higher it is, the more it is dressed up.": "한 판의 등급. 130점 만점이고, 높을수록 화려해집니다.",
   "A short word that something happened, gone by itself.": "무언가 됐다는 짧은 알림. 저절로 사라집니다.",
   "This browser blocked clipboard access for this site.": "브라우저가 이 사이트의 클립보드 접근을 막았습니다.",
