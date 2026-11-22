@@ -42,6 +42,11 @@ import { parseLog, logMode } from "./replay.js";
 import { finesseScore } from "./analysis.js";
 
 const VERSION = 7;
+// Battle runs (rising garbage, the two seats) are written as version 8. A
+// Sprint is still written as 7, so codes made before keep opening.
+const BATTLE = 8;
+const SEAT_NAMES = ["P1", "P2", "Cold Clear", "MisaMino", "Stacker"];
+const SEAT_LEVELS = ["", "Easy", "Normal", "Hard", "Max"];
 const NAMED = 0;
 const BAGS = 1;
 const SEED = 2;
@@ -167,6 +172,17 @@ const HOLD_ODDS = 70;
 const sharesOf = (ways) => [...Array.from({ length: ways }, (_, i) => ODDS[i] ?? 1), HOLD_ODDS];
 
 const emptyBoard = () => Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+// Garbage rising from the floor, a row per hole, as the replay builds it.
+function rise(matrix, holes) {
+  const next = matrix.map((row) => row.slice());
+  for (const hole of holes) {
+    next.shift();
+    const row = new Array(COLS).fill(8);
+    row[hole] = 0;
+    next.push(row);
+  }
+  return next;
+}
 
 // The pieces in the order they came from the queue. A piece shows up as the
 // type of the first event after one is taken; swapping with the hold takes
@@ -176,6 +192,7 @@ function dealtOf(events) {
   let hold = null;
   let take = true;
   for (const ev of events) {
+    if (ev.kind === "garbage") continue; // rising rows deal nothing
     if (take) dealt.push(LETTERS.indexOf(ev.type));
     if (ev.kind === "hold") {
       take = hold === null;
@@ -188,12 +205,35 @@ function dealtOf(events) {
 }
 const BAG = [1, 2, 3, 4, 5, 6, 7];
 
-// Log text → the packed run, or null when it is not a Sprint this can hold.
+// "Cold Clear (Hard) -1" → [name, level, handicap] as indexes, or null.
+function seatOf(textPart) {
+  const m = (textPart || "").trim().match(/^(.*?)(?:\s+\(([^)]+)\))?(?:\s+([+-]\d+))?$/);
+  if (!m) return null;
+  const name = SEAT_NAMES.indexOf(m[1]);
+  const level = SEAT_LEVELS.indexOf(m[2] || "");
+  const handicap = m[3] ? +m[3] : 0;
+  return name < 0 || level < 0 || handicap < -3 || handicap > 3 ? null : [name, level, handicap];
+}
+const seatText = ([name, level, handicap]) =>
+  SEAT_NAMES[name] + (level ? ` (${SEAT_LEVELS[level]})` : "") + (handicap ? ` ${handicap > 0 ? "+" : ""}${handicap}` : "");
+
+// Log text → the packed run, or null when it is not a run this can hold
+// (a Sprint, or one board of a Battle with its rising garbage).
 export function packRun(text) {
   const events = parseLog(text);
   const mode = logMode(text, events);
   const count = events.length;
-  if (mode.mode !== "sprint" || !count || count > 1023 || events.some((e) => e.kind === "garbage")) return null;
+  const battle = mode.mode === "battle";
+  if ((mode.mode !== "sprint" && !battle) || !count || count > (battle ? 4095 : 1023)) return null;
+  if (!battle && events.some((e) => e.kind === "garbage")) return null;
+  // A Battle's two seats, from the header ("BATTLE P1 +2 vs Cold Clear (Hard)").
+  let seats = null;
+  if (battle) {
+    const head = text.split(/\r?\n/, 1)[0].replace(/\s*\|.*$/, "");
+    const m = head.match(/^BATTLE\s+(.+?)\s+vs\s+(.+)$/i);
+    seats = m && [seatOf(m[1]), seatOf(m[2])];
+    if (!seats || !seats[0] || !seats[1]) return null;
+  }
   const dealt = dealtOf(events);
   // In bags of seven, each with one of every piece (the last may be cut short)?
   const bags = dealt.every((id, i) => !dealt.slice(i - (i % 7), i).includes(id));
@@ -210,6 +250,17 @@ export function packRun(text) {
   let hold = 0;
   let take = true;
   for (const [n, ev] of events.entries()) {
+    if (battle) {
+      // Each event says first whether it is rising garbage.
+      body.push([ev.kind === "garbage" ? 1 : 0, 1, 2]);
+      if (ev.kind === "garbage") {
+        if (!ev.holes.length || ev.holes.length > 20) return null;
+        body.push([ev.holes.length - 1, 1, 20]);
+        for (const hole of ev.holes) body.push([hole, 1, COLS]);
+        matrix = rise(matrix, ev.holes);
+        continue;
+      }
+    }
     if (take) {
       current = dealt[next++];
       if (how === SEED) {
@@ -236,9 +287,11 @@ export function packRun(text) {
     const [x, y] = ev.placed;
     const rot = current === O ? 0 : ev.rot;
     const at = stands.findIndex(([r, sx]) => r === rot && sx === x);
-    if (at < 0 || y < -2 || y > 29) return null;
+    // A battle can end with a piece locked above the board as it tops out.
+    const lift = battle ? 4 : 2;
+    if (at < 0 || y < -lift || y > 29) return null;
     body.push(pick(shares, ranked(matrix, current).indexOf(at)));
-    if (restY(matrix, current, x, rot) !== y) odd.push([n, y + 2]);
+    if (restY(matrix, current, x, rot) !== y) odd.push([n, y + lift]);
     [matrix] = settle(matrix, current, x, y, rot);
     if (current === T) {
       const spin = ev.action.includes("T-Spin");
@@ -252,17 +305,22 @@ export function packRun(text) {
   const scored = events.filter((e) => e.kind === "place" && e.optimal > 0);
   const finesse = mode.finesse ?? finesseScore(scored.filter((e) => !e.finesseFault).length, scored.length);
   const head = [
-    [VERSION, 16],
-    [Math.min(1023, mode.lines || 0), 1024],
-    [count, 1024],
+    ...(battle
+      ? [[BATTLE, 16], [count, 4096]]
+      : [
+          [VERSION, 16],
+          [Math.min(1023, mode.lines || 0), 1024],
+          [count, 1024],
+        ]),
     [Math.min(2 ** 22 - 1, Math.round(events.at(-1).t * 1000)), 2 ** 22],
     [Math.min(100, finesse), 101],
     [how, 3],
     ...(how === SEED ? [[+seed, 2 ** 32]] : []),
+    ...(battle ? seats.flatMap(([name, level, handicap]) => [[name, SEAT_NAMES.length], [level, SEAT_LEVELS.length], [handicap + 3, 7]]) : []),
     [odd.length, count + 1],
     ...odd.flatMap(([n, row]) => [
       [n, count],
-      [row, 32],
+      [row, battle ? 34 : 32],
     ]),
   ].map(([which, of]) => [which, 1, of]);
   return toText([...head, ...body]);
@@ -272,18 +330,21 @@ export function packRun(text) {
 export function unpackRun(packed) {
   try {
     const get = reader(packed);
-    if (get(16) !== VERSION) return null;
-    const goal = get(1024);
-    const count = get(1024);
+    const version = get(16);
+    if (version !== VERSION && version !== BATTLE) return null;
+    const battle = version === BATTLE;
+    const goal = battle ? 0 : get(1024);
+    const count = get(battle ? 4096 : 1024);
     const end = get(2 ** 22);
     const finesse = get(101);
     const how = get(3);
     const seed = how === SEED ? get(2 ** 32) : null;
     const deal = how === SEED ? pieceOrder(seed) : null;
+    const seats = battle ? [0, 1].map(() => [get(SEAT_NAMES.length), get(SEAT_LEVELS.length), get(7) - 3]) : null;
     const odd = new Map();
     for (let k = get(count + 1); k > 0; k--) {
       const n = get(count);
-      odd.set(n, get(32) - 2);
+      odd.set(n, battle ? get(34) - 4 : get(32) - 2);
     }
     const lines = [];
     let matrix = emptyBoard();
@@ -293,6 +354,14 @@ export function unpackRun(packed) {
     let hold = 0;
     let take = true;
     for (let n = 0; n < count; n++) {
+      const num = `#${String(n + 1).padStart(2, "0")}`;
+      const stamp = `[${((end * (n + 1)) / count / 1000).toFixed(3)}s]`;
+      if (battle && get(2)) {
+        const holes = Array.from({ length: get(20) + 1 }, () => get(COLS));
+        matrix = rise(matrix, holes);
+        lines.push(`${num} ${stamp} garbage +${holes.length} holes=[${holes.join(",")}]`);
+        continue;
+      }
       if (take) {
         if (deal) {
           current = deal();
@@ -304,9 +373,7 @@ export function unpackRun(packed) {
         }
       }
       if (!current) return null;
-      const num = `#${String(n + 1).padStart(2, "0")}`;
       // When each piece landed is not kept: they are spaced evenly to the end.
-      const stamp = `[${((end * (n + 1)) / count / 1000).toFixed(3)}s]`;
       const stands = STANDS[current];
       const rank = get.of(sharesOf(stands.length));
       if (rank === stands.length) {
@@ -330,7 +397,8 @@ export function unpackRun(packed) {
       lines.push(`${num} ${stamp} ${LETTERS[current]} spawn(3,-1) → placed(${x},${y}) rot=${rot} | keys=0${words ? ` | ${words}` : ""}`);
       take = true;
     }
-    return [`SPRINT ${goal}L | FNS:${finesse}${deal ? ` | SEED:${seed}` : ""}`, "", ...lines].join("\n");
+    const title = battle ? `BATTLE ${seatText(seats[0])} vs ${seatText(seats[1])}` : `SPRINT ${goal}L`;
+    return [`${title} | FNS:${finesse}${deal ? ` | SEED:${seed}` : ""}`, "", ...lines].join("\n");
   } catch {
     return null;
   }

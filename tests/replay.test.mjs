@@ -158,3 +158,34 @@ test("a Sprint packed for a QR code replays to the same board, lines and final t
   assert.ok(/^[0-9A-Z$*+\-:]+$/.test(packed), "only characters a QR code packs tightly");
   assert.equal(unpackRun("AAAAE"), null);
 });
+
+test("a Battle board packs into a QR code with its garbage, and replays the same", async () => {
+  const { packRun, unpackRun } = await import("../src/compact.js");
+  const { qr } = await import("../src/qr.js");
+  let checked = 0;
+  for (let seed = 1; seed <= 12; seed++) {
+    const { engine } = recorded(seed, 90);
+    const text = buildLogText(engine, "BATTLE Cold Clear (Hard) +1 vs P1");
+    const a = parseLog(text);
+    if (!a.some((e) => e.kind === "garbage")) continue;
+    const packed = packRun(text);
+    assert.ok(packed, `seed ${seed}: packs`);
+    const back = unpackRun(packed);
+    const b = parseLog(back);
+    assert.equal(b.length, a.length, `seed ${seed}: as many events`);
+    assert.deepEqual(
+      b.map((e) => (e.kind === "garbage" ? ["g", e.holes] : [e.kind, e.type, e.placed])),
+      a.map((e) => (e.kind === "garbage" ? ["g", e.holes] : [e.kind, e.type, e.placed])),
+      `seed ${seed}: same pieces, places and garbage`,
+    );
+    assert.deepEqual(buildFrames(b).frames.at(-1).matrix, buildFrames(a).frames.at(-1).matrix, `seed ${seed}: same board`);
+    const mode = logMode(back, b);
+    assert.equal(mode.mode, "battle");
+    assert.equal(mode.me, "Cold Clear");
+    assert.equal(mode.vs, "P1");
+    assert.deepEqual(mode.handicap, [1, 0]);
+    assert.ok(qr(`HTTPS://JBL.UMJO.ME/Q/${packed}`), `seed ${seed}: fits a QR code (${packed.length} characters)`);
+    checked++;
+  }
+  assert.ok(checked >= 5, `only ${checked} games had garbage`);
+});

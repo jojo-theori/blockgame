@@ -26,7 +26,7 @@ export function logMode(text, events = []) {
     };
     const me = seat(battle[1]);
     const vs = seat(battle[2]);
-    return { mode: "battle", me: me?.name || null, vs: vs?.name || null, level: vs?.level || null, handicap: me && vs ? [me.handicap, vs.handicap] : null };
+    return { mode: "battle", me: me?.name || null, vs: vs?.name || null, level: vs?.level || null, handicap: me && vs ? [me.handicap, vs.handicap] : null, ...(finesse ? { finesse: +finesse[1] } : {}) };
   }
   const named = head.match(/^(OPENING|FINESSE)\b/i);
   if (named) return { mode: named[1].toLowerCase() };
