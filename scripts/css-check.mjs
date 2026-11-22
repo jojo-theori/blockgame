@@ -9,6 +9,9 @@ import fs from "fs";
 import path from "path";
 
 const HOME = { "sb-": "sandbox.css", "lab-": "replay.css", "snd-": "replay.css", "cat-": "system.css", "exp-": "replay.css" };
+// The shared parts' own classes: no other sheet may use these names, even as
+// one class among several on an element (".kbd.icon" once broke ".icon").
+const PARTS = ["ds-icon", "icon-btn", "chip-grid", "well", "well-hint"];
 const prefixOf = (name) => Object.keys(HOME).find((p) => name.startsWith(p));
 
 const defined = new Map(); // class → Set(files)
@@ -40,6 +43,10 @@ for (const [name, files] of defined) {
   const away = [...files].filter((f) => f !== HOME[prefix]);
   if (away.length) errors.push(`.${name} belongs in ${HOME[prefix]} but is styled in ${away.join(", ")}`);
   if (!used.has(name)) warnings.push(`.${name} has rules (${[...files].join(", ")}) but no component uses it`);
+}
+for (const name of PARTS) {
+  const away = [...(defined.get(name) || [])].filter((f) => f !== "system.css");
+  if (away.length) errors.push(`.${name} is a shared part's class (system.css) but is also styled in ${away.join(", ")}`);
 }
 for (const name of used) {
   // Names built at run time ("rank-" + letter) end in a hyphen here; skip them.

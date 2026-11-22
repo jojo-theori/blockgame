@@ -4,7 +4,7 @@ import { PATHS } from "./iconPaths.jsx";
 
 export function Icon({ name, size = 16 }) {
   return (
-    <svg className="icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="ds-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       {PATHS[name]}
     </svg>
   );
