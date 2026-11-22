@@ -135,6 +135,9 @@
 .sb-col .group { display: flex; width: 100%; box-sizing: border-box; }
 .sb-col .group button { flex: 1 1 0; min-width: 0; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.04em; }
 .am.start .am-menu { right: auto; left: 0; transform-origin: top left; }
+/* Large: the button and the rows sized for a thumb (the top bar's menu on a phone). */
+.am.touch .am-btn { width: 44px; height: 44px; }
+.am.touch .am-menu button { min-height: 46px; padding: 0 14px; gap: 12px; font-size: var(--t3); }
 .am.up.start .am-menu { transform-origin: bottom left; }
 /* The sandbox's main button wears the mode colour, like Start on other modes. */
 .sb-actions .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-fg); font-weight: 500; }

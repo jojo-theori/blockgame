@@ -13,7 +13,9 @@ const LINE = /^#\d+\s+\[([\d.]+)s\]\s+([ITLJSZO])\s+(?:(hold)|spawn\((-?\d+),(-?
 export function logMode(text, events = []) {
   const head = (text.split(/\r?\n/).find((l) => l.trim()) || "").trim();
   const sprint = head.match(/^SPRINT\s+(\d+)L/i);
-  if (sprint) return { mode: "sprint", lines: +sprint[1] };
+  // "FNS:87": the finesse score, in a log that kept only that (compact.js).
+  const finesse = head.match(/\bFNS:(\d+)/);
+  if (sprint) return { mode: "sprint", lines: +sprint[1], ...(finesse ? { finesse: +finesse[1] } : {}) };
   // "BATTLE P1 vs Cold Clear | …": the board's player, then the opponent.
   const battle = head.match(/^BATTLE(?:\s+(.+?)\s+vs\s+(.+?))?\s*(?:\||$)/i);
   if (battle) {

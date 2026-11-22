@@ -7,16 +7,17 @@ import { evalPosition } from "../../bots/review.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../../render.js";
 import { Stat, KeyHints, ReplayLog, PauseMenu, IconButton, Icon } from "../../ui.jsx";
 import { toast } from "../../ui/toast.js";
-import { useFit } from "../../fit.js";
+import { useFit, usePhone } from "../../fit.js";
 import { selectKey, keyLabel } from "../../keys.js";
 import { pathAt } from "../../trace.js";
 import { replayLink } from "../../pack.js";
-import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, SCORES, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
-import { ScoreHelp, Award } from "./Summary.jsx";
+import { runLink } from "../../compact.js";
+import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
+import { Award } from "./Summary.jsx";
 import { KindIcon, GradeIcon } from "./icons.jsx";
-import { Typed, CountUp } from "./motion.jsx";
+import { Typed } from "./motion.jsx";
 
-export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
+export default function Viewer({ replay, shared = false, look, keysOff, onClose, onMenu }) {
   const { events, frames, dealt } = replay;
   const total = events.length;
   // A link that opens this run for anyone (the run itself rides in the link).
@@ -31,7 +32,16 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
       })
       .catch((err) => console.error("Copy failed:", err));
   // Wide enough for the log on the left and the review on the right.
-  const zoom = useFit(1260, 600);
+  const fit = useFit(1260, 600);
+  // On a phone (someone who scanned a card's QR code) the screen is laid out
+  // tall instead: the board as wide as it goes with hold and next beside it,
+  // then the transport and the review under it, and the page scrolls. 372 is
+  // the board and its narrow side column, centred. They are as large as the
+  // width allows, but no taller than what the summary above and the controls
+  // below (352 px in all, with a little air) leave of the screen's height, so
+  // that nothing on a phone ever scrolls.
+  const phone = usePhone();
+  const zoom = phone ? Math.min((window.innerWidth - 40) / 372, Math.max(0.45, (window.innerHeight - 352) / 560), 1.15) : fit;
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -43,7 +53,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   const [playing, setPlaying] = useState(false);
   // Esc pauses, as in the game modes: the menu is the way out.
   const [menu, setMenu] = useState(null); // null, or { wasPlaying }
-  const [speed, setSpeed] = useState(4); // starts fast; the button steps down from there
+  const [speed, setSpeed] = useState(1); // the real pace; the button steps through the others
   const clockRef = useRef(0);
 
   const seek = useCallback(
@@ -314,14 +324,30 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
     fn();
   };
 
+  // One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again.
+  // It ends the row of transport buttons; on a phone it sits beside the timeline.
+  // Play and pause: in the middle of the transport, or on a phone at the head of the timeline.
+  const playButton = <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} variant="lead" />;
+  const speedButton = (
+                <button
+                  type="button"
+                  className="lab-speed"
+                  onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) - 1 + SPEEDS.length) % SPEEDS.length]))}
+                  title={t("Speed")}
+                  aria-label={`${t("Speed")} ${speed}×`}
+                >
+                  {speed}×
+                </button>
+  );
+
   return (
     <>
       <div className="mode-label">
         {t("Replay")}
         {replay.mode.mode === "unknown" ? "" : ` · ${modeName(replay.mode, "")}`}
       </div>
-      <div style={{ zoom, "--accent": ACCENT }}>
-        <div className="play">
+      <div style={{ zoom, "--accent": ACCENT, "--unzoom": 1 / zoom, "--phone-w": `${(window.innerWidth - 40) / zoom}px` }}>
+        <div className={"play" + (phone ? " lab-phone" : "")}>
           <ReplayLog events={shown} total={step} />
           <div className="side">
             {/* A hold is easy to miss in a replay, so the step it happens on lights
@@ -331,6 +357,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
               <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
             </div>
             {/* What was played, with the run's other facts. */}
+            <div className="lab-stats">
             {MODE_NAMES[replay.mode.mode] && (
               <div className="stat">
                 <div className="k">{t(MODE_NAMES[replay.mode.mode])}</div>
@@ -349,6 +376,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
             <Stat k="Pieces" v={`${frame.placed} / ${frames[total].placed}`} />
             <Stat k="Lines" v={frame.lines} />
             <Stat k="PPS" v={clock > 0 ? (frame.placed / clock).toFixed(2) : "0.00"} />
+            </div>
           </div>
           <div className="board-wrap">
             <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
@@ -382,30 +410,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
               on top, the timeline and transport at the bottom, level with the
               foot of the board. Nothing here changes the page's layout. */}
           <div className="lab-side">
-            {/* The scores: soft pulses while they are worked out, then the numbers. */}
-            <div className="lab-top">
-              {review && typeof review === "object" && <ScoreHelp review={review} mode={replay.mode.mode} />}
-              {review !== null && (
-                <div className={"lab-scores" + (typeof review === "number" ? " waiting" : "")}>
-                  {SCORES.map(([key, label, hint], n) => (
-                    <div key={key} title={t(hint)} className={typeof review === "number" && review * SCORES.length > n ? "on" : ""}>
-                      <div className="k lab-score-k">
-                        <KindIcon kind={key} />
-                        {t(label)}
-                      </div>
-                      {/* A soft pulse holds the place while the score is worked out. */}
-                      {typeof review === "number" ? (
-                        <div className="v lab-wait" style={{ "--i": n }} />
-                      ) : (
-                        <div className="v">
-                          <CountUp to={review.scores[key]} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* The scores live in the summary card (Summary.jsx). */}
             {typeof review === "number" && (
               <div className="lab-loading">
                 <div className="lab-stage">
@@ -439,14 +444,44 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                         </p>
                       </div>
                     ) : overview ? (
-                      <Award review={review} />
+                      <Award
+                        review={review}
+                        mode={replay.mode.mode}
+                        card={{
+                          // A run that came by a link is someone else's: the card is to
+                          // look at. So is one unpacked from a QR code, however it got
+                          // here (such a log carries its finesse score in its header).
+                          shared: shared || replay.mode.finesse != null,
+                          // A CPU's card carries its name; a person's, the name they set on the card.
+                          name: replay.mode.me && !/^P[12]$/.test(replay.mode.me) ? replay.mode.me : "",
+                          mode: modeName({ mode: replay.mode.mode, lines: replay.mode.lines }, ""),
+                          // What the card's QR code opens: this run, where it packs small enough.
+                          link: runLink(replay.text),
+                          // A Sprint that reached its goal shows its time above all else.
+                          time: replay.mode.mode === "sprint" && frames[total].lines >= (replay.mode.lines || Infinity) ? formatTime(events[total - 1].t) : "",
+                          vs: replay.mode.vs ? `vs ${replay.mode.vs}${replay.mode.level ? ` (${t(replay.mode.level)})` : ""}` : "",
+                        }}
+                      />
                     ) : (
                       <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
+                    )}
+                    {/* On a phone the link to this run sits beside the summary (the way
+                        home is the mark at the top left, so the last row is not needed). */}
+                    {phone && overview && (
+                      <span className="lab-slot-close">
+                        <IconButton icon={linked ? "check" : "link"} label={linked ? "Link copied" : "Copy link"} size="m" variant="filled" onClick={blur(copyLink)} />
+                      </span>
+                    )}
+                    {/* On a phone the way back to the summary sits beside the comment. */}
+                    {phone && !overview && (
+                      <span className="lab-slot-close">
+                        <IconButton icon="close" label="Back to summary" size="m" onClick={blur(restart)} />
+                      </span>
                     )}
                   </div>
                   {/* Previous and Next come first and never move; Show best joins
                       them on the right when there is a better line to show. */}
-                  <div className="lab-moment-nav">
+                  <div className={"lab-moment-nav" + (overview ? " at-overview" : "")}>
                     {overview ? (
                       <button type="button" className="btn primary compact" onClick={blur(() => jump(1))} disabled={!moments.length}>
                         {moments.length ? t("See {n} key moments", { n: moments.length }) : t("No key moments")}
@@ -477,6 +512,8 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
             )}
 
             <div className="lab-transport">
+              <div className="lab-trackrow">
+              {phone && <span className="lab-play">{playButton}</span>}
               <div className="lab-track">
                 <input
                   type="range"
@@ -508,22 +545,43 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                   />
                 ))}
               </div>
+              {phone && speedButton}
+              </div>
               <div className="lab-buttons">
-                <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />
-                <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
-                <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} variant="lead" />
-                <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
-                <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />
-                {/* One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again. */}
-                <button
-                  type="button"
-                  className="lab-speed"
-                  onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) - 1 + SPEEDS.length) % SPEEDS.length]))}
-                  title={t("Speed")}
-                  aria-label={`${t("Speed")} ${speed}×`}
-                >
-                  {speed}×
-                </button>
+                {/* A phone has no room for the jumps to either end or the single steps: the timeline does that. */}
+                {!phone && <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />}
+                {!phone && <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />}
+                {!phone && playButton}
+                {!phone && <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />}
+                {!phone && <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />}
+                {!phone && speedButton}
+                {/* On a phone the way into the key moments ends this row. */}
+                {phone && overview && review && typeof review === "object" && (
+                  <button type="button" className="btn primary compact lab-keys" onClick={blur(() => jump(1))} disabled={!moments.length}>
+                    {moments.length ? t("{n} key moments", { n: moments.length }) : t("No key moments")}
+                  </button>
+                )}
+                {/* And once among them: back to the one before at the left, on to the
+                    next in the middle, and the engine's line at the end when there is one. */}
+                {phone && !overview && review && typeof review === "object" && (
+                  <>
+                    <IconButton icon="undo" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
+                    <span className="lab-hop lab-hop-mid">
+                      <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
+                        <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next")}</span>
+                        <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Restart")}</span>
+                      </button>
+                    </span>
+                    {moment?.best && (
+                      <span className="lab-hop">
+                        <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
+                          <Icon name={shownLine ? "stop" : "eye"} size={15} />
+                          {t(shownLine ? "Stop" : "Show")}
+                        </button>
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
               <div className="lab-foot">
                 <button type="button" className="btn lab-menu" onClick={onMenu}>

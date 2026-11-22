@@ -14,6 +14,18 @@ export function useFit(w, h) {
   return Math.min(1, (window.innerWidth - 64) / w, (window.innerHeight - 56 - 64) / h);
 }
 
+// A phone-sized screen: the top bar folds into one menu and the replay is
+// laid out tall. Follows the window.
+export function usePhone() {
+  const [phone, setPhone] = useState(() => window.innerWidth < 720);
+  useEffect(() => {
+    const onResize = () => setPhone(window.innerWidth < 720);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return phone;
+}
+
 // Boolean state remembered in localStorage (e.g. whether "Advanced settings" is open).
 export function useStoredBool(key, initial = false) {
   const [v, setV] = useState(() => {

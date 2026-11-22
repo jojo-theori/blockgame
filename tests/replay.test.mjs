@@ -128,3 +128,33 @@ test("a packed run unpacks to a log that reads the same", async () => {
   assert.ok(/^[\w-]+$/.test(packed) && packed.length < text.length / 5, `packed to ${packed.length} of ${text.length}`);
   assert.equal(await unpack("not-a-run"), null);
 });
+
+test("a Sprint packed for a QR code replays to the same board, lines and final time", async () => {
+  const { packRun, unpackRun } = await import("../src/compact.js");
+  const { parseLog, buildFrames, logMode } = await import("../src/replay.js");
+  const { sampleLog } = await import("../src/sample.js");
+  const text = sampleLog();
+  const packed = packRun(text);
+  const back = unpackRun(packed);
+  const a = parseLog(text);
+  const b = parseLog(back);
+  assert.equal(b.length, a.length);
+  assert.deepEqual(b.map((e) => [e.kind, e.type, e.placed, e.type === "O" ? 0 : e.rot]), a.map((e) => [e.kind, e.type, e.placed, e.type === "O" ? 0 : e.rot]));
+  assert.deepEqual(b.map((e) => e.action), a.map((e) => e.action), "lines and combos follow from the placements");
+  assert.ok(b.every((e, i) => i === 0 || e.t >= b[i - 1].t), "times in order (each landing is not kept)");
+  assert.equal(b.at(-1).t, a.at(-1).t, "the final time exactly");
+  assert.deepEqual(buildFrames(b).frames.at(-1).matrix, buildFrames(a).frames.at(-1).matrix);
+  const { analyze } = await import("../src/analysis.js");
+  const buildReplay = (log) => ((events) => ({ events, ...buildFrames(events), mode: logMode(log, events) }))(parseLog(log));
+  assert.deepEqual({ ...logMode(back, b), finesse: undefined }, { ...logMode(text, a), finesse: undefined });
+  assert.equal((await analyze(buildReplay(back))).scores.finesse, (await analyze(buildReplay(text))).scores.finesse, "the finesse score is kept");
+  assert.ok(packed.length < 100, `packed to ${packed.length} characters for ${a.length} events`);
+  assert.equal(packRun(back), packed, "and packs again to the same text");
+  // A log that does not name its seed lists the pieces, and reads back the same.
+  const listed = packRun(text.replace(/ \| SEED:\d+/, ""));
+  assert.ok(listed.length > packed.length);
+  assert.deepEqual(parseLog(unpackRun(listed)).map((e) => e.type), a.map((e) => e.type));
+  assert.equal(packRun(text.replace(/^SPRINT 40L/, "BATTLE P1 vs CPU")), null, "only a Sprint");
+  assert.ok(/^[0-9A-Z$*+\-:]+$/.test(packed), "only characters a QR code packs tightly");
+  assert.equal(unpackRun("AAAAE"), null);
+});

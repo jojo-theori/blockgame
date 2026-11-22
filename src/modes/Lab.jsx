@@ -21,7 +21,7 @@ function Thumb({ board }) {
   return <canvas ref={ref} className="lab-thumb" />;
 }
 
-export default function Lab({ settings, initial = "", onBack }) {
+export default function Lab({ settings, initial = "", shared = false, onBack }) {
   // A log handed over from a result screen opens straight into its replay.
   const [text, setText] = useState(initial);
   const [open, setOpen] = useState(!!initial);
@@ -93,7 +93,7 @@ export default function Lab({ settings, initial = "", onBack }) {
     };
   }, [open, settingsOpen, onBack, take]);
 
-  if (open && replay) return <Viewer replay={replay} look={settings.look} keysOff={settingsOpen} onClose={() => setOpen(false)} onMenu={onBack} />;
+  if (open && replay) return <Viewer replay={replay} shared={shared && text === initial} look={settings.look} keysOff={settingsOpen} onClose={() => setOpen(false)} onMenu={onBack} />;
 
   const last = replay?.frames[replay.frames.length - 1];
   return (

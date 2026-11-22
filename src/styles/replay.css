@@ -59,8 +59,81 @@
 /* Title line sits level with the HOLD and NEXT labels. */
 .stat .v.lab-mode { font-size: var(--t4); line-height: 1.3; }
 .lab-mode-sub { margin-top: 4px; line-height: 1.4; white-space: nowrap; }
-.lab-top { display: flex; align-items: center; min-height: 44px; }
 .lab-transport { margin-top: auto; display: flex; flex-direction: column; gap: 14px; }
+/* The timeline's row: a group only so a phone can put the speed beside it. */
+.lab-trackrow { display: contents; }
+/* The run's facts under the hold: a group only so a phone can lay them out
+   as a row of their own. */
+.lab-stats { display: contents; }
+/* On a phone nobody plays, they watch. From the top: the scores and the
+   comment (or the summary), then the board at nearly the whole width with one
+   narrow column beside it for a small hold and queue and the run's facts,
+   then the timeline and the transport, which stay at the foot of the screen
+   (on a tall screen the spare height goes above and below the board; the
+   two fixed rows are the hold's and the queue's, so the facts keep the foot
+   of the board), and while the page scrolls, with buttons large enough for a thumb. The board is
+   scaled to the screen's width; everything else is at the page's own size. */
+.play.lab-phone { width: var(--phone-w); display: grid; grid-template-columns: 1fr 280px 92px 1fr; grid-template-rows: auto auto minmax(8px, 1fr) 60px 238px auto minmax(8px, 1fr) auto auto auto; gap: 0; height: auto; min-height: calc((100dvh - 60px) * var(--unzoom)); align-items: start; }
+.lab-phone > .rlog, .lab-phone .keys, .lab-phone .lab-stats > .stat:has(.lab-mode) { display: none; }
+.lab-phone > .side, .lab-phone .lab-side, .lab-phone .lab-transport { display: contents; }
+.lab-phone > .side canvas { zoom: 0.6; }
+.lab-phone > .board-wrap { grid-area: 4 / 2 / 7 / 3; }
+.lab-phone > .side:not(.right) > :first-child { grid-area: 4 / 3; padding-left: 12px; }
+.lab-phone > .side.right > :first-child { grid-area: 5 / 3; padding-left: 12px; }
+.lab-phone .lab-stats { grid-area: 6 / 3; padding-left: 12px; align-self: end; display: flex; flex-direction: column; gap: 12px; }
+.lab-phone .lab-stats .v { font-size: var(--t4); white-space: nowrap; }
+.lab-phone .lab-loading, .lab-phone .lab-moment, .lab-phone .lab-trackrow, .lab-phone .lab-buttons, .lab-phone .lab-foot { grid-column: 1 / -1; zoom: var(--unzoom); text-align: left; }
+.lab-phone .lab-loading, .lab-phone .lab-moment { grid-row: 2; }
+.lab-phone .lab-trackrow { grid-row: 8; position: sticky; bottom: 86px; z-index: 6; display: flex; align-items: center; gap: 12px; padding: 10px 0 14px; background: var(--bg); }
+.lab-phone .lab-track { flex: 1; }
+.lab-phone .lab-buttons { grid-row: 9; position: sticky; bottom: 0; z-index: 7; justify-content: flex-start; gap: 8px; margin-left: 0; zoom: var(--unzoom); box-sizing: content-box; min-height: 52px; padding: 6px 0 calc(28px + env(safe-area-inset-bottom, 0px)); background: var(--bg); }
+/* Everything in the last two rows is 52 px tall. */
+.lab-phone .lab-buttons > button { width: 52px; height: 52px; }
+.lab-phone .lab-buttons svg, .lab-play svg { width: 20px; height: 20px; }
+/* No last row on a phone: the mark at the top left leads home, and the link sits beside the summary. */
+.lab-phone .lab-foot { display: none; }
+.lab-phone .lab-speed { margin-left: 0; height: 52px; min-width: 60px; border-radius: 26px; }
+.lab-phone .lab-buttons > .lab-keys { position: absolute; left: 50%; top: 6px; transform: translateX(-50%); width: auto; height: 52px; padding: 0 20px; font-size: var(--t3); white-space: nowrap; }
+.lab-hop { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.lab-hop .btn { height: 52px; padding: 0 16px; font-size: var(--t3); white-space: nowrap; }
+.lab-hop-mid { position: absolute; left: 50%; top: 32px; margin: 0; width: max-content; flex-wrap: nowrap; transform: translate(-50%, -50%); }
+.lab-play { flex: none; display: flex; }
+.lab-phone .lab-play > button { width: 52px; height: 52px; }
+/* The comment, a little shorter, with the way back at its right. */
+/* The comment and the summary share one height, so stepping between them moves nothing. */
+.lab-phone .lab-slot, .lab-phone .lab-slot.open { height: 72px; display: flex; align-items: center; gap: 6px; }
+.lab-phone .lab-slot > :first-child { flex: 1; min-width: 0; align-self: stretch; }
+.lab-slot-close { flex: none; display: flex; }
+.lab-phone .lab-bubble { display: grid; grid-template-columns: auto 1fr auto; align-content: center; align-items: center; gap: 1px 8px; height: 100%; padding: 4px 12px 4px 14px; }
+.lab-phone .lab-bubble-head { display: contents; }
+.lab-phone .lab-bubble .lab-kind { grid-area: 1 / 3 / 3 / 4; margin-left: 4px; }
+.lab-phone .lab-bubble > p { grid-area: 2 / 1 / 3 / 3; }
+.lab-phone .lab-bubble p { font-size: var(--t2); line-height: 1.35; text-wrap: pretty; word-break: keep-all; }
+.lab-phone .lab-moment-nav { display: none; }
+/* The review, tightened for a phone. The scores run as one line of text at
+   the top left, the question mark after them; a tap anywhere on the line
+   shows what they mean. The summary is a strip: seal, words, and at the right
+   an icon for what a tap does. */
+.lab-phone .lab-moment { gap: 10px; }
+.lab-phone .lab-award { display: grid; grid-template-columns: auto 1fr auto; align-content: center; align-items: center; column-gap: 10px; padding: 5px 12px; text-align: left; }
+.lab-phone .lab-award .lab-seal { grid-area: 1 / 1 / 3 / 2; width: 44px; height: 44px; margin: 0; font-size: 20px; }
+.lab-phone .lab-award-head { grid-area: 1 / 2; align-self: end; display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 10px; }
+.lab-phone .lab-award-title { font-size: var(--t4); word-break: keep-all; }
+.lab-phone .lab-award-note { grid-area: 2 / 2; align-self: start; margin-top: 2px; font-size: var(--t2); word-break: keep-all; }
+.lab-phone .lab-award-scores { display: flex; margin: 0; white-space: nowrap; }
+.lab-phone .lab-award-scores .k { font-size: var(--t1); letter-spacing: 0; }
+.lab-phone .lab-award-scores > div { display: flex; align-items: center; gap: 3px; }
+.lab-phone .lab-award-scores > div + div::before { content: "·"; margin: 0 3px; color: var(--faint); }
+.lab-phone .lab-award-scores .v { margin-top: 0; font-size: var(--t2); }
+.lab-phone .lab-award-scores .lab-kind-icon, .lab-phone .lab-traits, .lab-phone .lab-award-hint { display: none; }
+/* What the scores mean: a button at the card's right edge, the size of the
+   link beside the card; its text opens under the card. */
+.lab-phone .lab-award-help { position: static; grid-area: 1 / 3 / 3 / 4; align-self: center; cursor: default; }
+.lab-help.as-button { position: static; display: flex; }
+.lab-help.as-button .lab-tip { top: calc(100% + 6px); left: 0; right: auto; width: min(300px, calc(100vw - 40px)); }
+.lab-help.as-button.open .lab-tip { opacity: 1; visibility: visible; transform: none; }
+.main:has(.lab-phone) { align-items: flex-start; overflow: hidden; margin-top: 52px; padding: 8px 20px 0; }
+.app:has(.lab-phone) .ftr { display: none; }
 
 /* Scrubber with the key moments on it. The playhead is a white line, so it
    never reads as one of the dots; the whole strip lights up under the mouse. */
@@ -126,22 +199,16 @@
 /* Loading: score slots that pulse, the stage being worked on, and a bar in
    the mode's colour with a light passing over it. */
 .lab-loading { display: flex; flex-direction: column; gap: 14px; }
-.lab-scores.waiting > div { opacity: 0.35; transition: opacity 0.4s var(--out); }
-.lab-scores.waiting > div.on { opacity: 1; }
-.lab-wait { width: 34px; height: 1.15em; border-radius: 6px; background: var(--fill); animation: lab-wait 1.1s ease-in-out infinite; animation-delay: calc(var(--i) * 0.16s); }
 .lab-stage { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: var(--t2); color: var(--dim); }
 .lab-stage span { animation: appear 0.3s var(--out) both; }
 .lab-stage b { font-weight: 500; font-variant-numeric: tabular-nums; color: var(--fg); }
 .lab-loading > i { position: relative; display: block; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .lab-loading > i::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--accent); transform-origin: 0 50%; transform: scaleX(var(--p)); }
 .lab-loading > i::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.75), transparent); animation: lab-sheen 1.1s linear infinite; }
-@keyframes lab-wait { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
 @keyframes lab-sheen { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
-@media (prefers-reduced-motion: reduce) { .lab-wait, .lab-loading > i::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .lab-loading > i::after { animation: none; } }
 
 /* Review: scores, then the comment on the move the replay is on */
-.lab-scores { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; padding-right: 36px; }
-.lab-scores .v { margin-top: 4px; font-size: var(--t6); font-variant-numeric: tabular-nums; color: var(--fg); }
 .lab-moment { display: flex; flex-direction: column; gap: 14px; }
 /* The bubble fills its slot, so it is one size for every comment. */
 .lab-slot { height: 118px; }
@@ -162,7 +229,6 @@
 .snd-btns.tight { gap: 4px; flex-wrap: nowrap; }
 .snd-btns.tight .btn { width: 34px; padding: 0; font-variant-numeric: tabular-nums; }
 /* Help on the scores: a question mark at the end of the row, its text on hover. */
-.lab-top { position: relative; }
 .lab-help { position: absolute; top: -5px; right: -4px; z-index: 5; }
 .lab-help button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--faint); cursor: help; transition: color 0.2s var(--out); }
 .lab-help:hover button, .lab-help button:focus-visible { color: var(--fg); }
@@ -174,15 +240,57 @@
 .lab-tip-row b .lab-kind-icon { width: 14px; height: 14px; }
 /* The summary: a certificate, centred, with the rank on a seal. */
 .lab-award { --rank: var(--fg); padding: 20px 18px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--fill); text-align: center; animation: appear 0.4s var(--out) both; }
-.lab-award.rank-S { --rank: #e3bf3f; }
+.lab-award { position: relative; }
+/* Listed side by side (the Components page), the cards stay still. */
+.lab-award.still { animation: none; }
+.lab-award.rank-SSS { --rank: #ff9ad0; background: radial-gradient(120% 90% at 50% 0%, rgba(255, 122, 182, 0.16), transparent 60%), var(--fill); border-color: rgba(255, 154, 208, 0.45); }
+.lab-award.rank-SS { --rank: #f6c945; background: radial-gradient(120% 90% at 50% 0%, rgba(246, 201, 69, 0.14), transparent 60%), var(--fill); border-color: rgba(246, 201, 69, 0.4); }
+.lab-award.rank-S { --rank: #e3bf3f; background: radial-gradient(120% 90% at 50% 0%, rgba(227, 191, 63, 0.08), transparent 60%), var(--fill); }
 .lab-award.rank-A { --rank: #5cc45c; }
 .lab-award.rank-B { --rank: #41b6e6; }
 .lab-award.rank-C { --rank: #a66bd6; }
 .lab-award.rank-D { --rank: #e8903a; }
 .lab-award.rank-E { --rank: #e8505b; }
-.lab-seal { width: 54px; height: 54px; margin: 4px auto 12px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--rank); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 45%, transparent); color: var(--rank); font-size: var(--t6); font-weight: 700; line-height: 1; }
+/* The summary opens the card. Under the pointer it lifts, leans toward it and
+   glows where the pointer is, as the card itself will. */
+.lab-award.open { --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 0%; cursor: pointer; transform: perspective(700px) rotateX(var(--rx)) rotateY(var(--ry)); transition: transform 0.2s var(--out), border-color 0.22s var(--out), box-shadow 0.22s var(--out); will-change: transform; }
+.lab-award.open::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(220px circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.09), transparent 70%); opacity: 0; transition: opacity 0.25s var(--out); pointer-events: none; }
+.lab-award.open:hover { transform: perspective(700px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(-2px) scale(1.015); border-color: color-mix(in srgb, var(--rank) 55%, var(--line)); box-shadow: 0 0 26px -6px color-mix(in srgb, var(--rank) 45%, transparent); }
+.lab-award.open:hover::after { opacity: 1; }
+.lab-award.open:hover .lab-seal { transform: scale(1.06); }
+.lab-award.open .lab-seal { transition: transform 0.25s var(--out); }
+.lab-award-hint { margin-top: 14px; font-size: var(--t1); letter-spacing: 0.04em; color: var(--faint); transition: color 0.2s var(--out); }
+.lab-award.open:hover .lab-award-hint { color: var(--rank); }
+.lab-award-hint svg { display: none; }
+.lab-phone .lab-award-hint svg { display: block; }
+.lab-award.open:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+/* The seal. The letter and its step are two boxes centred on one line, so the
+   + or − sits on the letter's middle rather than on the text baseline. */
+.lab-seal { position: relative; isolation: isolate; width: 54px; height: 54px; margin: 4px auto 12px; display: flex; align-items: center; justify-content: center; gap: 1px; border-radius: 50%; border: 1.5px solid var(--rank); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 45%, transparent); color: var(--rank); font-size: var(--t6); font-weight: 700; line-height: 1; white-space: nowrap; }
+.lab-seal span { display: block; }
+.lab-seal i { display: block; font-style: normal; font-size: 0.62em; line-height: 1; transform: translateY(-0.04em); }
+/* S: gold with a glow. SS: a ring of turning gold. SSS: a ring of every colour. */
+.lab-seal.seal-S, .lab-seal.seal-SS, .lab-seal.seal-SSS { width: 64px; height: 64px; }
+.lab-seal.seal-S { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 55%, transparent), 0 0 22px rgba(227, 191, 63, 0.45); }
+.lab-seal.seal-SS, .lab-seal.seal-SSS { border-color: transparent; background: var(--bg); box-shadow: 0 0 26px color-mix(in srgb, var(--rank) 55%, transparent); }
+.lab-seal.seal-SS::before, .lab-seal.seal-SSS::before { content: ""; position: absolute; inset: -4px; z-index: -2; border-radius: 50%; background: conic-gradient(#f6c945, #fff6d6, #e3a53f, #fff1b8, #f6c945); animation: seal-turn 6s linear infinite; }
+.lab-seal.seal-SSS::before { inset: -5px; background: conic-gradient(#ff7ab6, #ffd75e, #6fe3a1, #5fb8ff, #b98cff, #ff7ab6); animation-duration: 3.5s; }
+.lab-seal.seal-SS::after, .lab-seal.seal-SSS::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%; background: var(--bg); }
+.lab-seal.seal-SS span, .lab-seal.seal-SSS span { background: linear-gradient(100deg, #f6c945, #fff6d6 45%, #e3a53f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lab-seal.seal-SSS span { background-image: linear-gradient(100deg, #ff7ab6, #ffd75e 35%, #6fe3a1 60%, #5fb8ff 80%, #b98cff); }
+/* The three S ranks share one letter size; SSS is set tight to fill its ring. */
+.lab-seal.seal-SSS { letter-spacing: -0.05em; }
+.lab-seal.seal-SSS span { padding-right: 0.05em; }
+@keyframes seal-turn { to { transform: rotate(360deg); } }
 .lab-award-title { font-size: var(--t5); font-weight: 600; color: var(--fg); line-height: 1.25; }
 .lab-award-note { margin: 5px 0 0; font-size: var(--t3); color: var(--dim); }
+/* The scores inside the summary, as on the card to keep; the row above the
+   comments shows them only away from the summary. */
+.lab-award-scores { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 22px 16px; }
+.lab-award-scores .lab-score-k { justify-content: center; }
+.lab-award-scores .v { margin-top: 3px; font-size: var(--t5); font-variant-numeric: tabular-nums; color: var(--fg); }
+.lab-award-help { position: absolute; top: 8px; right: 8px; z-index: 3; text-align: left; cursor: default; }
+.lab-award-help .lab-help { position: static; display: block; }
 .lab-traits { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; text-align: left; }
 .lab-traits li { display: flex; align-items: flex-start; gap: 8px; font-size: var(--t3); line-height: 1.45; color: var(--fg); animation: appear 0.4s var(--out) both; animation-delay: calc(0.25s + var(--i) * 0.14s); }
 .lab-traits svg { flex: none; width: 16px; height: 16px; margin-top: 1px; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
@@ -228,3 +336,21 @@
 /* Under the playback controls: the way out, and a link to this run. */
 .lab-foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .lab-foot .lab-menu { flex: 1; height: var(--h-m); margin-top: 0; }
+
+/* The rank card, held up: it leans toward the pointer and catches the light. */
+.lab-cardview { position: fixed; inset: 0; z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; background: rgba(0, 0, 0, 0.72); backdrop-filter: blur(10px); perspective: 1400px; animation: appear 0.25s var(--out) both; }
+.lab-cardview-card { --rx: 0deg; --ry: 0deg; --gx: 50%; --gy: 30%; position: relative; height: min(72vh, 680px, (100vw - 40px) * 1504 / 1080); aspect-ratio: 1080 / 1504; border-radius: 24px; overflow: hidden; transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform 0.18s var(--out); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); will-change: transform; }
+.lab-cardview-card img { display: block; width: 100%; height: 100%; user-select: none; }
+/* The foils come from holo/ (see its NOTICE.md); a matte card gets only this spot of light. */
+.lab-cardview-card i { position: absolute; inset: 0; display: block; pointer-events: none; }
+.lab-glare { background: radial-gradient(circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.22), transparent 55%); mix-blend-mode: screen; }
+/* Under the card: the buttons, or the field for naming it. They share one
+   place, every control the same height, and trade it with a short fade. */
+.lab-cardview-foot { display: grid; justify-items: center; align-items: center; height: var(--h-m); }
+.lab-cardview-actions, .lab-cardview-name { grid-area: 1 / 1; display: flex; align-items: center; gap: 8px; height: var(--h-m); opacity: 0; visibility: hidden; transform: translateY(6px) scale(0.98); transition: opacity 0.22s var(--out), transform 0.22s var(--out), visibility 0s 0.22s; }
+.lab-cardview-actions.on, .lab-cardview-name.on { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+/* The count sits inside the field, at its end. */
+.lab-cardview-field { position: relative; display: block; }
+.lab-cardview-name input { width: 230px; height: var(--h-m); padding: 0 58px 0 16px; border: 0; border-radius: var(--r-pill); background: var(--fill); color: var(--fg); font: inherit; font-size: var(--t3); outline: 1px solid var(--line); }
+.lab-cardview-name input:focus { outline-color: var(--fg); }
+.lab-cardview-count { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: var(--t2); color: var(--faint); font-variant-numeric: tabular-nums; pointer-events: none; }

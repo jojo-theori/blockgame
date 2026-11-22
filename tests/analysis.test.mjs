@@ -14,10 +14,10 @@ const mean = (list) => list.reduce((a, b) => a + b, 0) / list.length;
 const flagged = (r) => r.moments.filter((m) => m.kind === "macro" && ["inaccuracy", "mistake", "blunder"].includes(m.grade)).length;
 
 test("dexterity has fixed ends in both modes", () => {
-  // Battle: 0.25 PPS is 0, every doubling adds 25.
-  assert.deepEqual([0.25, 0.5, 1, 2, 4, 9].map((pps) => dexterityScore(pps, "battle")), [0, 25, 50, 75, 100, 100]);
-  // Sprint: 40 lines (101 pieces) in 2:00, 1:00, 0:30 and 0:15.
-  assert.deepEqual([120, 60, 30, 15].map((s) => dexterityScore(101 / s, "sprint")), [25, 50, 75, 100]);
+  // Battle: 0.1875 PPS is 0, every doubling adds 25, 3 PPS is the top.
+  assert.deepEqual([0.1875, 0.375, 0.75, 1.5, 3, 9].map((pps) => dexterityScore(pps, "battle")), [0, 25, 50, 75, 100, 100]);
+  // Sprint: 40 lines (101 pieces) in 4:00, 2:00, 1:00 and 0:30.
+  assert.deepEqual([240, 120, 60, 30].map((s) => dexterityScore(101 / s, "sprint")), [25, 50, 75, 100]);
   assert.equal(dexterityScore(0, "sprint"), 0);
 });
 
@@ -35,8 +35,8 @@ test("Battle macro ranks play from random to Cold Clear", async () => {
   const cc = await score("cc");
   assert.ok(random < 20, `random play scored ${random}`);
   assert.ok(random < sloppy && sloppy < stacker && stacker < cc, `not in order: ${[random, sloppy, stacker, cc]}`);
-  // Not seeded either: its own play has scored 86 to 96.
-  assert.ok(cc >= 80, `Cold Clear scored ${cc}`);
+  // Not seeded either. The engine's own noise is taken off, so its play sits at the top.
+  assert.ok(cc >= 92, `Cold Clear scored ${cc}`);
 });
 
 test("the engine is rarely told it was wrong about its own moves", async () => {

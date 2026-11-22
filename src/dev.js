@@ -25,6 +25,30 @@ const WORDS = [
   ["jojo", "own"],
   ["whwh", "own"], // 조조
 ];
+const LAB_KEY = "jbl-lab";
+export const labOpen = () => {
+  try {
+    return localStorage.getItem(LAB_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+// The code that shows or hides Lab, entered on the home menu: left, right,
+// left, right, rotate counter-clockwise, rotate clockwise, on the player's
+// own solo keys.
+export function labCode() {
+  const k = { ...DEFAULT_BINDINGS.solo, ...loadKeyBindings().solo };
+  return [k.left, k.right, k.left, k.right, k.rotateCCW, k.rotateCW];
+}
+export function toggleLab() {
+  const on = !labOpen();
+  try {
+    localStorage.setItem(LAB_KEY, on ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+  return on ? "Lab on" : "Lab off";
+}
 const OWN_KEY = "jbl-keys-own"; // your solo keys, kept while Lizzy's are in
 
 function swap(to) {

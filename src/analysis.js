@@ -154,6 +154,11 @@ const ENGINE_CAP = 800; // one disaster should not sink the whole score
 const ENGINE_RANK = 5;
 const ENGINE_GRADES = { inaccuracy: 300, mistake: 450, blunder: 700 };
 const ENGINE_SCALE = 280;
+// What the engine's own play costs per move when it is reviewed after a real
+// Battle (garbage coming in, a deeper search than the review's): about 50.
+// That much is taken as the noise of the yardstick and not held against the
+// run, so engine-level play scores in the high 90s.
+const ENGINE_BASE = 40;
 const engineCost = (loss) => Math.min(Math.max(0, loss - ENGINE_FLOOR), ENGINE_CAP);
 const engineFlag = (loss, rank) => (loss >= ENGINE_GRADES.inaccuracy && rank >= ENGINE_RANK) || loss >= ENGINE_GRADES.blunder;
 
@@ -166,17 +171,17 @@ const engineFlag = (loss, rank) => (loss >= ENGINE_GRADES.inaccuracy && rank >= 
 //              sprintMacro). Other modes: the stack evaluator.
 //   dexterity  pieces per second on a log scale, 25 points a doubling, set
 //              against what players actually do:
-//              Sprint  40 lines in 2:00 is 25, 1:00 is 50, 0:30 is 75, 0:15
-//                      is 100 (0.84, 1.7, 3.4, 6.7 PPS; the usual beginner /
-//                      intermediate / advanced / expert bands).
-//              Battle  slower, since there is more to read. From 0.25 PPS (0)
-//                      to 4 PPS (100): TETR.IO's rank averages land at D 37,
-//                      B 52, A 59, S 67, SS 74, U 81, X 89, X+ 95.
+//              Sprint  40 lines in 4:00 is 25, 2:00 is 50, 1:00 is 75, 0:30
+//                      is 100 (0.42, 0.84, 1.7, 3.4 PPS). The top is a time
+//                      strong players reach, not the world record (about 0:13).
+//              Battle  slower, since there is more to read. From 0.19 PPS (0)
+//                      to 3 PPS (100): TETR.IO's rank averages land at D 48,
+//                      B 64, S 77, U 92, X+ 100.
 //   finesse    the share of pieces placed without a wasted key press, the
 //              way TETR.IO and Jstris count it. 70% is the usual mark for
 //              "good enough to move on".
 const clamp = (n) => Math.max(0, Math.min(100, n));
-export const dexterityScore = (pps, mode) => (pps > 0 ? Math.round(clamp((100 * Math.log2(pps / (mode === "sprint" ? 0.42 : 0.25))) / 4)) : 0);
+export const dexterityScore = (pps, mode) => (pps > 0 ? Math.round(clamp((100 * Math.log2(pps / (mode === "sprint" ? 0.21 : 0.1875))) / 4)) : 0);
 export const finesseScore = (clean, scored) => (scored ? Math.round((100 * clean) / scored) : 100);
 const cellKey = (cells) => cells.map(([r, c]) => r * 10 + c).sort((x, y) => x - y).join(",");
 // A line of moves ({ id, cells }, each on the board the one before left)
@@ -603,9 +608,10 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
   onProgress(1);
   return {
     scores: {
-      macro: !places.length ? 0 : sprint ? sprintMacro(outcome, goal) : round(100 * Math.exp(-regret / places.length / (engine ? ENGINE_SCALE : 6.5))),
+      macro: !places.length ? 0 : sprint ? sprintMacro(outcome, goal) : round(100 * Math.exp(-(engine ? Math.max(0, regret / places.length - ENGINE_BASE) / ENGINE_SCALE : regret / places.length / 6.5))),
       dexterity: dexterityScore(pps, mode),
-      finesse: finesseScore(scored.filter((p) => !p.ev.finesseFault).length, scored.length),
+      // A log may carry the score alone, without the key counts behind it.
+      finesse: played?.finesse ?? finesseScore(scored.filter((p) => !p.ev.finesseFault).length, scored.length),
     },
     engine: !!engine,
     outcome,

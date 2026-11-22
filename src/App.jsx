@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { saveRecent } from "./recent.js";
+import { toast } from "./ui/toast.js";
 import { unpack, HASH } from "./pack.js";
+import { unpackRun, runInPath } from "./compact.js";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
-import { useDevProfiles } from "./dev.js";
+import { useDevProfiles, labOpen, toggleLab, labCode } from "./dev.js";
 import { Background } from "./bg.jsx";
 import { setSkin, setCellLines, setOrientMark, setBoardTheme } from "./render.js";
 import { selectKey, backKey, keyLabel } from "./keys.js";
@@ -51,10 +53,14 @@ const MODES = [
 ];
 
 // Next menu row in direction d, skipping modes that are not ready yet.
+// Lab stays off the menu until it is unlocked (typing "lab", see dev.js).
+const menuModes = () => (labOpen() ? MODES : MODES.filter((m) => m.id !== "experiments"));
 function stepReady(i, d) {
-  let n = i;
-  do n = (n + d + MODES.length) % MODES.length;
-  while (!MODES[n].ready && n !== i);
+  const modes = menuModes();
+  let n = Math.min(i, modes.length - 1);
+  const from = n;
+  do n = (n + d + modes.length) % modes.length;
+  while (!modes[n].ready && n !== from);
   return n;
 }
 
@@ -95,6 +101,9 @@ export default function App() {
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
   const [menuIdx, setMenuIdx] = useState(0);
+  // The Lab code as it is being entered; a toast says when it lands.
+  const codeRef = useRef({ keys: [], at: 0 });
+  const [, setLabTick] = useState(0); // the menu is drawn again when Lab comes or goes
   const focusLost = useFocusWarning();
   useKeyNav();
   const rowRefs = useRef([]);
@@ -138,6 +147,21 @@ export default function App() {
   useEffect(() => {
     if (view !== "menu" || settingsOpen) return;
     const handleKey = (e) => {
+      // The Lab code (dev.js): each key must follow the last within two seconds.
+      const now = performance.now();
+      const code = codeRef.current;
+      code.keys = now - code.at > 2000 ? [] : code.keys;
+      code.at = now;
+      const wanted = labCode();
+      code.keys = [...code.keys, e.code].slice(-wanted.length);
+      if (code.keys.join() === wanted.join()) {
+        code.keys = [];
+        toast(toggleLab());
+        setLabTick((n) => n + 1);
+        setMenuIdx(0);
+        sfx.select();
+        return;
+      }
       if (e.code === "ArrowDown" || (e.code === "Tab" && !e.shiftKey)) {
         e.preventDefault();
         setMenuIdx((i) => stepReady(i, 1));
@@ -148,13 +172,13 @@ export default function App() {
         sfx.tick();
       } else if (e.code === selectKey() || e.code === "Enter" || e.code === "NumpadEnter") {
         e.preventDefault();
-        const item = MODES[menuIdx];
+        const item = menuModes()[menuIdx];
         if (item?.ready) {
           sfx.select();
           setView(item.id);
         }
       } else if (/^Digit[1-9]$/.test(e.code)) {
-        const item = MODES[+e.code.slice(5) - 1];
+        const item = menuModes()[+e.code.slice(5) - 1];
         if (item?.ready) setView(item.id);
       }
     };
@@ -169,20 +193,31 @@ export default function App() {
 
   // Dev: typing "lizzy" / "jojo" swaps the solo key profile (see dev.js).
   const [devProfile, keysVersion] = useDevProfiles();
+  useEffect(() => {
+    if (devProfile) toast(`${devProfile} keys`);
+  }, [devProfile, keysVersion]);
   // A finished game's log, handed to Replay from its result screen.
   const [labLog, setLabLog] = useState("");
+  // Whether that log came by a link: someone else's run, to watch, not to keep.
+  const [labShared, setLabShared] = useState(false);
   const analyze = useCallback((text) => {
     saveRecent(text);
+    setLabShared(false);
     setLabLog(text);
     setView("lab");
   }, []);
   // A link to a run (see pack.js) opens straight into its replay.
   useEffect(() => {
-    if (!location.hash.startsWith(HASH)) return;
-    const packed = location.hash.slice(HASH.length);
-    history.replaceState(null, "", location.pathname + location.search);
-    unpack(packed).then((text) => {
+    // Two kinds: the short one a QR code carries, in the path (compact.js; the
+    // host serves the app for any path, see 404.html in the build), and the
+    // full one after the #.
+    const run = runInPath(location.pathname);
+    if (!run && !location.hash.startsWith(HASH)) return;
+    const packed = run || location.hash.slice(HASH.length);
+    history.replaceState(null, "", (run ? "/" : location.pathname) + location.search);
+    Promise.resolve(run ? unpackRun(packed) : unpack(packed)).then((text) => {
       if (!text) return;
+      setLabShared(true);
       setLabLog(text);
       setView("lab");
     });
@@ -190,6 +225,7 @@ export default function App() {
   const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${orientMark}${theme}`, analyze };
   const goMenu = () => {
     setLabLog("");
+    setLabShared(false);
     setSettingsOpen(false);
     setView("menu");
   };
@@ -206,15 +242,6 @@ export default function App() {
       )}
 
       <FocusWarning show={focusLost} />
-      {devProfile && (
-        <div className="dev-note">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="9.5" />
-            <path d="M7.8 12.4l2.9 2.9 5.5-6" />
-          </svg>
-          {devProfile} keys
-        </div>
-      )}
       <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} sound={soundEnabled} setSound={setSoundEnabled} onSettings={openSettings} />
       {settingsOpen && (
         <Settings
@@ -240,7 +267,7 @@ export default function App() {
             <h1 className="logo">JBL</h1>
             <div className="sub">Jojo&apos;s Blockgame Laboratory</div>
             <div className="menu">
-              {MODES.map((m, i) => (
+              {menuModes().map((m, i) => (
                 <button
                   key={m.id}
                   ref={(el) => (rowRefs.current[i] = el)}
@@ -269,20 +296,32 @@ export default function App() {
         {view === "battle" && <Battle settings={settings} onBack={goMenu} />}
         {view === "opening" && <Opening settings={settings} onBack={goMenu} />}
         {view === "finesse" && <Finesse settings={settings} onBack={goMenu} />}
-        {view === "lab" && <Lab settings={settings} initial={labLog} onBack={goMenu} />}
+        {view === "lab" && <Lab settings={settings} initial={labLog} shared={labShared} onBack={goMenu} />}
         {view === "experiments" && <Experiments settings={settings} onBack={goMenu} />}
         {view === "sandbox" && <Sandbox settings={settings} onBack={goMenu} />}
         {current && !current.ready && <ComingSoon label={t(current.label)} color={current.color} onBack={goMenu} />}
       </main>
 
       <footer className="ftr">
-        {t("Inspired by")}{" "}
+        {t("Rules after")}{" "}
         <a href="https://jstris.jezevec10.com/" target="_blank" rel="noopener noreferrer">
           Jstris
         </a>{" "}
         · {t("Openers after")}{" "}
         <a href="https://four.lol/" target="_blank" rel="noopener noreferrer">
           four.lol
+        </a>{" "}
+        · CPU{" "}
+        <a href="https://github.com/misakamm/MisaMino" target="_blank" rel="noopener noreferrer">
+          MisaMino
+        </a>
+        ,{" "}
+        <a href="https://github.com/MinusKelvin/cold-clear" target="_blank" rel="noopener noreferrer">
+          Cold Clear
+        </a>{" "}
+        · {t("Card foils")}{" "}
+        <a href="https://github.com/simeydotme/pokemon-cards-css" target="_blank" rel="noopener noreferrer">
+          pokemon-cards-css
         </a>{" "}
         · {t("Made by")}{" "}
         <a href="https://umjo.me" target="_blank" rel="noopener noreferrer">

@@ -355,6 +355,8 @@
 
 /* ─── Top bar: language, theme, full screen (always visible) ─── */
 .topbar { position: absolute; z-index: 40; top: 10px; right: calc(var(--edge) - 8px); display: flex; gap: 2px; }
+/* On a phone: one menu button, and rows a thumb can hit. */
+.topbar.phone { top: 6px; right: 8px; }
 html, body { transition: background-color 0.25s var(--out), color 0.25s var(--out); }
 /* Theme switch: one slow cross-fade of the whole page. */
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.45s; animation-timing-function: ease-in-out; }

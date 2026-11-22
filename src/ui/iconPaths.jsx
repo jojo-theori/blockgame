@@ -29,6 +29,9 @@ export const PATHS = {
     </>
   ),
   prev: <path d="M14.5 6.5 9 12l5.5 5.5" />,
+  undo: <path d="M8.5 13.5 4.5 9.5l4-4M4.5 9.5h9.250a5 5 0 0 1 0 10H9" />,
+  up: <path d="M6.5 14.5 12 9l5.5 5.5" />,
+  down: <path d="M6.5 9.5 12 15l5.5-5.5" />,
   first: <path d="M17 6.5 11.5 12l5.5 5.5M7.5 6.5v11" />,
   last: <path d="M7 6.5 12.5 12 7 17.5M16.5 6.5v11" />,
   chevron: <path d="M7 10l5 5 5-5" />,
@@ -63,6 +66,8 @@ export const PATHS = {
   // Nothing here / take away: a square drawn in dashes
   empty: <rect x="5.5" y="5.5" width="13" height="13" rx="2" strokeDasharray="3 2.6" />,
   // Filled shapes
+  globe: <path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM3.5 12h17M12 3.5c-2.6 2.4-3.9 5.200-3.9 8.500s1.300 6.100 3.900 8.500c2.600-2.400 3.900-5.200 3.900-8.500S14.600 5.900 12 3.500Z" />,
+  menu: <path d="M4.5 7h15M4.5 12h15M4.5 17h15" />,
   more: (
     <g fill="currentColor" stroke="none">
       <circle cx="6" cy="12" r="1.6" />
@@ -71,6 +76,7 @@ export const PATHS = {
     </g>
   ),
   copy: <path d="M9 9h10v10H9zM5 15V5h10" />,
+  download: <path d="M12 4.5v10M7.5 10.5 12 15l4.5-4.5M5 19h14" />,
   link: <path d="M10.5 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M13.5 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
   robot: (
     <>
