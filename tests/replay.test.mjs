@@ -139,15 +139,19 @@ test("a Sprint packed for a QR code replays to the same board, lines and final t
   const a = parseLog(text);
   const b = parseLog(back);
   assert.equal(b.length, a.length);
-  assert.deepEqual(b.map((e) => [e.kind, e.type, e.placed, e.rot]), a.map((e) => [e.kind, e.type, e.placed, e.rot]));
+  assert.deepEqual(b.map((e) => [e.kind, e.type, e.placed, e.type === "O" ? 0 : e.rot]), a.map((e) => [e.kind, e.type, e.placed, e.type === "O" ? 0 : e.rot]));
   assert.deepEqual(b.map((e) => e.action), a.map((e) => e.action), "lines and combos follow from the placements");
-  assert.deepEqual(b.map((e) => e.finesseFault > 0), a.map((e) => e.finesseFault > 0));
   assert.ok(b.every((e, i) => i === 0 || e.t >= b[i - 1].t), "times in order (each landing is not kept)");
   assert.equal(b.at(-1).t, a.at(-1).t, "the final time exactly");
   assert.deepEqual(buildFrames(b).frames.at(-1).matrix, buildFrames(a).frames.at(-1).matrix);
   assert.deepEqual(logMode(back, b), logMode(text, a));
-  assert.ok(packed.length < 260, `packed to ${packed.length} characters for ${a.length} events`);
+  assert.ok(packed.length < 150, `packed to ${packed.length} characters for ${a.length} events`);
+  assert.equal(packRun(back), packed, "and packs again to the same text");
+  // A log that does not name its seed lists the pieces, and reads back the same.
+  const listed = packRun(text.replace(/ \| SEED:\d+/, ""));
+  assert.ok(listed.length > packed.length);
+  assert.deepEqual(parseLog(unpackRun(listed)).map((e) => e.type), a.map((e) => e.type));
   assert.equal(packRun(text.replace(/^SPRINT 40L/, "BATTLE P1 vs CPU")), null, "only a Sprint");
   assert.ok(/^[0-9A-Z$*+\-./:]+$/.test(packed), "only characters a QR code packs tightly");
-  assert.equal(unpackRun("AAAA"), null);
+  assert.equal(unpackRun("AAAAE"), null);
 });

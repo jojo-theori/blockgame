@@ -434,6 +434,17 @@ const KICKS_I = {
 const ATTACK_TABLE = [0, 0, 1, 2, 4, 4, 6, 2, 0, 10, 1];
 const COMBO_TABLE = [0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5];
 
+// The pieces a seed deals, one per call: bags of seven, each shuffled. A run
+// that knows its seed can be told without listing its pieces (compact.js).
+export function pieceOrder(seed) {
+  const rng = mulberry32(seed);
+  let bag = [];
+  return () => {
+    if (!bag.length) bag = sevenBag(rng);
+    return bag.shift();
+  };
+}
+
 // ─── HELPERS ───
 const createMatrix = () =>
   Array.from({ length: ROWS }, () => new Array(COLS).fill(EMPTY));
@@ -500,6 +511,8 @@ export class BlockEngine {
     // A fixed seed gives a repeatable piece order (Battle: both boards share it).
     const seed = this.seed ?? Date.now() + Math.floor(Math.random() * 1e9);
     this.rng = mulberry32(seed);
+    // The seed the pieces really came from (null when some were given).
+    this.orderSeed = this.sequence ? null : seed >>> 0;
     this.bag = [];
     this.queue = [];
     this.pendingSeq = this.sequence ? this.sequence.slice() : [];
@@ -509,6 +522,7 @@ export class BlockEngine {
     let attempts = 0;
     while (!this.sequence && this.isBannedStart() && attempts < 1000) {
       this.rng = mulberry32(seed + ++attempts * 7919);
+      this.orderSeed = (seed + attempts * 7919) >>> 0;
       this.bag = [];
       this.queue = [];
       this.fillQueue();
@@ -1467,9 +1481,10 @@ function replayLines(engine) {
 // mode: what was being played, as the first word(s) of the header ("SPRINT
 // 40L", "BATTLE", "OPENING", "FINESSE"). A replay reads it back to know how to
 // judge the run: a Sprint and a Battle are not stacked the same way.
+const seedNote = (engine) => (engine.orderSeed == null ? "" : ` | SEED:${engine.orderSeed}`);
 export function buildLogText(engine, mode = "LOG") {
   if (!engine) return "";
-  return [`${mode} | ${engine.placedBlocks} blocks | ${formatTime(engine.clock)}`, "", ...replayLines(engine)].join("\n");
+  return [`${mode} | ${engine.placedBlocks} blocks | ${formatTime(engine.clock)}${seedNote(engine)}`, "", ...replayLines(engine)].join("\n");
 }
 
 export function buildReplayText(engine, settings, summary) {
@@ -1478,7 +1493,7 @@ export function buildReplayText(engine, settings, summary) {
   const time = summary.time.toFixed(3);
   const timeStr = formatTime(summary.time);
   lines.push(
-    `SPRINT ${sprintLines}L | ${timeStr} (${time}s) | ${summary.blocks} blocks | ${summary.pps.toFixed(2)} PPS | DAS:${das} ARR:${arr}`,
+    `SPRINT ${sprintLines}L | ${timeStr} (${time}s) | ${summary.blocks} blocks | ${summary.pps.toFixed(2)} PPS | DAS:${das} ARR:${arr}${seedNote(engine)}`,
   );
 
   lines.push("");
