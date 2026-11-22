@@ -442,8 +442,8 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                       <Award
                         review={review}
                         card={{
-                          // The player's name is the seat's until there are accounts.
-                          name: replay.mode.me || "PLAYER",
+                          // A CPU's card carries its name; a person's, the name they set on the card.
+                          name: replay.mode.me && !/^P[12]$/.test(replay.mode.me) ? replay.mode.me : "",
                           mode: modeName({ mode: replay.mode.mode, lines: replay.mode.lines }, ""),
                           // A Sprint that reached its goal shows its time above all else.
                           time: replay.mode.mode === "sprint" && frames[total].lines >= (replay.mode.lines || Infinity) ? formatTime(events[total - 1].t) : "",

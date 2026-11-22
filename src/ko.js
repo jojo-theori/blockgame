@@ -80,6 +80,8 @@ export default {
   "{n} more": "{n}개 더",
   "Click a piece above to add it, and here to take it out.": "위에서 눌러 넣고, 여기서 눌러 빼세요.",
   Shortcuts: "단축키",
+  "Edit name": "이름 수정",
+  Name: "이름",
   "Click to save": "눌러서 저장하세요",
   "Show the card": "카드 보기",
   "The rank of a run, out of 130 points. The higher it is, the more it is dressed up.": "한 판의 등급. 130점 만점이고, 높을수록 화려해집니다.",

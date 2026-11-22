@@ -276,4 +276,9 @@
 .lab-foil-grain { mix-blend-mode: overlay; }
 .lab-foil-grain.lines { background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.5) 0 1px, rgba(0, 0, 0, 0.35) 1px 3px); opacity: 0.55; }
 .lab-glare { background: radial-gradient(circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.22), transparent 55%); mix-blend-mode: screen; }
-.lab-cardview-actions { display: flex; gap: 8px; }
+.lab-cardview-actions { display: flex; align-items: center; gap: 8px; height: var(--h-m); }
+/* Naming the card: the field takes the place of the buttons under it. */
+.lab-cardview-name { display: flex; align-items: center; gap: 8px; height: var(--h-m); }
+.lab-cardview-name input { width: 190px; height: var(--h-m); padding: 0 16px; border: 0; border-radius: var(--r-pill); background: var(--fill); color: var(--fg); font: inherit; font-size: var(--t3); outline: 1px solid var(--line); }
+.lab-cardview-name input:focus { outline-color: var(--fg); }
+.lab-cardview-count { min-width: 38px; font-size: var(--t2); color: var(--faint); font-variant-numeric: tabular-nums; }

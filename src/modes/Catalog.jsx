@@ -596,7 +596,7 @@ const PAGES = {
       <div className="cat-ranks">
         {ALL_RANKS.map((r) => {
           const score = Math.ceil((r.min * 100) / RANK_MAX);
-          return <Award key={r.letter + r.step} review={{ scores: { macro: score, dexterity: score, finesse: score }, traits: [] }} card={{ name: "PLAYER", mode: t("Battle"), vs: "vs Cold Clear" }} />;
+          return <Award key={r.letter + r.step} review={{ scores: { macro: score, dexterity: score, finesse: score }, traits: [] }} card={{ name: "", mode: t("Battle"), vs: "vs Cold Clear" }} />;
         })}
       </div>
     ),

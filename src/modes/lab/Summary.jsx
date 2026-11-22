@@ -3,7 +3,8 @@ import { t } from "../../i18n.js";
 import { KIND_NAMES, SCORES } from "./consts.js";
 import { pointsOf, rankOf } from "./rank.js";
 import { drawRankCard, drawFoilMask, saveRankCard, FOIL } from "./rankCard.js";
-import { Button } from "../../ui.jsx";
+import { Button, IconButton } from "../../ui.jsx";
+import { loadName, saveName, NAME_MAX, NAME_PLACEHOLDER } from "../../name.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { KindIcon } from "./icons.jsx";
@@ -81,7 +82,16 @@ export function RankSeal({ letter, step }) {
 // The card, large, over the page: it leans toward the pointer like a card in
 // the hand, with a light moving across it. Save is underneath; a click
 // outside or Esc closes it.
-function RankCardView({ what, onClose }) {
+function RankCardView({ what: given, onClose }) {
+  // A person's card carries their name, which they can set here; a CPU's
+  // card carries the CPU's.
+  const [name, setName] = useState(loadName);
+  const [draft, setDraft] = useState(null); // the name being typed, while it is being edited
+  const what = useMemo(() => ({ ...given, name: given.name || name || NAME_PLACEHOLDER }), [given, name]);
+  const keep = () => {
+    setName(saveName(draft));
+    setDraft(null);
+  };
   const src = useMemo(() => drawRankCard(what).toDataURL("image/png"), [what]);
   // Where this rank's foil sits (nowhere on the low ranks: they are matte).
   const foil = FOIL[what.letter];
@@ -130,13 +140,51 @@ function RankCardView({ what, onClose }) {
         {mask && foil.grain && <i className={"lab-foil-grain " + foil.grain} style={mask} />}
         <i className="lab-glare" />
       </div>
-      <div className="lab-cardview-actions" onClick={(e) => e.stopPropagation()}>
+      {draft !== null && (
+        <form
+          className="lab-cardview-name"
+          onClick={(e) => e.stopPropagation()}
+          onSubmit={(e) => {
+            e.preventDefault();
+            keep();
+          }}
+        >
+          <input
+            autoFocus
+            value={draft}
+            maxLength={NAME_MAX}
+            placeholder={NAME_PLACEHOLDER}
+            aria-label={t("Name")}
+            spellCheck={false}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              // Typing here must not reach the replay's own keys.
+              e.stopPropagation();
+              if (e.key === "Escape") setDraft(null);
+            }}
+          />
+          <span className="lab-cardview-count">
+            {draft.length}/{NAME_MAX}
+          </span>
+          <IconButton icon="close" label="Cancel" onClick={() => setDraft(null)} />
+          <Button variant="primary" size="s" type="submit">
+            {t("Save")}
+          </Button>
+        </form>
+      )}
+      <div className="lab-cardview-actions" style={{ display: draft !== null ? "none" : undefined }} onClick={(e) => e.stopPropagation()}>
         <Button variant="primary" icon="download" onClick={() => saveRankCard(what)}>
           {t("Save as image")}
         </Button>
-        <Button variant="ghost" onClick={onClose}>
-          {t("Close")}
-        </Button>
+        {given.name ? (
+          <Button variant="ghost" onClick={onClose}>
+            {t("Close")}
+          </Button>
+        ) : (
+          <Button variant="ghost" icon="pencil" onClick={() => setDraft(name)}>
+            {t("Edit name")}
+          </Button>
+        )}
       </div>
     </div>,
     document.body,
