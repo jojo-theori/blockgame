@@ -86,12 +86,16 @@
   left: 0;
   right: 0;
   bottom: 16px;
+  /* Long enough to wrap on a narrow screen: kept off the edges, in even lines. */
+  padding: 0 16px;
+  line-height: 1.55;
+  text-wrap: balance;
   text-align: center;
   font-size: var(--t2);
   color: var(--faint);
   pointer-events: none;
   z-index: 5;
 }
-.ftr a { color: var(--dim); text-decoration: none; pointer-events: auto; }
+.ftr a { color: var(--dim); text-decoration: none; pointer-events: auto; white-space: nowrap; }
 .ftr a:hover { color: var(--fg); }
 

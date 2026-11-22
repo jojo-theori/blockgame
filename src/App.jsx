@@ -301,6 +301,18 @@ export default function App() {
         <a href="https://four.lol/" target="_blank" rel="noopener noreferrer">
           four.lol
         </a>{" "}
+        · CPU{" "}
+        <a href="https://github.com/misakamm/MisaMino" target="_blank" rel="noopener noreferrer">
+          MisaMino
+        </a>
+        ,{" "}
+        <a href="https://github.com/MinusKelvin/cold-clear" target="_blank" rel="noopener noreferrer">
+          Cold Clear
+        </a>{" "}
+        · {t("Card foils")}{" "}
+        <a href="https://github.com/simeydotme/pokemon-cards-css" target="_blank" rel="noopener noreferrer">
+          pokemon-cards-css
+        </a>{" "}
         · {t("Made by")}{" "}
         <a href="https://umjo.me" target="_blank" rel="noopener noreferrer">
           umjo.me
