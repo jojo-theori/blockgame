@@ -19,7 +19,11 @@
 .lab-recent { width: 100%; max-width: 520px; text-align: left; }
 .lab-recent .k { margin: 0 4px 8px; }
 .lab-recent-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.lab-card { display: flex; align-items: center; gap: 14px; padding: 12px; border: 0; border-radius: 16px; background: var(--fill); color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background 0.18s var(--out); animation: appear 0.3s var(--out) both; animation-delay: calc(var(--i, 0) * 35ms); }
+.lab-card { position: relative; display: flex; padding: 12px; border-radius: 16px; background: var(--fill); transition: background 0.18s var(--out); animation: appear 0.3s var(--out) both; animation-delay: calc(var(--i, 0) * 35ms); }
+.lab-card-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.lab-card-more { position: absolute; top: 8px; right: 8px; }
+.lab-card:has(.am.open) { z-index: 5; }
+.lab-card-title { padding-right: 28px; }
 /* A short window has room for one row. */
 @media (max-height: 880px) { .lab-card:nth-child(n + 3) { display: none; } }
 .lab-card:hover { background: var(--hover); }

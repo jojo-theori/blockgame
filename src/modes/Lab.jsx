@@ -4,9 +4,9 @@ import { formatTime } from "../game.js";
 import { drawPicture } from "../render.js";
 import { parseLog, buildFrames, logMode } from "../replay.js";
 import { sampleLog } from "../sample.js";
-import { loadRecent } from "../recent.js";
+import { loadRecent, removeRecent } from "../recent.js";
 import { parseMoves } from "../trace.js";
-import { Kbd } from "../ui.jsx";
+import { Kbd, ActionMenu, ConfirmDialog } from "../ui.jsx";
 import { ACCENT, PASTE_MOD, modeName, MAX_LINES, RECENT_SHOWN } from "./lab/consts.js";
 import Viewer from "./lab/Viewer.jsx";
 
@@ -34,9 +34,11 @@ export default function Lab({ settings, initial = "", onBack }) {
   const lines = useMemo(() => text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), [text]);
   // Runs that were sent here from a result screen, newest first, each with
   // the one line that says what it was.
+  const [kept, setKept] = useState(loadRecent);
+  const [asking, setAsking] = useState(null); // the run about to be deleted
   const recent = useMemo(
     () =>
-      loadRecent()
+      kept
         .map((r) => {
           const events = parseLog(r.text);
           if (!events.some((e) => e.kind === "place")) return null;
@@ -45,7 +47,7 @@ export default function Lab({ settings, initial = "", onBack }) {
         })
         .filter(Boolean)
         .slice(0, RECENT_SHOWN),
-    [],
+    [kept],
   );
 
   const take = useCallback((pasted) => {
@@ -165,19 +167,35 @@ export default function Lab({ settings, initial = "", onBack }) {
             <div className="k">{t("Recently analysed")}</div>
             <div className="lab-recent-list">
               {recent.map((r, i) => (
-                <button key={r.at} type="button" className="lab-card" style={{ "--i": i }} onClick={() => take(r.text)}>
-                  <Thumb board={r.board} />
-                  <span className="lab-card-text">
-                    <span className="lab-card-title">{r.title}</span>
-                    <span className="lab-card-meta">{r.what}</span>
-                    <span className="lab-card-meta">{new Date(r.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-                  </span>
-                </button>
+                <div key={r.at} className="lab-card" style={{ "--i": i }}>
+                  <button type="button" className="lab-card-main" onClick={() => take(r.text)}>
+                    <Thumb board={r.board} />
+                    <span className="lab-card-text">
+                      <span className="lab-card-title">{r.title}</span>
+                      <span className="lab-card-meta">{r.what}</span>
+                      <span className="lab-card-meta">{new Date(r.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                    </span>
+                  </button>
+                  <div className="lab-card-more">
+                    <ActionMenu up items={[{ label: "Delete", danger: true, onClick: () => setAsking(r) }]} />
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={!!asking}
+        title={t("Delete this replay?")}
+        body={asking ? `${asking.title} · ${asking.what}` : ""}
+        confirmLabel="Delete"
+        onCancel={() => setAsking(null)}
+        onConfirm={() => {
+          setKept(removeRecent(asking.at));
+          setAsking(null);
+        }}
+      />
       <div className="actions">
         <button className="btn primary" onClick={() => setOpen(true)} disabled={!replay}>
           {t("Play replay")}

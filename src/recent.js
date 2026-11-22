@@ -24,3 +24,14 @@ export function saveRecent(text) {
     /* ignore */
   }
 }
+
+// Takes one run off the list (by the time it was kept) and returns what is left.
+export function removeRecent(at) {
+  const list = loadRecent().filter((r) => r.at !== at);
+  try {
+    localStorage.setItem(KEY, JSON.stringify(list));
+  } catch {
+    /* ignore */
+  }
+  return list;
+}

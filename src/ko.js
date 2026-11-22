@@ -80,6 +80,7 @@ export default {
   "{n} more": "{n}개 더",
   "Click a piece above to add it, and here to take it out.": "위에서 눌러 넣고, 여기서 눌러 빼세요.",
   Shortcuts: "단축키",
+  "Delete this replay?": "이 리플레이를 삭제할까요?",
   "No hold": "홀드 없음",
   "Copy link": "링크 복사",
   "Link copied": "링크 복사됨",
