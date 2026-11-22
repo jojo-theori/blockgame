@@ -84,9 +84,9 @@
 .lab-phone .lab-stats .v { font-size: var(--t4); white-space: nowrap; }
 .lab-phone .lab-loading, .lab-phone .lab-moment, .lab-phone .lab-trackrow, .lab-phone .lab-buttons, .lab-phone .lab-foot { grid-column: 1 / -1; zoom: var(--unzoom); text-align: left; }
 .lab-phone .lab-loading, .lab-phone .lab-moment { grid-row: 2; }
-.lab-phone .lab-trackrow { grid-row: 8; position: sticky; bottom: 70px; z-index: 6; display: flex; align-items: center; gap: 12px; padding: 10px 0 14px; background: var(--bg); }
+.lab-phone .lab-trackrow { grid-row: 8; position: sticky; bottom: 86px; z-index: 6; display: flex; align-items: center; gap: 12px; padding: 10px 0 14px; background: var(--bg); }
 .lab-phone .lab-track { flex: 1; }
-.lab-phone .lab-buttons { grid-row: 9; position: sticky; bottom: 0; z-index: 7; justify-content: flex-start; gap: 8px; margin-left: 0; zoom: var(--unzoom); box-sizing: content-box; min-height: 52px; padding: 6px 0 calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bg); }
+.lab-phone .lab-buttons { grid-row: 9; position: sticky; bottom: 0; z-index: 7; justify-content: flex-start; gap: 8px; margin-left: 0; zoom: var(--unzoom); box-sizing: content-box; min-height: 52px; padding: 6px 0 calc(28px + env(safe-area-inset-bottom, 0px)); background: var(--bg); }
 /* Everything in the last two rows is 52 px tall. */
 .lab-phone .lab-buttons > button { width: 52px; height: 52px; }
 .lab-phone .lab-buttons svg, .lab-play svg { width: 20px; height: 20px; }
