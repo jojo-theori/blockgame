@@ -4,7 +4,7 @@ import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
 import { useDevProfiles } from "./dev.js";
 import { Background } from "./bg.jsx";
-import { setSkin, setCellLines, setBoardTheme } from "./render.js";
+import { setSkin, setCellLines, setOrientMark, setBoardTheme } from "./render.js";
 import { selectKey, backKey, keyLabel } from "./keys.js";
 import Sprint from "./modes/Sprint.jsx";
 import Battle from "./modes/Battle.jsx";
@@ -64,9 +64,16 @@ export default function App() {
   const [sdf, setSdf] = useState(() => loadSettings().sdf ?? 30);
   const [soundEnabled, setSoundEnabled] = useState(() => loadSettings().soundEnabled ?? true);
   // Sounds that have their own switch: finesse faults, back-to-back, combo.
-  const [soundOpts, setSoundOpts] = useState(() => ({ fault: true, b2b: true, combo: true, ...loadSettings().soundOpts }));
+  // v2 made the fault sound off by default; settings saved before that drop it once.
+  const [soundOpts, setSoundOpts] = useState(() => {
+    const saved = loadSettings();
+    const o = { fault: false, b2b: true, combo: true, ...saved.soundOpts };
+    if ((saved.soundV ?? 1) < 2) o.fault = false;
+    return o;
+  });
   const [skin, setSkinName] = useState(() => loadSettings().skin ?? "flat");
   const [cellLines, setCellLinesOn] = useState(() => loadSettings().cellLines ?? true);
+  const [orientMark, setOrientMarkOn] = useState(() => loadSettings().orientMark ?? false);
   const [showLog, setShowLog] = useState(() => loadSettings().showLog ?? true);
   const [showKeys, setShowKeys] = useState(() => loadSettings().showKeys ?? false);
   const [lang, setLangState] = useState(() => loadSettings().lang ?? (navigator.language?.startsWith("ko") ? "ko" : "en"));
@@ -74,6 +81,7 @@ export default function App() {
   // The skin is read by the canvas drawing code, so it is set before anything draws.
   setSkin(skin);
   setCellLines(cellLines);
+  setOrientMark(orientMark);
   setBoardTheme(theme);
   // Language is read by t() during render, so set it before children render.
   setLang(lang);
@@ -90,8 +98,8 @@ export default function App() {
 
   useEffect(() => {
     const prev = loadSettings();
-    saveSettings({ ...prev, das, arr, sdf, soundEnabled, soundOpts, skin, cellLines, showLog, showKeys, lang, theme });
-  }, [das, arr, sdf, soundEnabled, soundOpts, skin, cellLines, showLog, showKeys, lang, theme]);
+    saveSettings({ ...prev, das, arr, sdf, soundEnabled, soundOpts, soundV: 2, skin, cellLines, orientMark, showLog, showKeys, lang, theme });
+  }, [das, arr, sdf, soundEnabled, soundOpts, skin, cellLines, orientMark, showLog, showKeys, lang, theme]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -164,7 +172,7 @@ export default function App() {
     setLabLog(text);
     setView("lab");
   }, []);
-  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${theme}`, analyze };
+  const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${orientMark}${theme}`, analyze };
   const goMenu = () => {
     setLabLog("");
     setSettingsOpen(false);
@@ -194,7 +202,7 @@ export default function App() {
       <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} sound={soundEnabled} setSound={setSoundEnabled} onSettings={openSettings} />
       {settingsOpen && (
         <Settings
-          values={{ das, arr, sdf, soundEnabled, soundOpts, skin, cellLines }}
+          values={{ das, arr, sdf, soundEnabled, soundOpts, skin, cellLines, orientMark }}
           onSave={(v) => {
             setDas(v.das);
             setArr(v.arr);
@@ -203,6 +211,7 @@ export default function App() {
             setSoundOpts(v.soundOpts);
             setSkinName(v.skin);
             setCellLinesOn(v.cellLines);
+            setOrientMarkOn(v.orientMark);
             setSettingsOpen(false);
           }}
           onClose={closeSettings}

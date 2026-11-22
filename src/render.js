@@ -46,6 +46,24 @@ export function boardTone() { return tone; }
 export function setCellLines(on) {
   gaps = !!on;
 }
+// Orientation mark: on pieces that look the same after a turn (I, S, Z, O),
+// one cell of the falling piece is drawn darker, so its rotation state shows.
+let orientMark = false;
+export function setOrientMark(on) {
+  orientMark = !!on;
+}
+const O_MARK = [[0, 1], [0, 2], [1, 2], [1, 1]]; // O doesn't move in its box
+function markCell(id, rot) {
+  if (id === 7) return O_MARK[rot % 4];
+  if (id !== 1 && id !== 5 && id !== 6) return null;
+  const s0 = getShape(id, 0);
+  const n = s0.length;
+  let pos = null;
+  for (let r = 0; r < n && !pos; r++) for (let c = 0; c < n; c++) if (s0[r][c]) { pos = [r, c]; break; }
+  // Follow that cell as the box turns clockwise.
+  for (let k = 0; k < rot % 4; k++) pos = [pos[1], n - 1 - pos[0]];
+  return getShape(id, rot)[pos[0]]?.[pos[1]] ? pos : null;
+}
 
 // A colour moved towards white (amount > 0) or black (amount < 0), 0..1.
 function shade(color, amount) {
@@ -215,6 +233,12 @@ export function drawBoard(canvas, engine, opts = {}) {
           const py = engine.currentY + r;
           if (py >= 0) cell(ctx, (engine.currentX + c) * CELL, py * CELL, CELL, color);
         }
+      }
+      const m = orientMark && markCell(engine.currentId, engine.currentRot);
+      if (m && engine.currentY + m[0] >= 0) {
+        const g = gaps ? 1 : 0;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.32)";
+        ctx.fillRect((engine.currentX + m[1]) * CELL + g, (engine.currentY + m[0]) * CELL + g, CELL - 2 * g, CELL - 2 * g);
       }
     }
   }

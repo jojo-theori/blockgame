@@ -10,7 +10,9 @@ export function setSoundEnabled(on) {
 }
 
 // Sounds that can be switched off one by one (Settings → Sound).
-const opts = { fault: true, b2b: true, combo: true };
+// The fault sound starts off: it is a practice aid, not something most
+// players want in every game.
+const opts = { fault: false, b2b: true, combo: true };
 // Start from what was saved, so the switches hold from the first sound on
 // (and through a reload of this module), not only once the app has set them.
 try {

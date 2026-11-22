@@ -40,8 +40,8 @@ export default function Settings({ values, onSave, onClose }) {
   // Every edit is a draft until Save; leaving without saving drops it.
   const [draft, setDraft] = useState(values);
   const put = (key) => (v) => setDraft((d) => ({ ...d, [key]: typeof v === "function" ? v(d[key]) : v }));
-  const { das, arr, sdf, soundEnabled, soundOpts, skin, cellLines } = draft;
-  const [setDas, setArr, setSdf, setSoundEnabled, setSoundOpts, setSkin, setCellLines] = ["das", "arr", "sdf", "soundEnabled", "soundOpts", "skin", "cellLines"].map(put);
+  const { das, arr, sdf, soundEnabled, soundOpts, skin, cellLines, orientMark } = draft;
+  const [setDas, setArr, setSdf, setSoundEnabled, setSoundOpts, setSkin, setCellLines, setOrientMark] = ["das", "arr", "sdf", "soundEnabled", "soundOpts", "skin", "cellLines", "orientMark"].map(put);
   const [saved] = useState(() => loadKeyBindings());
   const [bindings, setBindings] = useState(saved);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -246,6 +246,21 @@ export default function Settings({ values, onSave, onClose }) {
                 ]}
                 value={cellLines}
                 onChange={setCellLines}
+              />
+            </div>
+            <div className="opt wide">
+              <div>
+                <div className="k" style={{ color: "var(--fg)" }}>{t("Orientation mark")}</div>
+                <div className="k small hint">{t("One darker cell on I, S, Z and O shows which way the falling piece faces")}</div>
+              </div>
+              <Segmented
+                label="Orientation mark"
+                options={[
+                  { id: true, label: "On" },
+                  { id: false, label: "Off" },
+                ]}
+                value={!!orientMark}
+                onChange={setOrientMark}
               />
             </div>
           </div>
