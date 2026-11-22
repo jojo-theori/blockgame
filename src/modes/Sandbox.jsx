@@ -96,15 +96,12 @@ function EraseIcon({ mode }) {
     </svg>
   );
 }
-const eraseOption = (id, label) => ({
-  id,
-  label: (
-    <span className="erase-opt">
-      <EraseIcon mode={id} />
-      {t(label)}
-    </span>
-  ),
-});
+const ERASE_MODES = [
+  ["cell", "Cell"],
+  ["row", "Row"],
+  ["column", "Column"],
+  ["piece", "Piece"],
+];
 
 // A board's small picture for the list.
 function Preview({ board }) {
@@ -114,6 +111,31 @@ function Preview({ board }) {
   }, [board]);
   return <canvas ref={ref} className="sb-thumb" width={COLS * 9} height={ROWS * 9} />;
 }
+
+// The two ways to draw, as pictures: a whole piece, or one cell at a time.
+const DRAW_ICONS = {
+  piece: (
+    <svg className="sb-draw-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3.5" y="12" width="5.2" height="5.2" rx="0.8" />
+      <rect x="9.4" y="12" width="5.2" height="5.2" rx="0.8" />
+      <rect x="15.3" y="12" width="5.2" height="5.2" rx="0.8" />
+      <rect x="9.4" y="6.1" width="5.2" height="5.2" rx="0.8" />
+    </svg>
+  ),
+  cell: (
+    <svg className="sb-draw-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="8.6" y="8.6" width="6.8" height="6.8" rx="1" />
+    </svg>
+  ),
+  erase: (
+    <svg className="sb-draw-icon line" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 20h12M5.5 15.5l9-9a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L12 17l-3 3H7l-1.5-1.5a2 2 0 0 1 0-3Z" />
+      <path d="M9.5 11.5l4 4" />
+    </svg>
+  ),
+};
+
+const ORDER_CELLS = 21; // cells in the piece-order box: 7 across, 3 down
 
 export default function Sandbox({ settings, onBack }) {
   useDisplayToggles(settings);
@@ -154,31 +176,15 @@ export default function Sandbox({ settings, onBack }) {
     setDraft((d) => ({ ...d, title: name }));
     setItems((list) => list.map((x) => (x.id === currentId ? { ...x, ...draft, title: name, updatedAt: Date.now() } : x)));
   };
-  const discardDraft = () => {
-    if (!saved) return;
-    sfx.tick();
-    setDraft({ ...saved });
-  };
   const [confirmLeave, setConfirmLeave] = useState(false);
   const titleRef = useRef(null);
   // Tools: place a whole piece (turned and moved), paint single cells, or erase.
-  const [tool, setToolState] = useState("piece"); // piece | cell | erase
-  // The draw tool last used, so its panel stays up while erasing.
-  const [drawTool, setDrawTool] = useState("piece");
-  const setTool = (v) => {
-    setToolState(v);
-    if (v !== "erase") setDrawTool(v);
-  };
+  const [tool, setTool] = useState("piece"); // piece | cell | erase
   const [stamp, setStamp] = useState(2); // piece to place (T)
   const [stampRot, setStampRot] = useState(0);
   const [paint, setPaint] = useState(8);
   const [eraseMode, setEraseMode] = useState("cell"); // cell | row | column | piece
   const [hover, setHover] = useState(null); // [row, col] under the pointer
-  // The player's rotate keys, named in the piece tool's tip.
-  const [rotKeys] = useState(() => {
-    const b = loadKeyBindings().solo;
-    return [keyLabel(b.rotateCCW), keyLabel(b.rotateCW)];
-  });
 
   // list | edit | playing | paused | gameover | out
   const [phase, setPhase] = useState("list");
@@ -297,8 +303,8 @@ export default function Sandbox({ settings, onBack }) {
       const cells = eraseTargets(at);
       if (cells.length) sfx.tick();
       putCells(cells, 0);
-      // Piece erases one piece per click; cells, rows and columns can be dragged.
-      if (eraseMode === "piece") return;
+      // Every erase mode can be dragged: each cell, row, column or piece the
+      // pointer passes over goes.
       e.currentTarget.setPointerCapture(e.pointerId);
       stroke.current = { erase: true };
       return;
@@ -770,18 +776,49 @@ export default function Sandbox({ settings, onBack }) {
         {dialogs}
         <div className="play sb-stage" style={{ zoom, "--accent": ACCENT }}>
           <div className="side sb-col">
-            <div className="k">{t("Piece order")}</div>
+            {/* Label and dropdown on one row to save height */}
+            <div className="sb-field">
+              <span className="k">{t("Hold")}</span>
+              <div className="sb-field-dd">
+                <Dropdown
+                  label={t("Hold")}
+                  value={hold}
+                  options={[{ id: 0, label: "–" }, ...PIECES.map((id) => ({ id, label: <PieceIcon id={id} /> }))]}
+                  onChange={setHold}
+                />
+              </div>
+            </div>
+            <div className="k sb-order-k">{t("Piece order")}</div>
             <div className="sb-add">
               {PIECES.map((id) => (
                 <button key={id} type="button" className="chip-btn" onClick={() => addPiece(id)} title={t("Add {p}", { p: PIECE_NAMES[id] })}>
                   <PieceIcon id={id} />
                 </button>
               ))}
+              {/* Clear all is the eighth chip, beside the last piece, once there is an order. */}
+              <button
+                type="button"
+                className="chip-btn sb-wipe"
+                title={t("Clear all")}
+                aria-label={t("Clear all")}
+                style={{ visibility: order.length ? "visible" : "hidden" }}
+                onClick={(e) => {
+                  e.currentTarget.blur();
+                  sfx.tick();
+                  setOrder([]);
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+                </svg>
+              </button>
             </div>
             {/* Fixed size, so a long or empty order never moves anything; with
-                nothing in it the box isn't drawn (its place is kept). */}
-            <div className="sb-order" aria-label={t("Piece order")} style={{ visibility: order.length ? "visible" : "hidden" }}>
-              {order.map((id, i) => (
+                nothing in it, it says how it is filled. */}
+            <div className={"sb-order" + (order.length ? "" : " empty")} aria-label={t("Piece order")}>
+              {!order.length && <p>{t("Click a piece above to add it, and here to take it out.")}</p>}
+              {/* Seven to a row (a bag), three rows. What does not fit is counted in the last cell. */}
+              {(order.length > ORDER_CELLS ? order.slice(0, ORDER_CELLS - 1) : order).map((id, i) => (
                 <button
                   key={i}
                   type="button"
@@ -795,49 +832,25 @@ export default function Sandbox({ settings, onBack }) {
                   <PieceIcon id={id} size={4} />
                 </button>
               ))}
-            </div>
-            <div className="sb-order-tools" style={{ visibility: order.length ? "visible" : "hidden" }}>
-              <button
-                type="button"
-                className="sb-trash"
-                                onClick={(e) => {
-                  e.currentTarget.blur();
-                  sfx.tick();
-                  setOrder([]);
-                }}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
-                </svg>
-                {t("Clear all")}
-              </button>
-            </div>
-            {/* Label and dropdown on one row to save height */}
-            <div className="sb-field">
-              <span className="k">{t("Hold")}</span>
-              <div className="sb-field-dd">
-                <Dropdown
-                  label={t("Hold")}
-                  value={hold}
-                  options={[{ id: 0, label: "Empty" }, ...PIECES.map((id) => ({ id, label: <PieceIcon id={id} /> }))]}
-                  onChange={setHold}
-                />
-              </div>
+              {order.length > ORDER_CELLS && (
+                <span className="sb-more" title={t("{n} more", { n: order.length - ORDER_CELLS + 1 })}>
+                  +{order.length - ORDER_CELLS + 1}
+                </span>
+              )}
             </div>
             <div className="sb-checks">
               <Checkbox checked={randomAfter} onChange={setRandomAfter} label="Random pieces after" />
               <Checkbox checked={gravity} onChange={setGravity} label="Gravity" />
             </div>
             {/* Same place as Edit / Main menu while playing (left, under the input) */}
-            <div className="sb-actions">
-              <button className="btn primary" onClick={start}>
-                {t("Play")}
-              </button>
-              <button className="btn ghost sb-back" onClick={toList}>
+            <div className="sb-actions row">
+              <button className="btn ghost sb-back" onClick={toList} title={t("Back")} aria-label={t("Back")}>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M19 12H5M11 6l-6 6 6 6" />
                 </svg>
-                {t("Back")}
+              </button>
+              <button className="btn primary" onClick={start}>
+                {t("Play")}
               </button>
             </div>
           </div>
@@ -862,15 +875,16 @@ export default function Sandbox({ settings, onBack }) {
             <Segmented
               label="Draw"
               options={[
-                { id: "piece", label: "Piece" },
-                { id: "cell", label: "Cells" },
+                { id: "piece", title: "Piece", label: DRAW_ICONS.piece },
+                { id: "cell", title: "Cells", label: DRAW_ICONS.cell },
+                { id: "erase", title: "Erase", label: DRAW_ICONS.erase },
               ]}
-              value={tool === "erase" ? null : tool}
+              value={tool}
               onChange={setTool}
             />
             {/* Fixed height: switching tools never moves what is below */}
             <div className="sb-panel">
-              {drawTool === "piece" && (
+              {tool === "piece" && (
                 <>
                   <div className="sb-paints four" role="radiogroup" aria-label={t("Piece")}>
                     {PIECES.map((id) => (
@@ -880,14 +894,16 @@ export default function Sandbox({ settings, onBack }) {
                         role="radio"
                         aria-checked={stamp === id}
                         className={"chip-btn" + (stamp === id ? " on" : "")}
+                        // A second click on the chosen piece turns it (O has only one way up).
                         onClick={(e) => {
                           e.currentTarget.blur();
-                          if (id !== stamp) sfx.tick();
+                          if (id === stamp) return id !== 7 && turn(1);
+                          sfx.tick();
                           setStamp(id);
                           setStampRot(0);
                         }}
                       >
-                        <PieceIcon id={id} />
+                        <PieceIcon id={id} rot={id === stamp ? stampRot : 0} />
                       </button>
                     ))}
                     <button
@@ -906,26 +922,9 @@ export default function Sandbox({ settings, onBack }) {
                       <GarbageIcon size={4} />
                     </button>
                   </div>
-                  <div className="sb-turn" style={{ visibility: stamp === 8 ? "hidden" : "visible" }}>
-                    <button type="button" className="icon-btn" aria-label={t("Turn left")} onClick={(e) => (e.currentTarget.blur(), turn(-1))}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M9 6H5v4" />
-                        <path d="M5.5 9.5A7 7 0 1 1 6 16" />
-                      </svg>
-                    </button>
-                    <button type="button" className="icon-btn" aria-label={t("Turn right")} onClick={(e) => (e.currentTarget.blur(), turn(1))}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M15 6h4v4" />
-                        <path d="M18.5 9.5A7 7 0 1 0 18 16" />
-                      </svg>
-                    </button>
-                  </div>
-                  <p className="note sb-tip">
-                    {stamp === 8 ? t("Click for a garbage row with the hole under the pointer; drag for more rows.") : t("Point to aim, click to place. Turn it with the wheel or {ccw} / {cw}.", { ccw: rotKeys[0], cw: rotKeys[1] })}
-                  </p>
                 </>
               )}
-              {drawTool === "cell" && (
+              {tool === "cell" && (
                 <>
                   <div className="sb-paints four" role="radiogroup" aria-label={t("Colour")}>
                     {PAINTS.map((v) => (
@@ -945,71 +944,57 @@ export default function Sandbox({ settings, onBack }) {
                       </button>
                     ))}
                   </div>
-                  <p className="note sb-tip">{t("Click or drag to paint cells.")}</p>
+                </>
+              )}
+              {tool === "erase" && (
+                <>
+                  <div className="sb-paints two" role="radiogroup" aria-label={t("Erase")}>
+                    {ERASE_MODES.map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="radio"
+                        aria-checked={eraseMode === id}
+                        className={"chip-btn" + (eraseMode === id ? " on" : "")}
+                        title={t(label)}
+                        aria-label={t(label)}
+                        onClick={(e) => {
+                          e.currentTarget.blur();
+                          if (id !== eraseMode) sfx.tick();
+                          setEraseMode(id);
+                        }}
+                      >
+                        <EraseIcon mode={id} />
+                      </button>
+                    ))}
+                  </div>
                 </>
               )}
             </div>
-            <div className="k sb-sec">{t("Erase")}</div>
-            <div className="sb-erase-row">
-              <button
-                type="button"
-                className={"sb-eraser" + (tool === "erase" ? " on" : "")}
-                aria-pressed={tool === "erase"}
-                aria-label={t("Erase")}
-                onClick={(e) => {
-                  e.currentTarget.blur();
-                  sfx.tick();
-                  setTool(tool === "erase" ? drawTool : "erase");
-                }}
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M8 20h12M5.5 15.5l9-9a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L12 17l-3 3H7l-1.5-1.5a2 2 0 0 1 0-3Z" />
-                  <path d="M9.5 11.5l4 4" />
-                </svg>
-              </button>
-              <Dropdown
-                label={t("Erase")}
-                value={eraseMode}
-                options={[
-                  eraseOption("cell", "Cell"),
-                  eraseOption("row", "Row"),
-                  eraseOption("column", "Column"),
-                  eraseOption("piece", "Piece"),
-                ]}
-                onChange={(m) => {
-                  setEraseMode(m);
-                  setTool("erase");
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              className="btn danger compact sb-clear"
-              disabled={!filled}
-              onClick={() => {
-                sfx.tick();
-                editCells((b, m) => {
-                  for (let r = 0; r < ROWS; r++) {
-                    b[r].fill(0);
-                    m[r].fill(0);
-                  }
-                });
-              }}
-            >
-              {t("Clear board")}
-            </button>
-            {/* The board's own actions, at the foot of this column (always shown,
-                Save and Discard dim until something changed). */}
+            {/* Save at the foot of the column; what wipes or removes the board is one step away, in the menu beside it. */}
             <div className="sb-board-actions">
-              <button type="button" className="btn compact" onClick={saveDraft} disabled={!dirty}>
+              <button type="button" className="btn" onClick={saveDraft} disabled={!dirty}>
                 {t("Save")}
               </button>
-              <button type="button" className="btn compact" onClick={discardDraft} disabled={!dirty}>
-                {t("Discard changes")}
-              </button>
-              <button type="button" className="btn compact danger" onClick={() => setConfirmDelete(saved)}>
-                {t("Delete board")}
-              </button>
+              <ActionMenu
+                up
+                items={[
+                  {
+                    label: "Clear board",
+                    disabled: !filled,
+                    onClick: () => {
+                      sfx.tick();
+                      editCells((b, m) => {
+                        for (let r = 0; r < ROWS; r++) {
+                          b[r].fill(0);
+                          m[r].fill(0);
+                        }
+                      });
+                    },
+                  },
+                  { label: "Delete board", danger: true, onClick: () => setConfirmDelete(saved) },
+                ]}
+              />
             </div>
           </div>
         </div>
@@ -1046,9 +1031,6 @@ export default function Sandbox({ settings, onBack }) {
               </svg>
               {t("Edit")}
             </button>
-            {/* No way out mid-run here (that is Edit, or the pause menu); the
-                empty slot keeps Edit exactly where Play sits in the editor. */}
-            <span className="sb-slot" aria-hidden="true" />
           </div>
         </div>
         <div className="board-wrap">

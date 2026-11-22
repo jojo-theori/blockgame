@@ -1471,36 +1471,38 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
 .sb-paints { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .sb-paints .chip-btn { justify-content: flex-start; }
 .sb-paints.four { grid-template-columns: repeat(4, 1fr); }
+/* Two by two: as tall as the two rows of the other tools. */
+.sb-paints.two .chip-btn { height: 32px; justify-content: center; padding: 0; }
 .sb-paints.four .chip-btn { justify-content: center; padding-left: 0; padding-right: 0; }
-.sb-panel { height: 168px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-.sb-panel .sb-tip.dim { margin-top: auto; color: var(--faint); }
-.sb-turn { display: flex; gap: 6px; }
-.sb-turn .icon-btn { width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--fill); color: var(--dim); display: grid; place-items: center; cursor: pointer; }
-.sb-turn .icon-btn:hover { background: var(--hover); color: var(--fg); }
-.sb-turn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sb-panel { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 .chip-dot.erase { background: transparent; box-shadow: inset 0 0 0 1px var(--dim); }
-.sb-tip { margin: 6px 0 4px; line-height: 1.5; }
 .sb-tools { display: flex; flex-direction: column; gap: 6px; }
 .sb-tools .btn { width: 100%; }
 .sb-canvas { cursor: crosshair; touch-action: none; }
-.sb-add { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Four equal cells a row, so the chips (and the clear button) line up in both directions. */
+.sb-add { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sb-add .chip-btn { width: 100%; min-width: 0; padding: 0; margin: 0; vertical-align: top; }
 .sb-order {
   height: 96px;
-  overflow-y: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 24px;
+  align-content: start;
   gap: 4px;
   padding: 8px;
   margin-top: 4px;
   border-radius: 12px;
   background: var(--fill);
 }
+.sb-order.empty { grid-template-columns: 1fr; grid-auto-rows: auto; align-content: center; justify-items: center; }
+.sb-order.empty p { margin: 0; padding: 0 10px; font-size: var(--t2); line-height: 1.5; color: var(--faint); text-align: center; text-wrap: balance; word-break: keep-all; }
 .sb-empty { font-size: var(--t2); color: var(--faint); }
+.sb-more { display: grid; place-items: center; font-size: 11px; font-variant-numeric: tabular-nums; color: var(--dim); }
 .sb-piece {
   height: 24px;
-  min-width: 24px;
-  padding: 0 5px;
+  min-width: 0;
+  padding: 0;
   display: inline-grid;
   place-items: center;
   border: 0;
@@ -1514,8 +1516,12 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
   transition: opacity 0.15s var(--out), transform 0.15s var(--out);
 }
 .sb-piece:hover { opacity: 0.6; transform: scale(0.92); }
-.sb-order-tools { display: flex; justify-content: flex-end; align-items: center; height: 28px; }
-.sb-order-tools .note { margin: 0; }
+.sb-order-k { margin-top: 14px; }
+.sb-draw-icon { width: 20px; height: 20px; fill: currentColor; display: block; margin: 0 auto; }
+.sb-draw-icon.line { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+.sb-wipe svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.sb-add .sb-wipe { color: var(--dim); }
+.sb-add .sb-wipe:hover { color: var(--bad); }
 .sb-switches { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 
 /* Sandbox: edit and play share this frame (wide side columns, same board spot). */
@@ -1524,7 +1530,10 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
 .sb-stage > .side.right { width: 210px; }
 .sb-actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 .sb-actions .btn { width: 100%; height: 40px; }
-.sb-stage > .side > .strokes + .sb-actions { margin-top: 16px; }
+/* Edit screen: Back as an icon, to the left of Play. */
+.sb-actions.row { flex-direction: row; }
+.sb-actions.row .sb-back { width: 40px; flex: none; padding: 0; }
+.sb-actions.row .btn.primary { flex: 1; width: auto; }
 
 /* ─── Sandbox list ─── */
 .sb-list {
@@ -1605,9 +1614,10 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
 .sb-row { display: flex; gap: 8px; align-items: center; }
 .sb-row .btn { flex: 1; width: auto; }
 .sb-row .am-btn { width: 40px; height: 40px; background: var(--fill); }
-.sb-clear { width: 100%; margin-top: 6px; }
 .swatch { display: inline-block; flex: none; vertical-align: middle; }
 .sb-pen { align-self: center; width: 20px; height: 20px; margin-left: -2px; transform: translateY(-2px); display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--faint); cursor: pointer; transition: color 0.15s var(--out), background 0.15s var(--out); }
+/* While the name is being typed the pen goes (its place is kept). */
+.sb-title-input:focus + .sb-pen { visibility: hidden; }
 .sb-pen:hover { color: var(--fg); background: var(--hover); }
 .sb-pen svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
 .sb-title-input:focus + .sb-pen { color: var(--accent); }
@@ -1622,25 +1632,16 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
 /* The sandbox's main button wears the mode colour, like Start on other modes. */
 .sb-actions .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-fg); font-weight: 500; }
 .sb-actions .btn.primary:hover { filter: brightness(1.1); background: var(--accent); }
-.sb-board-actions { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
-.sb-board-actions .btn { width: 100%; height: 34px; }
+.sb-board-actions { margin-top: auto; display: flex; align-items: center; gap: 8px; }
+.sb-board-actions .btn { flex: 1; height: 40px; }
+.sb-board-actions .am-btn { width: 40px; height: 40px; background: var(--fill); }
 .sb-board-actions .btn:disabled { opacity: 1; color: var(--muted); background: var(--fill); cursor: default; }
-.sb-slot { display: block; height: 40px; }
 .sb-edit-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .sb-trash { height: 28px; padding: 0 10px 0 8px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; font: inherit; font-size: var(--t1); letter-spacing: 0.06em; text-transform: uppercase; background: transparent; color: var(--faint); cursor: pointer; transition: color 0.15s var(--out), background 0.15s var(--out); }
 .sb-trash:hover { color: var(--bad); background: var(--hover); }
 .sb-trash svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.erase-opt { display: inline-flex; align-items: center; gap: 10px; }
 .erase-icon { flex: none; }
-.sb-sec { margin-top: 14px; }
-.sb-erase-row { display: flex; gap: 8px; align-items: center; }
-.sb-erase-row .dd { flex: 1; min-width: 0; }
-.sb-eraser { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--fill); color: var(--dim); cursor: pointer; transition: background 0.18s var(--out), color 0.18s var(--out); }
-.sb-eraser:hover { background: var(--hover); color: var(--fg); }
-.sb-eraser.on { background: var(--fg); color: var(--on-fg); }
-.sb-eraser svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
-.erase-opt { white-space: nowrap; }
 
 /* ─── Checkbox ─── */
 .check-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 30px; padding: 0; border: 0; background: transparent; color: var(--dim); font: inherit; font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; text-align: left; cursor: pointer; transition: color 0.15s var(--out); }
@@ -1651,6 +1652,6 @@ html, body { transition: background-color 0.25s var(--out), color 0.25s var(--ou
 .check-row.on .check-box svg { opacity: 1; transform: none; }
 
 /* Sandbox: Hold label and a narrow dropdown on one row */
-.sb-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
-.sb-field-dd { width: 104px; flex: none; }
+.sb-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sb-field-dd { width: 78px; flex: none; }
 .sb-checks { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }
