@@ -89,9 +89,10 @@ export function Well({ hint, className = "", children, ...rest }) {
 
 // A small question mark; what it explains shows while the pointer (or the
 // keyboard focus) is on it. label names the button for a screen reader.
-export function HelpTip({ label, className, children }) {
+//   align  "end" (default: the note opens to the left of the mark), "start" (to its right)
+export function HelpTip({ label, align = "end", className, children }) {
   return (
-    <span className={cls("help-tip", className)}>
+    <span className={cls("help-tip", align === "start" && "start", className)}>
       <button type="button" aria-label={t(label)}>
         <Icon name="help" size={16} />
       </button>

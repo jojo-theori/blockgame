@@ -153,7 +153,7 @@ export default function EditView(p) {
         <div className="side right sb-col">
           <div className="k sb-draw-k">
             {t("Draw")}
-            <HelpTip label="Shortcuts" className="sb-draw-help">
+            <HelpTip label="Shortcuts" align="start">
               <span className="help-keys">
                 {SHORTCUT_HELP.map(([keys, what]) => (
                   <Fragment key={what}>

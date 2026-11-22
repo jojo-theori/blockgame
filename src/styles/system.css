@@ -93,6 +93,7 @@
 .help-tip > button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--faint); cursor: help; transition: color 0.2s var(--out); }
 .help-tip:hover > button, .help-tip > button:focus-visible { color: var(--fg); }
 .help-tip-body { position: absolute; top: calc(100% + 6px); right: 0; width: 250px; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--r-box); background: var(--menu); border: 1px solid var(--line); box-shadow: 0 12px 32px var(--shadow); text-align: left; text-transform: none; letter-spacing: 0; font-size: var(--t2); line-height: 1.5; color: var(--dim); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.18s var(--out), transform 0.18s var(--out), visibility 0.18s; pointer-events: none; }
+.help-tip.start .help-tip-body { left: 0; right: auto; }
 .help-tip:hover .help-tip-body, .help-tip:focus-within .help-tip-body { opacity: 1; visibility: visible; transform: none; }
 .help-keys { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 7px 12px; }
 .help-keys > span:nth-child(odd) { display: inline-flex; gap: 3px; white-space: nowrap; }
