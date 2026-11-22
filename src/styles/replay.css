@@ -72,7 +72,7 @@
    then the timeline and the transport, which stay at the foot of the screen
    while the page scrolls, with buttons large enough for a thumb. The board is
    scaled to the screen's width; everything else is at the page's own size. */
-.play.lab-phone { width: var(--phone-w); display: grid; grid-template-columns: 1fr 280px 92px 1fr; grid-template-rows: auto auto auto auto 1fr auto auto auto; gap: 16px 0; height: auto; align-items: start; }
+.play.lab-phone { width: var(--phone-w); display: grid; grid-template-columns: 1fr 280px 92px 1fr; grid-template-rows: auto auto auto auto 1fr auto auto auto; gap: 12px 0; height: auto; align-items: start; }
 .lab-phone > .rlog, .lab-phone .keys, .lab-phone .lab-stats > .stat:has(.lab-mode) { display: none; }
 .lab-phone > .side, .lab-phone .lab-side, .lab-phone .lab-transport { display: contents; }
 .lab-phone > .side canvas { zoom: 0.6; }
@@ -89,6 +89,19 @@
 .lab-phone .lab-buttons { grid-row: 7; position: sticky; bottom: 0; z-index: 7; justify-content: center; gap: 14px; margin-left: 0; zoom: calc(var(--unzoom) * 1.3); padding: 6px 0; background: var(--bg); }
 .lab-phone .lab-foot { grid-row: 8; padding-bottom: 28px; }
 .lab-phone .lab-speed { margin-left: 0; }
+/* The review, tightened for a phone: each score on one line with its name,
+   and the summary as a strip (seal at the left, words beside it). */
+.lab-phone .lab-top { min-height: 28px; }
+.lab-phone .lab-scores > div { display: flex; align-items: baseline; gap: 7px; }
+.lab-phone .lab-scores .v { margin-top: 0; font-size: var(--t5); }
+.lab-phone .lab-moment { gap: 10px; }
+.lab-phone .lab-award { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 14px; padding: 12px 14px 10px; text-align: left; }
+.lab-phone .lab-award .lab-seal { grid-row: 1 / span 2; width: 44px; height: 44px; margin: 0 4px 0 2px; font-size: 20px; }
+.lab-phone .lab-award-title { align-self: end; font-size: var(--t4); }
+.lab-phone .lab-award-note { align-self: start; margin-top: 2px; font-size: var(--t2); }
+.lab-phone .lab-traits { grid-column: 1 / -1; margin-top: 10px; gap: 4px; }
+.lab-phone .lab-traits li { font-size: var(--t2); }
+.lab-phone .lab-award-hint { grid-column: 1 / -1; margin-top: 8px; text-align: center; }
 .main:has(.lab-phone) { align-items: flex-start; overflow-y: auto; margin-top: 52px; padding: 8px 20px 0; }
 .app:has(.lab-phone) .ftr { display: none; }
 
