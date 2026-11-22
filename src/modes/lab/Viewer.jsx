@@ -324,7 +324,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
     fn();
   };
 
-  // One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again.
+  // One button that steps through the speeds: 1×, 2×, 4×, 0.5×, round again.
   // It ends the row of transport buttons; on a phone it sits beside the timeline.
   // Play and pause: in the middle of the transport, or on a phone at the head of the timeline.
   const playButton = <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} variant="lead" />;
@@ -332,7 +332,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                 <button
                   type="button"
                   className="lab-speed"
-                  onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) - 1 + SPEEDS.length) % SPEEDS.length]))}
+                  onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) + 1) % SPEEDS.length]))}
                   title={t("Speed")}
                   aria-label={`${t("Speed")} ${speed}×`}
                 >

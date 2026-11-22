@@ -154,9 +154,21 @@ test("a Sprint packed for a QR code replays to the same board, lines and final t
   const listed = packRun(text.replace(/ \| SEED:\d+/, ""));
   assert.ok(listed.length > packed.length);
   assert.deepEqual(parseLog(unpackRun(listed)).map((e) => e.type), a.map((e) => e.type));
-  assert.equal(packRun(text.replace(/^SPRINT 40L/, "BATTLE P1 vs CPU")), null, "only a Sprint");
+  assert.equal(packRun(text.replace(/^SPRINT 40L/, "BATTLE P1 vs CPU")), null, "a Battle names both seats");
   assert.ok(/^[0-9A-Z$*+\-:]+$/.test(packed), "only characters a QR code packs tightly");
   assert.equal(unpackRun("AAAAE"), null);
+});
+
+test("a Sprint code made before version 10 still opens", async () => {
+  const { unpackRun } = await import("../src/compact.js");
+  const { parseLog } = await import("../src/replay.js");
+  const { sampleLog } = await import("../src/sample.js");
+  // The sample run as version 7 wrote it.
+  const back = unpackRun("SYMT3W:WWW+OK*Z66+WOZTNA-DUVZ+G5KY:T8HC+9308TOCA$CD3-HM3N6KEF*LK:044W5E");
+  const a = parseLog(sampleLog());
+  const b = parseLog(back);
+  assert.deepEqual(b.map((e) => [e.kind, e.type, e.placed, e.type === "O" ? 0 : e.rot]), a.map((e) => [e.kind, e.type, e.placed, e.type === "O" ? 0 : e.rot]));
+  assert.equal(b.at(-1).t, a.at(-1).t);
 });
 
 test("a Battle board packs into a QR code with its garbage, and replays the same", async () => {
