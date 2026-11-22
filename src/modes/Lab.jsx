@@ -4,6 +4,7 @@ import { formatTime } from "../game.js";
 import { parseLog, buildFrames, logMode } from "../replay.js";
 import { sampleLog } from "../sample.js";
 import { loadRecent } from "../recent.js";
+import { parseMoves } from "../trace.js";
 import { Kbd } from "../ui.jsx";
 import { ACCENT, PASTE_MOD, modeName, MAX_LINES, RECENT_SHOWN } from "./lab/consts.js";
 import Viewer from "./lab/Viewer.jsx";
@@ -18,7 +19,7 @@ export default function Lab({ settings, initial = "", onBack }) {
   // The log is read as soon as it arrives, so the page can say what is in it.
   const replay = useMemo(() => {
     const events = parseLog(text);
-    return events.some((e) => e.kind === "place") ? { events, ...buildFrames(events), mode: logMode(text, events) } : null;
+    return events.some((e) => e.kind === "place") ? { events, ...buildFrames(events), mode: logMode(text, events), moves: parseMoves(text) } : null;
   }, [text]);
   const lines = useMemo(() => text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), [text]);
   // Runs that were sent here from a result screen, newest first, each with

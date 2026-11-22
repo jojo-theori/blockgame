@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
 import { BlockEngine, formatTime, buildReplayText, buildLogText } from "../game.js";
+import { createTrace } from "../trace.js";
 import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
@@ -50,6 +51,9 @@ export default function Sprint({ settings, onBack }) {
     settingsRef.current = settings;
   }, [settings]);
 
+  // How each piece moved, kept beside the engine's own log.
+  const traceRef = useRef(null);
+
   // ─── RENDERER ───
   const render = useCallback(() => {
     const engine = engineRef.current;
@@ -66,6 +70,7 @@ export default function Sprint({ settings, onBack }) {
         ? (engine.placedBlocks / engine.clock).toFixed(2)
         : "0.00";
     const s = settingsRef.current;
+    const moves = traceRef.current?.text();
     return {
       ...engine.stats,
       time: engine.clock,
@@ -73,15 +78,17 @@ export default function Sprint({ settings, onBack }) {
       lines: engine.lines,
       attack: engine.totalAttack,
       blocks: engine.placedBlocks,
-      replayText: buildReplayText(
-        engine,
-        { das: s.das, arr: s.arr, sprintLines: engine.sprintLines },
-        {
-          time: engine.clock,
-          pps: parseFloat(pps),
-          blocks: engine.placedBlocks,
-        },
-      ),
+      // The log, then how each piece moved (for a replay at the real pace).
+      replayText:
+        buildReplayText(
+          engine,
+          { das: s.das, arr: s.arr, sprintLines: engine.sprintLines },
+          {
+            time: engine.clock,
+            pps: parseFloat(pps),
+            blocks: engine.placedBlocks,
+          },
+        ) + (moves ? "\n\n" + moves : ""),
     };
   }, []);
 
@@ -126,6 +133,7 @@ export default function Sprint({ settings, onBack }) {
       const dt = lastTimeRef.current ? timestamp - lastTimeRef.current : 16;
       lastTimeRef.current = timestamp;
       engine.update(Math.min(dt, 100), performance.now());
+      traceRef.current?.sample(engine);
 
       setDisplayTime(formatTime(engine.clock));
       setDisplayLines(engine.linesRemaining);
@@ -173,6 +181,8 @@ export default function Sprint({ settings, onBack }) {
     logLenRef.current = 0;
     setLog({ events: [], total: 0 });
     engine.start(heldActions(keysRef.current));
+    traceRef.current = createTrace();
+    traceRef.current.sample(engine);
     setPhase("playing");
     setDisplayAction("");
     setDisplayAttack(0);
@@ -277,7 +287,10 @@ export default function Sprint({ settings, onBack }) {
 
       if (!action || phase !== "playing") return;
       e.preventDefault();
+      // Noted before and after: a hard drop locks the piece inside the call.
+      traceRef.current?.sample(engineRef.current);
       engineRef.current?.onKeyDown(action, performance.now());
+      traceRef.current?.sample(engineRef.current);
       sfxForAction(action);
     };
     const handleKeyUp = (e) => {

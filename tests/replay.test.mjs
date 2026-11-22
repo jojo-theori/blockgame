@@ -81,3 +81,35 @@ test("the sample is the same 40-line run every time", () => {
   assert.equal(logMode(a, events).lines, 40);
   assert.ok(frames[frames.length - 1].lines >= 40);
 });
+
+test("a piece's path survives the trip through text and ends where it locked", async () => {
+  const { BlockEngine, buildLogText } = await import("../src/game.js");
+  const { createTrace, parseMoves, pathAt } = await import("../src/trace.js");
+  const { parseLog } = await import("../src/replay.js");
+  const { findBestPlacement } = await import("../src/cpu.js");
+  const e = new BlockEngine({ seed: 7, sprintLines: 999999 });
+  e.start();
+  const trace = createTrace();
+  const act = (f) => {
+    f();
+    e.clock += 0.05;
+    trace.sample(e);
+  };
+  trace.sample(e);
+  for (let n = 0; e.playing && n < 30; n++) {
+    const best = findBestPlacement(e.matrix, e.currentId);
+    for (let i = 0; i < best.rot; i++) act(() => e.rotate(1));
+    for (let i = 0; i < 12 && e.currentX !== best.x; i++) act(() => e.move(best.x < e.currentX ? -1 : 1));
+    act(() => e.hardDrop());
+  }
+  const text = buildLogText(e, "SPRINT 40L") + "\n\n" + trace.text();
+  const events = parseLog(text);
+  const paths = parseMoves(text);
+  assert.equal(events.length, 30, "the moves do not read as pieces");
+  assert.deepEqual(paths, trace.paths.slice(0, paths.length));
+  events.forEach((ev, n) => {
+    const end = pathAt(paths, n, ev.t);
+    assert.deepEqual([end.x, end.rot], [ev.placed[0], ev.rot], `piece ${n + 1}`);
+  });
+  assert.equal(parseMoves(buildLogText(e, "SPRINT 40L")), null, "a log without moves");
+});

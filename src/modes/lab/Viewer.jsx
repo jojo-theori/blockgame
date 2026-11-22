@@ -8,6 +8,7 @@ import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT 
 import { Stat, KeyHints, ReplayLog, PauseMenu, IconButton, Icon } from "../../ui.jsx";
 import { useFit } from "../../fit.js";
 import { selectKey, keyLabel } from "../../keys.js";
+import { pathAt } from "../../trace.js";
 import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, SCORES, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
 import { ScoreHelp, Award } from "./Summary.jsx";
 import { KindIcon, GradeIcon } from "./icons.jsx";
@@ -42,17 +43,44 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
     [events, total],
   );
 
-  // Playback: one event per beat, at an even pace. The log says when each
-  // piece locked but not how it got there, so the player's own timing is not
-  // re-enacted; the clock on the left still shows the real time of each move.
+  // A log that kept how the pieces moved plays as it was played at 1× and
+  // slower: the clock runs at the real pace and the piece follows its path.
+  const live = !!replay.moves && speed <= 1;
+  const stepRef = useRef(0);
   useEffect(() => {
-    if (!playing || step >= total) return;
+    stepRef.current = step;
+  }, [step]);
+  useEffect(() => {
+    if (!playing || !live) return;
+    let raf = 0;
+    let prev = 0;
+    const tick = (now) => {
+      clockRef.current += prev ? (Math.min(now - prev, 100) / 1000) * speed : 0;
+      prev = now;
+      let n = stepRef.current;
+      while (n < total && events[n].t <= clockRef.current) n++;
+      if (n !== stepRef.current) {
+        stepRef.current = n;
+        setStep(n);
+      }
+      setClock(clockRef.current);
+      if (n >= total) return setPlaying(false);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, live, speed, total, events]);
+
+  // Otherwise: one event per beat, at an even pace, showing where each piece
+  // ended up; the clock on the left still shows the real time of each move.
+  useEffect(() => {
+    if (!playing || live || step >= total) return;
     const id = setTimeout(() => {
       seek(step + 1);
       if (step + 1 >= total) setPlaying(false);
     }, BEAT_MS / speed);
     return () => clearTimeout(id);
-  }, [playing, speed, step, total, seek]);
+  }, [playing, live, speed, step, total, seek]);
 
   // Analysis: scores and the moments worth a second look. `review` is null
   // until asked for, a number (0..1) while it runs, then the result.
@@ -214,7 +242,13 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   useEffect(() => {
     const next = events[step];
     const board = { matrix: frame.matrix, currentId: 0 };
-    if (next?.kind === "place") {
+    if (playing && live) {
+      // The piece in hand, where it was at this moment (garbage has no piece
+      // of its own: the one falling is the next event's).
+      const mine = events.slice(step).find((e) => e.kind !== "garbage");
+      const at = mine && pathAt(replay.moves, step, clock);
+      if (at) Object.assign(board, { playing: true, currentId: LETTER_ID[mine.type], currentRot: at.rot, currentX: at.x, currentY: at.y, ghostY: at.y });
+    } else if (next?.kind === "place") {
       Object.assign(board, {
         playing: true,
         currentId: LETTER_ID[next.type],
@@ -258,7 +292,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
     }
     drawHold(holdRef.current, frame.hold);
     drawQueue(queueRef.current, dealt.slice(frame.dealtCount));
-  }, [events, dealt, frame, step, moment, shownLine, playing, look]);
+  }, [events, dealt, frame, step, moment, shownLine, playing, look, live, clock, replay.moves]);
 
   const held = step > 0 && events[step - 1].kind === "hold";
   const shown = useMemo(() => events.slice(Math.max(0, step - 40), step), [events, step]);
