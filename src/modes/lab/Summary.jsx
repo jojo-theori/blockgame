@@ -218,8 +218,11 @@ function RankCardView({ what: given, onClose }) {
 
 // The summary, set out like a certificate so it never reads as one of the
 // move comments: a seal with the rank, the title, then what stood out.
-export function Award({ review, card }) {
+export function Award({ review, card, mode }) {
   const v = verdict(review);
+  // What the scores mean, behind a question mark in the card's corner: on
+  // hover, or on a tap (which must not also open the card).
+  const [help, setHelp] = useState(false);
   const [key, vars] = v.note;
   // The card to keep: opened large first, saved from there.
   const [shown, setShown] = useState(null);
@@ -269,9 +272,34 @@ export function Award({ review, card }) {
           }}
         />
       )}
+      {/* The three scores, across the top of the summary. */}
+      <div className="lab-award-scores">
+        {SCORES.map(([kind, label]) => (
+          <div key={kind}>
+            <div className="k lab-score-k">
+              <KindIcon kind={kind} />
+              {t(label)}
+            </div>
+            <div className="v">{review.scores[kind]}</div>
+          </div>
+        ))}
+      </div>
       <RankSeal letter={v.letter} step={v.step} />
       <div className="lab-award-title">{t(v.title)}</div>
       <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>
+      {mode && (
+        <span
+          className={"lab-award-help" + (help ? " open" : "")}
+          onClick={(e) => {
+            e.stopPropagation();
+            setHelp((on) => !on);
+          }}
+          onKeyDown={(e) => e.stopPropagation()}
+          onPointerLeave={() => setHelp(false)}
+        >
+          <ScoreHelp review={review} mode={mode} />
+        </span>
+      )}
       {review.traits.length > 0 && (
         <ul className="lab-traits">
           {review.traits.map((trait, n) => (

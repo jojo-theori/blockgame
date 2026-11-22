@@ -419,7 +419,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
               foot of the board. Nothing here changes the page's layout. */}
           <div className="lab-side">
             {/* The scores: soft pulses while they are worked out, then the numbers. */}
-            <div ref={topRef} className={"lab-top" + (helpOpen ? " help-open" : "")} onClick={phone ? () => setHelpOpen((v) => !v) : undefined}>
+            <div ref={topRef} className={"lab-top" + (helpOpen ? " help-open" : "") + (overview && review && typeof review === "object" ? " in-card" : "")} onClick={phone ? () => setHelpOpen((v) => !v) : undefined}>
               {review && typeof review === "object" && <ScoreHelp review={review} mode={replay.mode.mode} />}
               {review !== null && (
                 <div className={"lab-scores" + (typeof review === "number" ? " waiting" : "")}>
@@ -477,6 +477,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                     ) : overview ? (
                       <Award
                         review={review}
+                        mode={replay.mode.mode}
                         card={{
                           // A run that came by a link is someone else's: the card is to
                           // look at. So is one unpacked from a QR code, however it got
