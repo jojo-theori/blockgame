@@ -11,6 +11,7 @@ import { useFit } from "../../fit.js";
 import { selectKey, keyLabel } from "../../keys.js";
 import { pathAt } from "../../trace.js";
 import { replayLink } from "../../pack.js";
+import { runLink } from "../../compact.js";
 import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, SCORES, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
 import { ScoreHelp, Award } from "./Summary.jsx";
 import { KindIcon, GradeIcon } from "./icons.jsx";
@@ -445,6 +446,8 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                           // A CPU's card carries its name; a person's, the name they set on the card.
                           name: replay.mode.me && !/^P[12]$/.test(replay.mode.me) ? replay.mode.me : "",
                           mode: modeName({ mode: replay.mode.mode, lines: replay.mode.lines }, ""),
+                          // What the card's QR code opens: this run, where it packs small enough.
+                          link: runLink(replay.text),
                           // A Sprint that reached its goal shows its time above all else.
                           time: replay.mode.mode === "sprint" && frames[total].lines >= (replay.mode.lines || Infinity) ? formatTime(events[total - 1].t) : "",
                           vs: replay.mode.vs ? `vs ${replay.mode.vs}${replay.mode.level ? ` (${t(replay.mode.level)})` : ""}` : "",

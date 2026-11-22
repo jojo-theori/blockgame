@@ -165,7 +165,7 @@ export default {
   Speed: "속도",
   Home: "홈",
   "Inspired by": "영감",
-  "Openers after": "오프너 출처",
+  "Openers after": "오프너",
   "Card foils": "카드 효과",
   "Made by": "제작",
   "This mode is still in the lab.": "아직 실험실에 있는 모드입니다.",

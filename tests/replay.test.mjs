@@ -128,3 +128,25 @@ test("a packed run unpacks to a log that reads the same", async () => {
   assert.ok(/^[\w-]+$/.test(packed) && packed.length < text.length / 5, `packed to ${packed.length} of ${text.length}`);
   assert.equal(await unpack("not-a-run"), null);
 });
+
+test("a Sprint packed for a QR code replays to the same board, lines and times", async () => {
+  const { packRun, unpackRun } = await import("../src/compact.js");
+  const { parseLog, buildFrames, logMode } = await import("../src/replay.js");
+  const { sampleLog } = await import("../src/sample.js");
+  const text = sampleLog();
+  const packed = packRun(text);
+  const back = unpackRun(packed);
+  const a = parseLog(text);
+  const b = parseLog(back);
+  assert.equal(b.length, a.length);
+  assert.deepEqual(b.map((e) => [e.kind, e.type, e.placed, e.rot]), a.map((e) => [e.kind, e.type, e.placed, e.rot]));
+  assert.deepEqual(b.map((e) => e.action), a.map((e) => e.action), "lines and combos follow from the placements");
+  assert.deepEqual(b.map((e) => e.finesseFault > 0), a.map((e) => e.finesseFault > 0));
+  assert.ok(a.every((e, i) => Math.abs(e.t - b[i].t) <= 0.026), "times to the nearest step");
+  assert.equal(b.at(-1).t, a.at(-1).t, "the final time exactly");
+  assert.deepEqual(buildFrames(b).frames.at(-1).matrix, buildFrames(a).frames.at(-1).matrix);
+  assert.deepEqual(logMode(back, b), logMode(text, a));
+  assert.ok(packed.length < 520, `packed to ${packed.length} characters for ${a.length} events`);
+  assert.equal(packRun(text.replace(/^SPRINT 40L/, "BATTLE P1 vs CPU")), null, "only a Sprint");
+  assert.equal(unpackRun("AAAA"), null);
+});

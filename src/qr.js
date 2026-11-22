@@ -1,10 +1,35 @@
 // ─── A small QR code ───
-// Enough for a web address: byte mode, error correction level L, versions 1
-// to 5 (up to 106 bytes), mask 0. Returns the modules as rows of booleans
-// (true is dark), or null when the text is too long.
+// Enough for a link: byte mode, error correction level L, versions 1 to 20
+// (up to 858 bytes), mask 0. Returns the modules as rows of booleans (true is
+// dark), or null when the text is too long.
 
-// [version]: total codewords, error-correction codewords (one block at level L).
-const SPEC = [null, [26, 7], [44, 10], [70, 15], [100, 20], [134, 26]];
+// Level L, by version: check bytes per block, and how many blocks.
+const EC = [0, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28];
+const BLOCKS = [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8];
+const MAX_VERSION = 20;
+
+// Where the alignment marks sit along each side, for this version.
+function alignments(version) {
+  if (version === 1) return [];
+  const count = Math.floor(version / 7) + 2;
+  const step = Math.ceil((version * 4 + 4) / (count * 2 - 2)) * 2;
+  const out = [6];
+  for (let pos = version * 4 + 10; out.length < count; pos -= step) out.splice(1, 0, pos);
+  return out;
+}
+// All the codewords (data and check) a version holds.
+function totalWords(version) {
+  let bits = (16 * version + 128) * version + 64;
+  if (version >= 2) {
+    const n = Math.floor(version / 7) + 2;
+    bits -= (25 * n - 10) * n - 55;
+    if (version >= 7) bits -= 36;
+  }
+  return Math.floor(bits / 8);
+}
+const dataWords = (version) => totalWords(version) - EC[version] * BLOCKS[version];
+// The length field is one byte up to version 9, two after.
+const room = (version) => dataWords(version) - (version < 10 ? 2 : 3);
 
 // GF(256) arithmetic for the Reed–Solomon check bytes (polynomial 0x11d).
 const mul = (a, b) => {
@@ -46,10 +71,10 @@ export function formatBits(mask) {
 
 export function qr(text) {
   const bytes = [...new TextEncoder().encode(text)];
-  const version = SPEC.findIndex((s) => s && bytes.length <= s[0] - s[1] - 2);
-  if (version < 1) return null;
-  const [total, ec] = SPEC[version];
-  const room = total - ec;
+  let version = 1;
+  while (version <= MAX_VERSION && bytes.length > room(version)) version++;
+  if (version > MAX_VERSION) return null;
+  const capacity = dataWords(version);
 
   // Mode (byte), length, the bytes, a terminator, then padding.
   const bits = [];
@@ -57,14 +82,29 @@ export function qr(text) {
     for (let i = n - 1; i >= 0; i--) bits.push((value >>> i) & 1);
   };
   push(4, 4);
-  push(bytes.length, 8);
+  push(bytes.length, version < 10 ? 8 : 16);
   bytes.forEach((b) => push(b, 8));
-  push(0, Math.min(4, room * 8 - bits.length));
+  push(0, Math.min(4, capacity * 8 - bits.length));
   while (bits.length % 8) bits.push(0);
   const data = [];
   for (let i = 0; i < bits.length; i += 8) data.push(parseInt(bits.slice(i, i + 8).join(""), 2));
-  for (let pad = 0xec; data.length < room; pad ^= 0xec ^ 0x11) data.push(pad);
-  const words = [...data, ...checkBytes(data, ec)];
+  for (let pad = 0xec; data.length < capacity; pad ^= 0xec ^ 0x11) data.push(pad);
+
+  // Split into blocks (the last ones a byte longer), give each its check
+  // bytes, and deal them out a byte at a time.
+  const count = BLOCKS[version];
+  const short = Math.floor(capacity / count);
+  const longOnes = capacity % count;
+  const blocks = [];
+  for (let i = 0, at = 0; i < count; i++) {
+    const len = short + (i >= count - longOnes ? 1 : 0);
+    const part = data.slice(at, at + len);
+    at += len;
+    blocks.push({ part, check: checkBytes(part, EC[version]) });
+  }
+  const words = [];
+  for (let i = 0; i <= short; i++) for (const blk of blocks) if (i < blk.part.length) words.push(blk.part[i]);
+  for (let i = 0; i < EC[version]; i++) for (const blk of blocks) words.push(blk.check[i]);
 
   const size = 17 + 4 * version;
   const dark = Array.from({ length: size }, () => new Array(size).fill(false));
@@ -88,9 +128,27 @@ export function qr(text) {
       }
     }
   }
-  if (version > 1) {
-    const c = size - 7;
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(c + dx, c + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+  const marks = alignments(version);
+  marks.forEach((cx, i) =>
+    marks.forEach((cy, j) => {
+      // Not where the three finders are.
+      const last = marks.length - 1;
+      if ((i === 0 && j === 0) || (i === 0 && j === last) || (i === last && j === 0)) return;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(cx + dx, cy + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }),
+  );
+  // From version 7 the version is written in too, twice.
+  if (version >= 7) {
+    let rem = version;
+    for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1f25);
+    const info = (version << 12) | rem;
+    for (let i = 0; i < 18; i++) {
+      const on = ((info >>> i) & 1) === 1;
+      const a = size - 11 + (i % 3);
+      const b = Math.floor(i / 3);
+      set(a, b, on);
+      set(b, a, on);
+    }
   }
   // The format bits, twice, and the module that is always dark.
   const format = formatBits(0);

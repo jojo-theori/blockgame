@@ -14,6 +14,9 @@ test("QR: check bytes, format bits and the fixed patterns are right", () => {
   for (const [x, y] of [[1, 1], [23, 1], [1, 23], [7, 7]]) assert.equal(m[y][x], false);
   assert.deepEqual(m[6].slice(8, 17), [true, false, true, false, true, false, true, false, true]);
   assert.equal(m[17][8], true, "the dark module");
-  assert.equal(qr("x".repeat(107)), null);
-  assert.equal(qr("x".repeat(106)).length, 37);
+  assert.equal(qr("x".repeat(106)).length, 37, "version 5");
+  assert.equal(qr("x".repeat(107)).length, 41, "version 6, two blocks");
+  assert.equal(qr("x".repeat(425)).length, 69, "version 13");
+  assert.equal(qr("x".repeat(858)).length, 97, "version 20");
+  assert.equal(qr("x".repeat(859)), null);
 });

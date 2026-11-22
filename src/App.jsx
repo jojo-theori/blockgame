@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import { saveRecent } from "./recent.js";
 import { toast } from "./ui/toast.js";
 import { unpack, HASH } from "./pack.js";
+import { unpackRun, RUN_HASH } from "./compact.js";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
 import { useDevProfiles, labOpen, toggleLab, labCode } from "./dev.js";
@@ -204,10 +205,12 @@ export default function App() {
   }, []);
   // A link to a run (see pack.js) opens straight into its replay.
   useEffect(() => {
-    if (!location.hash.startsWith(HASH)) return;
-    const packed = location.hash.slice(HASH.length);
+    // Two kinds: the short one a QR code carries (compact.js) and the full one.
+    const short = location.hash.startsWith(RUN_HASH);
+    if (!short && !location.hash.startsWith(HASH)) return;
+    const packed = location.hash.slice((short ? RUN_HASH : HASH).length);
     history.replaceState(null, "", location.pathname + location.search);
-    unpack(packed).then((text) => {
+    Promise.resolve(short ? unpackRun(packed) : unpack(packed)).then((text) => {
       if (!text) return;
       setLabLog(text);
       setView("lab");

@@ -26,7 +26,7 @@ function rounded(ctx, x, y, w, h, r) {
 
 // what: { letter, step, title, scores: [[label, value]], name, mode, vs, date,
 // time } — time is a finished Sprint's, and then it is the largest line.
-export function drawRankCard({ letter, step, title, scores, name, mode, vs, date, time }, { baked = false } = {}) {
+export function drawRankCard({ letter, step, title, scores, name, mode, vs, date, time, link }, { baked = false } = {}) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -136,7 +136,13 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   } else {
     text(title, cx, 880, 66, 700, "#ffffff");
   }
-  const down = time ? 60 : 0;
+  // The QR code: the run itself where it packs small enough (link), and the
+  // site's address otherwise. A run's code has more in it, so its tile is
+  // larger, to keep each square big enough for a camera; the scores then sit
+  // a little higher to clear it.
+  const code = (link && qr(link)) || qr(location.origin + location.pathname);
+  const big = !!code && code.length > 45;
+  const down = time ? (big ? 12 : 60) : 0;
   scores.forEach(([label, value], i) => {
     const x = cx + (i - (scores.length - 1) / 2) * 250;
     text(label, x, 1020 + down, 28, 600, "rgba(255, 255, 255, 0.5)");
@@ -147,12 +153,9 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   text(name, m + 56, H - m - 112, 40, 700, "#ffffff", "left");
   text([mode, vs].filter(Boolean).join("  ·  "), m + 56, H - m - 60, 30, 500, "rgba(255, 255, 255, 0.62)", "left");
 
-  // Where to play: the site's address as a QR code, on a light tile.
-  // (A link to the run itself is too long to scan at this size.)
-  const code = qr(location.origin + location.pathname);
   if (code) {
-    const tile = 150;
-    const pad = 12;
+    const tile = big ? 244 : 150;
+    const pad = big ? 14 : 12;
     const x0 = W - m - 56 - tile;
     const y0 = H - m - 44 - tile;
     rounded(ctx, x0, y0, tile, tile, 22);
