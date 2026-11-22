@@ -1,7 +1,7 @@
 // The run as a whole: the summary card and the help on the scores.
 import { t } from "../../i18n.js";
 import { KIND_NAMES, SCORES } from "./consts.js";
-import { RANK_MAX, pointsOf, rankOf } from "./rank.js";
+import { pointsOf, rankOf } from "./rank.js";
 import { saveRankCard } from "./rankCard.js";
 import { IconButton } from "../../ui.jsx";
 import { KindIcon } from "./icons.jsx";
@@ -78,12 +78,12 @@ export function RankSeal({ letter, step }) {
 
 // The summary, set out like a certificate so it never reads as one of the
 // move comments: a seal with the rank, the title, then what stood out.
-export function Award({ review, caption }) {
+export function Award({ review, card }) {
   const v = verdict(review);
   const [key, vars] = v.note;
   const save = (e) => {
     e.currentTarget.blur();
-    saveRankCard({ ...v, title: t(v.title), caption, scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
+    saveRankCard({ ...v, ...card, title: t(v.title), date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
   };
   return (
     <div className={"lab-award rank-" + v.letter}>
@@ -91,10 +91,7 @@ export function Award({ review, caption }) {
         <IconButton icon="download" label="Save as image" onClick={save} />
       </div>
       <RankSeal letter={v.letter} step={v.step} />
-      <div className="lab-award-points">
-        {v.points}
-        <small> / {RANK_MAX}</small>
-      </div>
+      <div className="lab-award-points">{v.points}</div>
       <div className="lab-award-title">{t(v.title)}</div>
       <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>
       {review.traits.length > 0 && (

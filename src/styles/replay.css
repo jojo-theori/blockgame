@@ -189,7 +189,6 @@
 .lab-award-save { position: absolute; top: 6px; right: 6px; opacity: 0; transition: opacity 0.18s var(--out); }
 .lab-award:hover .lab-award-save, .lab-award-save:focus-within { opacity: 1; }
 .lab-award-points { margin: -4px 0 8px; font-size: var(--t3); font-weight: 600; color: var(--fg); }
-.lab-award-points small { font-size: var(--t2); font-weight: 400; color: var(--faint); }
 /* The seal. The letter and its step are two boxes centred on one line, so the
    + or − sits on the letter's middle rather than on the text baseline. */
 .lab-seal { position: relative; isolation: isolate; width: 54px; height: 54px; margin: 4px auto 12px; display: flex; align-items: center; justify-content: center; gap: 1px; border-radius: 50%; border: 1.5px solid var(--rank); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 45%, transparent); color: var(--rank); font-size: var(--t6); font-weight: 700; line-height: 1; white-space: nowrap; }

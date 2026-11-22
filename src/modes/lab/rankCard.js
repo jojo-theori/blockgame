@@ -1,82 +1,140 @@
 // The run's rank as a picture to keep or post: a tall card (1080 × 1350)
-// drawn on a canvas and handed over as a PNG.
-import { RANK_MAX } from "./rank.js";
-
+// drawn on a canvas and handed over as a PNG. Laid out like a gift card: a
+// field of the rank's colours, a glass panel on it, the seal in the middle.
 const W = 1080;
 const H = 1350;
-// The seal's colours per letter (the page's own come from replay.css).
-const COLORS = { SSS: ["#ff7ab6", "#ffd75e", "#6fe3a1", "#5fb8ff", "#b98cff"], SS: ["#ffe9a3", "#f6c945", "#fff6d6"], S: ["#e3bf3f"], A: ["#5cc45c"], B: ["#41b6e6"], C: ["#a66bd6"], D: ["#e8903a"], E: ["#e8505b"] };
+// Per letter: the seal's colours (as replay.css draws them), then the three
+// colours of the field behind.
+const THEMES = {
+  SSS: { seal: ["#ff7ab6", "#ffd75e", "#6fe3a1", "#5fb8ff", "#b98cff"], field: ["#ff5fa8", "#5f8dff", "#ffcf5e"] },
+  SS: { seal: ["#f6c945", "#fff6d6", "#e3a53f", "#fff1b8"], field: ["#f6c945", "#b0711c", "#fff1b8"] },
+  S: { seal: ["#e3bf3f"], field: ["#e3bf3f", "#7a5a12", "#f3dc8a"] },
+  A: { seal: ["#5cc45c"], field: ["#5cc45c", "#12604a", "#b6efb0"] },
+  B: { seal: ["#41b6e6"], field: ["#41b6e6", "#1f4fa8", "#a8e4ff"] },
+  C: { seal: ["#a66bd6"], field: ["#a66bd6", "#4a2f9a", "#e0c2ff"] },
+  D: { seal: ["#e8903a"], field: ["#e8903a", "#8a3a16", "#ffd3a6"] },
+  E: { seal: ["#e8505b"], field: ["#e8505b", "#7a1f3a", "#ffb3b8"] },
+};
 
-// what: { letter, step, title, points, scores: [[label, value]], caption }
-export function drawRankCard({ letter, step, title, points, scores, caption }) {
+function rounded(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
+// what: { letter, step, title, points, scores: [[label, value]], name, mode, vs, date }
+export function drawRankCard({ letter, step, title, points, scores, name, mode, vs, date }) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   const font = getComputedStyle(document.body).fontFamily;
-  const colors = COLORS[letter];
+  const { seal, field } = THEMES[letter];
+  const fancy = seal.length > 1;
+  const text = (s, x, y, size, weight, color, align = "center") => {
+    ctx.font = `${weight} ${size}px ${font}`;
+    ctx.textAlign = align;
+    ctx.fillStyle = color;
+    ctx.fillText(s, x, y);
+  };
+
+  // The field: a dark base with three soft pools of the rank's colours.
+  ctx.fillStyle = "#08080b";
+  ctx.fillRect(0, 0, W, H);
+  [
+    [W * 0.18, H * 0.12, 760, field[0], 0.55],
+    [W * 0.92, H * 0.42, 700, field[1], 0.6],
+    [W * 0.3, H * 1.02, 760, field[2], 0.32],
+  ].forEach(([x, y, r, color, a]) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, color + Math.round(a * 255).toString(16).padStart(2, "0"));
+    g.addColorStop(1, color + "00");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  });
+
+  // The glass panel.
+  const m = 64;
+  rounded(ctx, m, m, W - 2 * m, H - 2 * m, 56);
+  ctx.fillStyle = "rgba(10, 10, 14, 0.52)";
+  ctx.fill();
+  const edge = ctx.createLinearGradient(m, m, W - m, H - m);
+  edge.addColorStop(0, "rgba(255, 255, 255, 0.5)");
+  edge.addColorStop(0.5, "rgba(255, 255, 255, 0.08)");
+  edge.addColorStop(1, "rgba(255, 255, 255, 0.28)");
+  ctx.strokeStyle = edge;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // A sheen across the top of the glass.
+  ctx.save();
+  rounded(ctx, m, m, W - 2 * m, H - 2 * m, 56);
+  ctx.clip();
+  const sheen = ctx.createLinearGradient(0, m, 0, m + 420);
+  sheen.addColorStop(0, "rgba(255, 255, 255, 0.10)");
+  sheen.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = sheen;
+  ctx.fillRect(m, m, W - 2 * m, 420);
+  ctx.restore();
+
+  ctx.textBaseline = "middle";
+  text("JBL", m + 56, m + 78, 40, 800, "#ffffff", "left");
+  if (date) text(date, W - m - 56, m + 78, 30, 500, "rgba(255, 255, 255, 0.6)", "right");
+
+  // The seal: a ring (turning colours for SS and SSS), a dark face, the letter.
   const cx = W / 2;
-  const cy = 430;
-  const r = 210;
-  const paint = () => {
-    if (colors.length === 1) return colors[0];
+  const cy = 470;
+  const r = 200;
+  const ring = () => {
+    if (!fancy) return seal[0];
     const g = ctx.createConicGradient(-Math.PI / 2, cx, cy);
-    colors.forEach((c, i) => g.addColorStop(i / colors.length, c));
-    g.addColorStop(1, colors[0]);
+    seal.forEach((c, i) => g.addColorStop(i / seal.length, c));
+    g.addColorStop(1, seal[0]);
     return g;
   };
-  ctx.fillStyle = "#0b0b0c";
-  ctx.fillRect(0, 0, W, H);
-  // A glow behind the seal, stronger the higher the rank.
-  const strength = { SSS: 0.5, SS: 0.4, S: 0.3 }[letter] || 0.16;
-  const glow = ctx.createRadialGradient(cx, cy, 40, cx, cy, 620);
-  glow.addColorStop(0, colors[0] + Math.round(strength * 255).toString(16).padStart(2, "0"));
-  glow.addColorStop(1, "#0b0b0c00");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
-  // The seal: two rings, three for the S ranks.
-  ctx.strokeStyle = paint();
-  [[r, 10], [r + 26, 3], ...(letter.startsWith("S") ? [[r + 46, 2]] : [])].forEach(([radius, width]) => {
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.stroke();
-  });
-  ctx.fillStyle = paint();
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const size = letter.length === 3 ? 150 : letter.length === 2 ? 190 : 230;
-  ctx.font = `700 ${size}px ${font}`;
+  ctx.save();
+  ctx.shadowColor = seal[0];
+  ctx.shadowBlur = letter.startsWith("S") ? 90 : 40;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = "#0a0a0d";
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = ring();
+  ctx.lineWidth = fancy ? 16 : 8;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 26, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  // The letter: one colour, or left to right through the seal's colours as on the page.
+  const size = 170;
+  ctx.font = `800 ${size}px ${font}`;
   const lw = ctx.measureText(letter).width;
-  ctx.font = `700 ${size * 0.6}px ${font}`;
-  const sw = step ? ctx.measureText(step).width + 6 : 0;
-  ctx.font = `700 ${size}px ${font}`;
-  ctx.fillText(letter, cx - sw / 2, cy + size * 0.04);
-  if (step) {
-    ctx.font = `700 ${size * 0.6}px ${font}`;
-    ctx.fillText(step, cx + lw / 2 + 6, cy);
+  ctx.font = `800 ${size * 0.62}px ${font}`;
+  const sw = step ? ctx.measureText(step).width + 8 : 0;
+  const left = cx - (lw + sw) / 2;
+  let ink = seal[0];
+  if (fancy) {
+    ink = ctx.createLinearGradient(left, 0, left + lw, 0);
+    seal.forEach((c, i) => ink.addColorStop(i / (seal.length - 1), c));
   }
-  ctx.fillStyle = "#f2f2f2";
-  ctx.font = `600 68px ${font}`;
-  ctx.fillText(title, cx, 790);
-  ctx.fillStyle = "#9a9a9a";
-  ctx.font = `400 40px ${font}`;
-  ctx.fillText(`${points} / ${RANK_MAX}`, cx, 868);
+  text(letter, left, cy + size * 0.04, size, 800, ink, "left");
+  if (step) text(step, left + lw + 8, cy, size * 0.62, 800, seal[0], "left");
+
+  text(title, cx, 790, 66, 700, "#ffffff");
+  text(String(points), cx, 866, 40, 600, "rgba(255, 255, 255, 0.62)");
   scores.forEach(([label, value], i) => {
     const x = cx + (i - (scores.length - 1) / 2) * 250;
-    ctx.fillStyle = "#7a7a7a";
-    ctx.font = `500 30px ${font}`;
-    ctx.fillText(label, x, 1000);
-    ctx.fillStyle = "#f2f2f2";
-    ctx.font = `600 72px ${font}`;
-    ctx.fillText(String(value), x, 1070);
+    text(label, x, 980, 28, 600, "rgba(255, 255, 255, 0.5)");
+    text(String(value), x, 1046, 70, 700, "#ffffff");
   });
-  ctx.fillStyle = "#7a7a7a";
-  ctx.font = `400 32px ${font}`;
-  if (caption) ctx.fillText(caption, cx, 1200);
-  ctx.fillStyle = "#f2f2f2";
-  ctx.font = `700 34px ${font}`;
-  ctx.fillText("JBL", cx, 1268);
+
+  // Whose run, and what it was.
+  text(name, m + 56, H - m - 112, 40, 700, "#ffffff", "left");
+  text([mode, vs].filter(Boolean).join("  ·  "), m + 56, H - m - 60, 30, 500, "rgba(255, 255, 255, 0.62)", "left");
   return canvas;
 }
 

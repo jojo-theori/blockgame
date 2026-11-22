@@ -31,7 +31,7 @@ import {
 import { BUTTON, ICON_BUTTON, CHIP } from "../ui/variants.js";
 import { toast } from "../ui/toast.js";
 import { RankSeal } from "./lab/Summary.jsx";
-import { ALL_RANKS, RANK_MAX } from "./lab/rank.js";
+import { ALL_RANKS } from "./lab/rank.js";
 
 const ACCENT = "#f2cb4c";
 const COLOURS = ["--fg", "--dim", "--faint", "--muted", "--line", "--hover", "--fill", "--bad", "--accent"];
@@ -596,10 +596,7 @@ const PAGES = {
           <div key={r.letter + r.step} className={"lab-award still rank-" + r.letter}>
             <RankSeal letter={r.letter} step={r.step} />
             <div className="lab-award-title">{t(r.title)}</div>
-            <div className="lab-award-points">
-              {r.min}
-              <small> / {RANK_MAX}</small>
-            </div>
+            <div className="lab-award-points">{r.min}</div>
           </div>
         ))}
       </div>

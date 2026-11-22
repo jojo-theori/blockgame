@@ -439,7 +439,15 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                         </p>
                       </div>
                     ) : overview ? (
-                      <Award review={review} caption={modeName(replay.mode, "")} />
+                      <Award
+                        review={review}
+                        card={{
+                          // The player's name is the seat's until there are accounts.
+                          name: replay.mode.me || "PLAYER",
+                          mode: modeName({ mode: replay.mode.mode, lines: replay.mode.lines }, ""),
+                          vs: replay.mode.vs ? `vs ${replay.mode.vs}${replay.mode.level ? ` (${t(replay.mode.level)})` : ""}` : "",
+                        }}
+                      />
                     ) : (
                       <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
                     )}

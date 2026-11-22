@@ -24,7 +24,25 @@ const WORDS = [
   ["flwl", "lizzy"], // 리지
   ["jojo", "own"],
   ["whwh", "own"], // 조조
+  ["lab", "lab"], // shows or hides Lab on the home menu
 ];
+const LAB_KEY = "jbl-lab";
+export const labOpen = () => {
+  try {
+    return localStorage.getItem(LAB_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+function toggleLab() {
+  const on = !labOpen();
+  try {
+    localStorage.setItem(LAB_KEY, on ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+  return on ? "Lab on" : "Lab off";
+}
 const OWN_KEY = "jbl-keys-own"; // your solo keys, kept while Lizzy's are in
 
 function swap(to) {
@@ -67,7 +85,7 @@ export function useDevProfiles() {
       const hit = WORDS.find(([word]) => typed.endsWith(word));
       if (!hit) return;
       typed = "";
-      const name = swap(hit[1]);
+      const name = hit[1] === "lab" ? toggleLab() : swap(hit[1]);
       setState((s) => ({ name, version: s.version + 1 }));
       clearTimeout(hide);
       hide = setTimeout(() => setState((s) => ({ ...s, name: "" })), 3000);

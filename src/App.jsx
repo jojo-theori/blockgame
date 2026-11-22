@@ -4,7 +4,7 @@ import { saveRecent } from "./recent.js";
 import { unpack, HASH } from "./pack.js";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
-import { useDevProfiles } from "./dev.js";
+import { useDevProfiles, labOpen } from "./dev.js";
 import { Background } from "./bg.jsx";
 import { setSkin, setCellLines, setOrientMark, setBoardTheme } from "./render.js";
 import { selectKey, backKey, keyLabel } from "./keys.js";
@@ -51,10 +51,14 @@ const MODES = [
 ];
 
 // Next menu row in direction d, skipping modes that are not ready yet.
+// Lab stays off the menu until it is unlocked (typing "lab", see dev.js).
+const menuModes = () => (labOpen() ? MODES : MODES.filter((m) => m.id !== "experiments"));
 function stepReady(i, d) {
-  let n = i;
-  do n = (n + d + MODES.length) % MODES.length;
-  while (!MODES[n].ready && n !== i);
+  const modes = menuModes();
+  let n = Math.min(i, modes.length - 1);
+  const from = n;
+  do n = (n + d + modes.length) % modes.length;
+  while (!modes[n].ready && n !== from);
   return n;
 }
 
@@ -148,13 +152,13 @@ export default function App() {
         sfx.tick();
       } else if (e.code === selectKey() || e.code === "Enter" || e.code === "NumpadEnter") {
         e.preventDefault();
-        const item = MODES[menuIdx];
+        const item = menuModes()[menuIdx];
         if (item?.ready) {
           sfx.select();
           setView(item.id);
         }
       } else if (/^Digit[1-9]$/.test(e.code)) {
-        const item = MODES[+e.code.slice(5) - 1];
+        const item = menuModes()[+e.code.slice(5) - 1];
         if (item?.ready) setView(item.id);
       }
     };
@@ -212,7 +216,7 @@ export default function App() {
             <circle cx="12" cy="12" r="9.5" />
             <path d="M7.8 12.4l2.9 2.9 5.5-6" />
           </svg>
-          {devProfile} keys
+          {devProfile.startsWith("Lab") ? devProfile : `${devProfile} keys`}
         </div>
       )}
       <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} sound={soundEnabled} setSound={setSoundEnabled} onSettings={openSettings} />
@@ -240,7 +244,7 @@ export default function App() {
             <h1 className="logo">JBL</h1>
             <div className="sub">Jojo&apos;s Blockgame Laboratory</div>
             <div className="menu">
-              {MODES.map((m, i) => (
+              {menuModes().map((m, i) => (
                 <button
                   key={m.id}
                   ref={(el) => (rowRefs.current[i] = el)}
