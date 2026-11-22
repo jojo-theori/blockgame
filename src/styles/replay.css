@@ -95,6 +95,7 @@
 .lab-phone .lab-keys { margin-left: auto; height: 44px; padding: 0 16px; zoom: calc(1 / 1.375); white-space: nowrap; }
 .lab-hop { margin-left: auto; display: flex; align-items: center; gap: 6px; zoom: calc(1.1 / 1.375); }
 .lab-hop .btn { height: 36px; padding: 0 11px; white-space: nowrap; }
+.lab-hop-mid { position: absolute; left: 50%; top: 27.5px; margin: 0; width: max-content; flex-wrap: nowrap; transform: translate(-50%, -50%); }
 .lab-play { flex: none; display: flex; zoom: 1.375; }
 /* The comment, a little shorter, with the way back at its right. */
 .lab-phone .lab-slot { height: auto; min-height: 56px; display: flex; align-items: center; gap: 8px; }

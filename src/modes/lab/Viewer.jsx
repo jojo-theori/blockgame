@@ -46,10 +46,11 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
   // On a phone (someone who scanned a card's QR code) the screen is laid out
   // tall instead: the board as wide as it goes with hold and next beside it,
   // then the transport and the review under it, and the page scrolls. 372 is
-  // the board and its narrow side column, kept to four fifths of their size at
-  // most (a taller board pushes the transport off a phone's screen) and centred.
+  // the board and its narrow side column, centred. They are as large as the
+  // width allows, but no taller than what the summary above and the controls
+  // below (340 px in all, with a little air) leave of the screen's height.
   const phone = usePhone();
-  const zoom = phone ? Math.min(0.8, (window.innerWidth - 40) / 372) : fit;
+  const zoom = phone ? Math.min((window.innerWidth - 40) / 372, Math.max(0.7, (window.innerHeight - 340) / 560), 1.15) : fit;
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -592,22 +593,26 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                     {moments.length ? t("{n} key moments", { n: moments.length }) : t("No key moments")}
                   </button>
                 )}
-                {/* And once among them, the way from one to the next (up and down,
-                    as on the keyboard), with the engine's line first when there is one. */}
+                {/* And once among them, the way from one to the next in the middle of
+                    the row, and the engine's line at its end when there is one. */}
                 {phone && !overview && review && typeof review === "object" && (
-                  <span className="lab-hop">
-                    {moment?.best && (
-                      <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
-                        <Icon name={shownLine ? "stop" : "eye"} size={15} />
-                        {t(shownLine ? "Stop" : "Show")}
+                  <>
+                    <span className="lab-hop lab-hop-mid">
+                      <IconButton icon="up" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
+                      <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
+                        <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next")}</span>
+                        <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Restart")}</span>
                       </button>
+                    </span>
+                    {moment?.best && (
+                      <span className="lab-hop">
+                        <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
+                          <Icon name={shownLine ? "stop" : "eye"} size={15} />
+                          {t(shownLine ? "Stop" : "Show")}
+                        </button>
+                      </span>
                     )}
-                    <IconButton icon="up" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
-                    <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
-                      <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next")}</span>
-                      <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Restart")}</span>
-                    </button>
-                  </span>
+                  </>
                 )}
               </div>
               <div className="lab-foot">
