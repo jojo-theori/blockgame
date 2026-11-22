@@ -223,6 +223,13 @@ export function Award({ review, card, mode }) {
   // What the scores mean, behind a question mark in the card's corner: on
   // hover, or on a tap (which must not also open the card).
   const [help, setHelp] = useState(false);
+  const helpRef = useRef(null);
+  useEffect(() => {
+    if (!help) return;
+    const away = (e) => !helpRef.current?.contains(e.target) && setHelp(false);
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [help]);
   const [key, vars] = v.note;
   // The card to keep: opened large first, saved from there.
   const [shown, setShown] = useState(null);
@@ -283,23 +290,24 @@ export function Award({ review, card, mode }) {
             <div className="v">{review.scores[kind]}</div>
           </div>
         ))}
+        {mode && (
+          <span
+            ref={helpRef}
+          className={"lab-award-help" + (help ? " open" : "")}
+            onClick={(e) => {
+              e.stopPropagation();
+              setHelp((on) => !on);
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
+            onPointerLeave={() => setHelp(false)}
+          >
+            <ScoreHelp review={review} mode={mode} />
+          </span>
+        )}
       </div>
       <RankSeal letter={v.letter} step={v.step} />
       <div className="lab-award-title">{t(v.title)}</div>
       <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>
-      {mode && (
-        <span
-          className={"lab-award-help" + (help ? " open" : "")}
-          onClick={(e) => {
-            e.stopPropagation();
-            setHelp((on) => !on);
-          }}
-          onKeyDown={(e) => e.stopPropagation()}
-          onPointerLeave={() => setHelp(false)}
-        >
-          <ScoreHelp review={review} mode={mode} />
-        </span>
-      )}
       {review.traits.length > 0 && (
         <ul className="lab-traits">
           {review.traits.map((trait, n) => (

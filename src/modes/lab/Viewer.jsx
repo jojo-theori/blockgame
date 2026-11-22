@@ -496,6 +496,13 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                     ) : (
                       <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
                     )}
+                    {/* On a phone the link to this run sits beside the summary (the way
+                        home is the mark at the top left, so the last row is not needed). */}
+                    {phone && overview && (
+                      <span className="lab-slot-close">
+                        <IconButton icon={linked ? "check" : "link"} label={linked ? "Link copied" : "Copy link"} size="m" variant="filled" onClick={blur(copyLink)} />
+                      </span>
+                    )}
                     {/* On a phone the way back to the summary sits beside the comment. */}
                     {phone && !overview && (
                       <span className="lab-slot-close">
