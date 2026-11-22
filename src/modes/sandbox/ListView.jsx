@@ -12,7 +12,7 @@ export default function ListView(p) {
     <div className="page wide" style={{ "--accent": ACCENT }}>
       <h1 className="title">{t("Sandbox")}</h1>
       <p className="lede">{t("Your boards. Build one, set its pieces, and play it.")}</p>
-      {/* Fixed-height list: it scrolls, so the buttons below never move */}
+      {/* The list takes the room down to the buttons and scrolls inside it */}
       <div className="sb-list scroll">
         {items.length === 0 && <div className="sb-none">{t("No boards yet.")}</div>}
         {items.map((b, i) => (

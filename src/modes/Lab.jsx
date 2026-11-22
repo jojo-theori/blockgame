@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { t } from "../i18n.js";
 import { formatTime } from "../game.js";
+import { drawPicture } from "../render.js";
 import { parseLog, buildFrames, logMode } from "../replay.js";
 import { sampleLog } from "../sample.js";
 import { loadRecent } from "../recent.js";
@@ -8,6 +9,15 @@ import { parseMoves } from "../trace.js";
 import { Kbd } from "../ui.jsx";
 import { ACCENT, PASTE_MOD, modeName, MAX_LINES, RECENT_SHOWN } from "./lab/consts.js";
 import Viewer from "./lab/Viewer.jsx";
+
+// The board a run ended on, drawn small (as the Sandbox list draws its boards).
+function Thumb({ board }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    drawPicture(ref.current, board, 3);
+  }, [board]);
+  return <canvas ref={ref} className="lab-thumb" />;
+}
 
 export default function Lab({ settings, initial = "", onBack }) {
   // A log handed over from a result screen opens straight into its replay.
@@ -31,7 +41,7 @@ export default function Lab({ settings, initial = "", onBack }) {
           const events = parseLog(r.text);
           if (!events.some((e) => e.kind === "place")) return null;
           const end = buildFrames(events).frames.at(-1);
-          return { ...r, what: `${modeName(logMode(r.text, events))}${t("{n} pieces", { n: end.placed })} · ${formatTime(events.at(-1).t)} · ${t("{n} lines", { n: end.lines })}` };
+          return { ...r, title: modeName(logMode(r.text, events), "") || t("Replay"), what: `${t("{n} pieces", { n: end.placed })} · ${formatTime(events.at(-1).t)}`, board: end.matrix };
         })
         .filter(Boolean)
         .slice(0, RECENT_SHOWN),
@@ -153,12 +163,18 @@ export default function Lab({ settings, initial = "", onBack }) {
         {recent.length > 0 && (
           <div className="lab-recent">
             <div className="k">{t("Recently analysed")}</div>
-            {recent.map((r) => (
-              <button key={r.at} type="button" onClick={() => take(r.text)}>
-                <span>{r.what}</span>
-                <small>{new Date(r.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</small>
-              </button>
-            ))}
+            <div className="lab-recent-list">
+              {recent.map((r, i) => (
+                <button key={r.at} type="button" className="lab-card" style={{ "--i": i }} onClick={() => take(r.text)}>
+                  <Thumb board={r.board} />
+                  <span className="lab-card-text">
+                    <span className="lab-card-title">{r.title}</span>
+                    <span className="lab-card-meta">{r.what}</span>
+                    <span className="lab-card-meta">{new Date(r.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

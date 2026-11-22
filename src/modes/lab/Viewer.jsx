@@ -445,7 +445,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                             Both labels are laid out, so the button keeps one width. */}
                         <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
                           <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next")}</span>
-                          <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("First")}</span>
+                          <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Restart")}</span>
                         </button>
                     {moment?.best && (
                       <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>

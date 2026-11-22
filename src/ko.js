@@ -181,7 +181,6 @@ export default {
   Hold: "홀드",
   hold: "홀드",
   Next: "다음",
-  First: "처음으로",
   Time: "시간",
   Pieces: "블록",
   Attack: "공격",
