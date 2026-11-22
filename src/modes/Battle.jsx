@@ -4,6 +4,7 @@ import { usePlaying, useDisplayToggles, useSettingsDialog, tune, heldActions, us
 import { ROWS, CELL, BlockEngine, buildLogText } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
 import { BotPlayer } from "../bots/player.js";
+import { createTrace } from "../trace.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, prep, boardTone, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { SetupInfo, Countdown, KeyHints, Dropdown, Stepper, EngineLog, KeyStrokes, Icon } from "../ui.jsx";
@@ -251,6 +252,7 @@ export default function Battle({ settings, onBack }) {
   const engine1Ref = useRef(null);
   const engine2Ref = useRef(null);
   const cpusRef = useRef([]);
+  const tracesRef = useRef([]);
   const seatsRef = useRef(["p1", "cpu"]);
   const rafRef = useRef(null);
   const lastTimeRef = useRef(0);
@@ -304,6 +306,8 @@ export default function Battle({ settings, onBack }) {
       e1.update(cappedDt, now);
       e2.update(cappedDt, now);
       for (const cpu of cpusRef.current) cpu.update(now);
+      tracesRef.current[0]?.sample(e1);
+      tracesRef.current[1]?.sample(e2);
 
       // Hand over attack whenever it is there: player pieces lock inside key
       // handlers, between frames, so "placed this frame" would miss them.
@@ -345,9 +349,18 @@ export default function Battle({ settings, onBack }) {
     e1.start(heldActions(p1KeysRef.current));
     e2.start(heldActions(p2KeysRef.current));
     seatsRef.current = [left, right];
+    // How each side's pieces moved, for the replay (see trace.js).
+    const traces = [createTrace(), createTrace()];
+    tracesRef.current = traces;
+    traces[0].sample(e1);
+    traces[1].sample(e2);
+    const watched = (cpu, engine, trace) => {
+      if (cpu) cpu.onStep = () => trace.sample(engine);
+      return cpu;
+    };
     cpusRef.current = [
-      left === "cpu" ? makeCpu(e1, leftBot, leftLevel) : null,
-      right === "cpu" ? makeCpu(e2, rightBot, rightLevel) : null,
+      left === "cpu" ? watched(makeCpu(e1, leftBot, leftLevel), e1, traces[0]) : null,
+      right === "cpu" ? watched(makeCpu(e2, rightBot, rightLevel), e2, traces[1]) : null,
     ].filter(Boolean);
     setWinner(null);
     phaseRef.current = "playing";
@@ -427,17 +440,25 @@ export default function Battle({ settings, onBack }) {
     const b = seat(right, rightBot, rightLevel, rightHandicap);
     return [`BATTLE ${a} vs ${b}`, `BATTLE ${b} vs ${a}`];
   }, [left, right, leftBot, rightBot, leftLevel, rightLevel, leftHandicap, rightHandicap]);
+  // A side's log, with how its pieces moved underneath.
+  const logText = useCallback(
+    (side) => {
+      const moves = tracesRef.current[side]?.text();
+      return buildLogText((side ? engine2Ref : engine1Ref).current, logModes[side]) + (moves ? "\n\n" + moves : "");
+    },
+    [logModes],
+  );
   const copyLog = useCallback((side) => {
     navigator.clipboard
-      .writeText(buildLogText((side ? engine2Ref : engine1Ref).current, logModes[side]))
+      .writeText(logText(side))
       .then(() => {
         setCopiedSide(side);
         setTimeout(() => setCopiedSide((s) => (s === side ? null : s)), 2000);
       })
       .catch((err) => console.error("Copy failed:", err));
-  }, [logModes]);
+  }, [logText]);
   const { analyze } = settings;
-  const analyzeLog = useCallback((side) => analyze(buildLogText((side ? engine2Ref : engine1Ref).current, logModes[side])), [analyze, logModes]);
+  const analyzeLog = useCallback((side) => analyze(logText(side)), [analyze, logText]);
   const menuItems = useMemo(
     () =>
       phase === "paused"
@@ -458,6 +479,8 @@ export default function Battle({ settings, onBack }) {
           : null,
     [phase, resume, startGame, toSetup, copyLog, analyzeLog, onBack],
   );
+  // A CPU's board has no menu of its own, but its game can be looked at too.
+  const cpuItems = useMemo(() => [{ label: "Analyze", kind: "replay", run: analyzeLog }], [analyzeLog]);
   const ownMenus = humanSeats === 2;
   // Cursors of the left and right seat, kept per phase so each menu opens on
   // its first button.
@@ -512,14 +535,18 @@ export default function Battle({ settings, onBack }) {
       const a1 = p1KeysRef.current[e.code];
       if (a1) {
         e.preventDefault();
+        tracesRef.current[0]?.sample(engine1Ref.current);
         engine1Ref.current?.onKeyDown(a1, performance.now());
+        tracesRef.current[0]?.sample(engine1Ref.current);
         sfxForAction(a1);
         return;
       }
       const a2 = p2KeysRef.current[e.code];
       if (a2) {
         e.preventDefault();
+        tracesRef.current[1]?.sample(engine2Ref.current);
         engine2Ref.current?.onKeyDown(a2, performance.now());
+        tracesRef.current[1]?.sample(engine2Ref.current);
         sfxForAction(a2);
       }
     };
@@ -642,7 +669,7 @@ export default function Battle({ settings, onBack }) {
       <SeatMenu
         k={reason}
         title={done ? t(won ? "You win" : "You lose") : t("Paused")}
-        items={showMenu[side] ? menuItems : []}
+        items={showMenu[side] ? menuItems : done ? cpuItems : []}
         cursor={ownMenus && showMenu[side] ? cursors[side] : null}
         side={side}
         copied={copiedSide === side}
