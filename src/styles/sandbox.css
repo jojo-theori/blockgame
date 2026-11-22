@@ -74,6 +74,8 @@
 .sb-item-title { font-size: var(--t4); font-weight: 500; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.15s var(--out); }
 .sb-item-meta { font-size: var(--t2); color: var(--faint); }
 .sb-item-more { position: absolute; top: 8px; right: 8px; }
+/* A card with its menu open sits above the cards after it. */
+.sb-item:has(.am.open) { z-index: 5; }
 .sb-item-title { padding-right: 28px; }
 .btn.primary-soft { background: var(--accent); color: var(--on-fg); border-color: transparent; }
 .mode-label.sb-title { display: flex; align-items: baseline; gap: 6px; }
