@@ -220,3 +220,7 @@
 .setup-info .link { color: var(--dim); }
 .setup-info .link:hover { color: var(--fg); }
 
+
+/* Under the playback controls: the way out, and a link to this run. */
+.lab-foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.lab-foot .lab-menu { flex: 1; height: var(--h-m); margin-top: 0; }

@@ -66,11 +66,15 @@ export function ActionMenu({ items, label = "More", up = false, start = false, s
         setOpen(false);
       }
     };
+    // Scrolling what is behind it would leave the menu hanging where it was.
+    const scroll = (e) => !ref.current?.contains(e.target) && setOpen(false);
     document.addEventListener("pointerdown", down);
     window.addEventListener("keydown", key, true);
+    document.addEventListener("scroll", scroll, true);
     return () => {
       document.removeEventListener("pointerdown", down);
       window.removeEventListener("keydown", key, true);
+      document.removeEventListener("scroll", scroll, true);
     };
   }, [open]);
   return (

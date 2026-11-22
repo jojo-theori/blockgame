@@ -71,6 +71,7 @@ export const PATHS = {
     </g>
   ),
   copy: <path d="M9 9h10v10H9zM5 15V5h10" />,
+  link: <path d="M10.5 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M13.5 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
   robot: (
     <>
       <rect x="5" y="8.5" width="14" height="10" rx="2.5" />

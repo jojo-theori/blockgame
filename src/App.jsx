@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { saveRecent } from "./recent.js";
+import { unpack, HASH } from "./pack.js";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
 import { useDevProfiles } from "./dev.js";
@@ -174,6 +175,17 @@ export default function App() {
     saveRecent(text);
     setLabLog(text);
     setView("lab");
+  }, []);
+  // A link to a run (see pack.js) opens straight into its replay.
+  useEffect(() => {
+    if (!location.hash.startsWith(HASH)) return;
+    const packed = location.hash.slice(HASH.length);
+    history.replaceState(null, "", location.pathname + location.search);
+    unpack(packed).then((text) => {
+      if (!text) return;
+      setLabLog(text);
+      setView("lab");
+    });
   }, []);
   const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${orientMark}${theme}`, analyze };
   const goMenu = () => {

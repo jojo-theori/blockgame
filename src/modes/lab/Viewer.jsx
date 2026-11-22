@@ -9,6 +9,7 @@ import { Stat, KeyHints, ReplayLog, PauseMenu, IconButton, Icon } from "../../ui
 import { useFit } from "../../fit.js";
 import { selectKey, keyLabel } from "../../keys.js";
 import { pathAt } from "../../trace.js";
+import { replayLink } from "../../pack.js";
 import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, SCORES, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
 import { ScoreHelp, Award } from "./Summary.jsx";
 import { KindIcon, GradeIcon } from "./icons.jsx";
@@ -17,6 +18,16 @@ import { Typed, CountUp } from "./motion.jsx";
 export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   const { events, frames, dealt } = replay;
   const total = events.length;
+  // A link that opens this run for anyone (the run itself rides in the link).
+  const [linked, setLinked] = useState(false);
+  const copyLink = () =>
+    replayLink(replay.text)
+      .then((url) => navigator.clipboard.writeText(url))
+      .then(() => {
+        setLinked(true);
+        setTimeout(() => setLinked(false), 2000);
+      })
+      .catch((err) => console.error("Copy failed:", err));
   // Wide enough for the log on the left and the review on the right.
   const zoom = useFit(1260, 600);
   const canvasRef = useRef(null);
@@ -512,9 +523,12 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                   {speed}×
                 </button>
               </div>
-              <button type="button" className="btn lab-menu" onClick={onMenu}>
-                {t("Main menu")}
-              </button>
+              <div className="lab-foot">
+                <button type="button" className="btn lab-menu" onClick={onMenu}>
+                  {t("Main menu")}
+                </button>
+                <IconButton icon={linked ? "check" : "link"} label={linked ? "Link copied" : "Copy link"} size="m" variant="filled" onClick={blur(copyLink)} />
+              </div>
             </div>
           </div>
         </div>

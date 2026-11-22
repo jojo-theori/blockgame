@@ -29,7 +29,7 @@ export default function Lab({ settings, initial = "", onBack }) {
   // The log is read as soon as it arrives, so the page can say what is in it.
   const replay = useMemo(() => {
     const events = parseLog(text);
-    return events.some((e) => e.kind === "place") ? { events, ...buildFrames(events), mode: logMode(text, events), moves: parseMoves(text) } : null;
+    return events.some((e) => e.kind === "place") ? { events, ...buildFrames(events), mode: logMode(text, events), moves: parseMoves(text), text } : null;
   }, [text]);
   const lines = useMemo(() => text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), [text]);
   // Runs that were sent here from a result screen, newest first, each with

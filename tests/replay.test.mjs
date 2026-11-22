@@ -113,3 +113,18 @@ test("a piece's path survives the trip through text and ends where it locked", a
   });
   assert.equal(parseMoves(buildLogText(e, "SPRINT 40L")), null, "a log without moves");
 });
+
+test("a packed run unpacks to a log that reads the same", async () => {
+  const { pack, unpack } = await import("../src/pack.js");
+  const { parseLog, logMode } = await import("../src/replay.js");
+  const { parseMoves } = await import("../src/trace.js");
+  const { sampleLog } = await import("../src/sample.js");
+  const text = sampleLog() + "\n\nMOVES\n#01 0:3,-1,0 120:4,-1,0 80:4,-1,1\n#02 900:3,-1,0";
+  const packed = await pack(text);
+  const back = await unpack(packed);
+  assert.deepEqual(parseLog(back), parseLog(text));
+  assert.deepEqual(logMode(back, parseLog(back)), logMode(text, parseLog(text)));
+  assert.deepEqual(parseMoves(back), parseMoves(text));
+  assert.ok(/^[\w-]+$/.test(packed) && packed.length < text.length / 5, `packed to ${packed.length} of ${text.length}`);
+  assert.equal(await unpack("not-a-run"), null);
+});

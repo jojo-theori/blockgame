@@ -54,10 +54,9 @@
   min-height: 180px;
   overflow-y: auto;
   display: grid;
-  width: 100%;
-  /* Two columns in the middle of the page; one where there is no room for two. */
-  grid-template-columns: repeat(auto-fit, min(300px, 100%));
-  justify-content: center;
+  /* As wide as its two columns, so the scrollbar sits right beside the cards. */
+  width: min(100%, 632px);
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   align-content: start;
   gap: 10px;
   margin-top: 8px;
@@ -75,6 +74,8 @@
 .sb-item-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .sb-item-title { font-size: var(--t4); font-weight: 500; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.15s var(--out); }
 .sb-item-meta { font-size: var(--t2); color: var(--faint); }
+/* The hold piece sits on the middle of the line of text beside it. */
+.sb-item-set { display: flex; align-items: center; gap: 6px; }
 .sb-item-more { position: absolute; top: 8px; right: 8px; }
 /* A card with its menu open sits above the cards after it. */
 .sb-item:has(.am.open) { z-index: 5; }

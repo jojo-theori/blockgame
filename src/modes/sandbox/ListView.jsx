@@ -30,14 +30,13 @@ export default function ListView(p) {
               <Preview board={b.board} />
               <span className="sb-item-text">
                 <span className="sb-item-title">{b.title}</span>
-                <span className="sb-item-meta">
-                  {b.order.length ? t("{n} pieces set", { n: b.order.length }) : t("Random pieces")}
-                  {b.hold ? (
-                    <>
-                      {" · "}
-                      {t("Hold")} <PieceIcon id={b.hold} size={3} />
-                    </>
-                  ) : null}
+                <span className="sb-item-meta sb-item-set">
+                  <span>
+                    {b.order.length ? t("{n} pieces set", { n: b.order.length }) : t("Random pieces")}
+                    {" · "}
+                    {t(b.hold ? "Hold" : "No hold")}
+                  </span>
+                  {b.hold ? <PieceIcon id={b.hold} size={3} /> : null}
                 </span>
                 <span className="sb-item-meta">{date(b.updatedAt)}</span>
               </span>
