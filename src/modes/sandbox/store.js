@@ -73,14 +73,43 @@ export function dtCannonExample() {
   });
   return { ...b, order: [LETTER_ID.T, LETTER_ID.T] };
 }
+// A slot for each of the other pieces that only a spin reaches (the piece
+// cannot drop or slide in): turn it at the mouth and the kick carries it in.
+// [title, piece, rows from the floor up, drawn top to bottom]
+const SPINS = [
+  ["I-Spin Single", "I", ["XXX.X.....", "....XXXXXX"]],
+  ["S-Spin Double", "S", ["..X.......", "X..XXXXXXX", "..XXXXXXXX"]],
+  ["Z-Spin Double", "Z", [".......X..", "XXXXXXX..X", "XXXXXXXX.."]],
+  ["L-Spin Double", "L", ["XX.XXXXXXX", "...XXXXXXX"]],
+  ["J-Spin Double", "J", ["XXXXXXX.XX", "XXXXXXX..."]],
+];
+export function spinExamples() {
+  return SPINS.map(([title, letter, rows]) => {
+    const b = blank(title);
+    let n = 0;
+    rows.forEach((row, i) => {
+      const r = ROWS - rows.length + i;
+      [...row].forEach((ch, c) => {
+        if (ch === ".") return;
+        b.board[r][c] = 8; // garbage grey
+        b.marks[r][c] = ++n; // each cell on its own, so Erase → Piece takes one
+      });
+    });
+    return { ...b, order: [LETTER_ID[letter]] };
+  });
+}
+// Each set of examples is added once: the number kept is the last set given.
+const EXAMPLE_SETS = [() => [dtCannonExample()], spinExamples];
 function withExamples(list) {
+  let seen;
   try {
-    if (localStorage.getItem(EXAMPLES_SEEN)) return list;
-    localStorage.setItem(EXAMPLES_SEEN, "1");
+    seen = Number(localStorage.getItem(EXAMPLES_SEEN)) || 0;
+    if (seen >= EXAMPLE_SETS.length) return list;
+    localStorage.setItem(EXAMPLES_SEEN, String(EXAMPLE_SETS.length));
   } catch {
     return list;
   }
-  const out = [...list, dtCannonExample()];
+  const out = [...list, ...EXAMPLE_SETS.slice(seen).flatMap((make) => make())];
   saveList(out);
   return out;
 }
