@@ -60,6 +60,8 @@ export const PATHS = {
   shrink: <path d="M9 4.5V9H4.5M15 4.5V9h4.5M9 19.5V15H4.5M15 19.5V15h4.5" />,
   expand: <path d="M4.5 9V4.5H9M19.5 9V4.5H15M4.5 15v4.5H9M19.5 15v4.5H15" />,
   next: <path d="M9.5 6.5 15 12l-5.5 5.5" />,
+  // Nothing here / take away: a square drawn in dashes
+  empty: <rect x="5.5" y="5.5" width="13" height="13" rx="2" strokeDasharray="3 2.6" />,
   // Filled shapes
   more: (
     <g fill="currentColor" stroke="none">

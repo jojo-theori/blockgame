@@ -36,6 +36,18 @@ export const newId = () => Date.now().toString(36) + Math.random().toString(36).
 
 export const blank = (title) => ({ id: newId(), title, board: emptyBoard(), marks: emptyBoard(), order: [], hold: 0, randomAfter: true, gravity: false, updatedAt: Date.now() });
 
+// ── Editor shortcuts ──
+// By physical key, laid out like the things they pick: Q W E over the three
+// tools, A S D F and Z X C V over the two rows of chips under them, and on
+// the other hand J K L ; and N M , over the pieces of the order.
+export const TOOL_KEYS = ["KeyQ", "KeyW", "KeyE"];
+export const CHIP_KEYS = ["KeyA", "KeyS", "KeyD", "KeyF", "KeyZ", "KeyX", "KeyC", "KeyV"];
+export const ERASE_KEYS = ["KeyA", "KeyS", "KeyZ", "KeyX"]; // two by two
+export const ORDER_KEYS = ["KeyJ", "KeyK", "KeyL", "Semicolon", "KeyN", "KeyM", "Comma"];
+export const TURN_KEYS = ["KeyR", "KeyT"]; // left, right
+export const HOLD_KEY = "KeyH";
+export const keyCap = (code) => ({ Semicolon: ";", Comma: "," })[code] || code.replace("Key", "");
+
 // ── Examples ──
 // Boards that come with the Sandbox, added to the list once (delete one and it
 // stays gone). Built from the opener book, so they are the shapes Opening teaches.

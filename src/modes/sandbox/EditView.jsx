@@ -1,12 +1,27 @@
 // Sandbox, editor: the board in the middle, its pieces on the left, the tools on the right.
+import { Fragment } from "react";
 import { t } from "../../i18n.js";
 import { ROWS, COLORS, PIECE_NAMES } from "../../game.js";
 import { BOARD_W, BOARD_H } from "../../render.js";
 import { sfx } from "../../sound.js";
-import { Dropdown, Checkbox, Segmented, ActionMenu, PieceIcon, GarbageIcon, Swatch, Chip, ChipGrid, Well, IconButton, Icon } from "../../ui.jsx";
-import { ACCENT, PIECES, PAINTS, nextTitle, ERASE_MODES, ORDER_CELLS } from "./store.js";
+import { Dropdown, Checkbox, Segmented, ActionMenu, PieceIcon, GarbageIcon, Swatch, Chip, ChipGrid, Well, IconButton, Icon, HelpTip, Tip, Kbd } from "../../ui.jsx";
+import { ACCENT, PIECES, PAINTS, nextTitle, ERASE_MODES, ORDER_CELLS, TOOL_KEYS, CHIP_KEYS, ERASE_KEYS, ORDER_KEYS, TURN_KEYS, HOLD_KEY, keyCap } from "./store.js";
 import { EraseIcon } from "./parts.jsx";
 import { DRAW_ICONS } from "./drawIcons.jsx";
+
+// The editor's keys, as the help beside "Draw" lists them.
+const caps = (codes) => codes.map(keyCap);
+const SHORTCUT_HELP = [
+  [caps(TOOL_KEYS), "Piece, cells, erase"],
+  [caps(CHIP_KEYS.slice(0, 4)), "The top row of chips"],
+  [caps(CHIP_KEYS.slice(4)), "The bottom row of chips"],
+  [caps(TURN_KEYS), "Turn the piece"],
+  [caps(ORDER_KEYS.slice(0, 4)), "Add I, T, L or J to the order"],
+  [caps(ORDER_KEYS.slice(4)), "Add S, Z or O to the order"],
+  [["⌫"], "Take the last one off the order"],
+  [[keyCap(HOLD_KEY)], "Change the hold"],
+  [["ENTER"], "Play"],
+];
 
 export default function EditView(p) {
   const { board, titleRef, title, setTitle, items, currentId, dialogs, zoom, hold, setHold, addPiece, order, setOrder, randomAfter, setRandomAfter, gravity, setGravity, toList, start, editRef, onDown, onMove, onUp, setHover, tool, setTool, stamp, turn, setStamp, setStampRot, stampRot, paint, setPaint, eraseMode, setEraseMode, saveDraft, dirty, editCells, setConfirmDelete, saved } = p;
@@ -49,28 +64,30 @@ export default function EditView(p) {
         <div className="side sb-col">
           {/* Label and dropdown on one row to save height */}
           <div className="sb-field">
-            <span className="k">{t("Hold")}</span>
+            <span className="k has-tip">
+              {t("Hold")}
+              <Tip label={t("Next piece")} keys={[keyCap(HOLD_KEY)]} />
+            </span>
             <div className="sb-field-dd">
               <Dropdown
                 label={t("Hold")}
                 value={hold}
-                options={[{ id: 0, label: "–" }, ...PIECES.map((id) => ({ id, label: <PieceIcon id={id} /> }))]}
+                options={[{ id: 0, label: <Icon name="empty" size={15} /> }, ...PIECES.map((id) => ({ id, label: <PieceIcon id={id} /> }))]}
                 onChange={setHold}
               />
             </div>
           </div>
           <div className="k sb-order-k">{t("Piece order")}</div>
           <ChipGrid cols={4}>
-            {PIECES.map((id) => (
-              <Chip key={id} onClick={() => addPiece(id)} title={t("Add {p}", { p: PIECE_NAMES[id] })}>
+            {PIECES.map((id, i) => (
+              <Chip key={id} onClick={() => addPiece(id)} tip={t("Add {p}", { p: PIECE_NAMES[id] })} keys={[keyCap(ORDER_KEYS[i])]}>
                 <PieceIcon id={id} />
               </Chip>
             ))}
             {/* Clear all is the eighth chip, beside the last piece, once there is an order. */}
             <Chip
-              danger
-              title={t("Clear all")}
-              aria-label={t("Clear all")}
+              tone="danger"
+              tip={t("Clear all")}
               style={{ visibility: order.length ? "visible" : "hidden" }}
               onClick={(e) => {
                 e.currentTarget.blur();
@@ -111,7 +128,7 @@ export default function EditView(p) {
           </div>
           {/* Same place as Edit / Main menu while playing (left, under the input) */}
           <div className="sb-actions row">
-            <IconButton icon="back" label="Back" size="m" filled onClick={toList} />
+            <IconButton icon="back" label="Back" size="m" variant="filled" onClick={toList} />
             <button className="btn primary" onClick={start}>
               {t("Play")}
             </button>
@@ -134,13 +151,29 @@ export default function EditView(p) {
         </div>
 
         <div className="side right sb-col">
-          <div className="k">{t("Draw")}</div>
+          <div className="k sb-draw-k">
+            {t("Draw")}
+            <HelpTip label="Shortcuts" className="sb-draw-help">
+              <span className="help-keys">
+                {SHORTCUT_HELP.map(([keys, what]) => (
+                  <Fragment key={what}>
+                    <span>
+                      {keys.map((k) => (
+                        <Kbd key={k}>{k}</Kbd>
+                      ))}
+                    </span>
+                    <span>{t(what)}</span>
+                  </Fragment>
+                ))}
+              </span>
+            </HelpTip>
+          </div>
           <Segmented
             label="Draw"
             options={[
-              { id: "piece", title: "Piece", label: DRAW_ICONS.piece },
-              { id: "cell", title: "Cells", label: DRAW_ICONS.cell },
-              { id: "erase", title: "Erase", label: DRAW_ICONS.erase },
+              { id: "piece", title: "Piece", keys: [keyCap(TOOL_KEYS[0])], label: DRAW_ICONS.piece },
+              { id: "cell", title: "Cells", keys: [keyCap(TOOL_KEYS[1])], label: DRAW_ICONS.cell },
+              { id: "erase", title: "Erase", keys: [keyCap(TOOL_KEYS[2])], label: DRAW_ICONS.erase },
             ]}
             value={tool}
             onChange={setTool}
@@ -150,12 +183,14 @@ export default function EditView(p) {
             {tool === "piece" && (
               <>
                 <ChipGrid cols={4} role="radiogroup" aria-label={t("Piece")}>
-                  {PIECES.map((id) => (
+                  {PIECES.map((id, i) => (
                     <Chip
                       key={id}
-                                            role="radio"
+                      role="radio"
                       aria-checked={stamp === id}
                       on={stamp === id}
+                      tip={PIECE_NAMES[id]}
+                      keys={id === stamp && id !== 7 ? [keyCap(TURN_KEYS[0]), keyCap(TURN_KEYS[1])] : [keyCap(CHIP_KEYS[i])]}
                       // A second click on the chosen piece turns it (O has only one way up).
                       onClick={(e) => {
                         e.currentTarget.blur();
@@ -169,10 +204,11 @@ export default function EditView(p) {
                     </Chip>
                   ))}
                   <Chip
-                                        role="radio"
+                    role="radio"
                     aria-checked={stamp === 8}
                     on={stamp === 8}
-                    title={t("Garbage row")}
+                    tip={t("Garbage row")}
+                    keys={[keyCap(CHIP_KEYS[7])]}
                     onClick={(e) => {
                       e.currentTarget.blur();
                       if (stamp !== 8) sfx.tick();
@@ -188,10 +224,11 @@ export default function EditView(p) {
             {tool === "cell" && (
               <>
                 <ChipGrid cols={4} role="radiogroup" aria-label={t("Colour")}>
-                  {PAINTS.map((v) => (
+                  {PAINTS.map((v, i) => (
                     <Chip
                       key={v}
-                                            role="radio"
+                      keys={[keyCap(CHIP_KEYS[i])]}
+                      role="radio"
                       aria-checked={paint === v}
                       on={paint === v}
                       onClick={(e) => {
@@ -209,14 +246,14 @@ export default function EditView(p) {
             {tool === "erase" && (
               <>
                 <ChipGrid cols={2} role="radiogroup" aria-label={t("Erase")}>
-                  {ERASE_MODES.map(([id, label]) => (
+                  {ERASE_MODES.map(([id, label], i) => (
                     <Chip
                       key={id}
-                                            role="radio"
+                      role="radio"
                       aria-checked={eraseMode === id}
                       on={eraseMode === id}
-                      title={t(label)}
-                      aria-label={t(label)}
+                      tip={t(label)}
+                      keys={[keyCap(ERASE_KEYS[i])]}
                       onClick={(e) => {
                         e.currentTarget.blur();
                         if (id !== eraseMode) sfx.tick();
@@ -237,7 +274,7 @@ export default function EditView(p) {
             </button>
             <ActionMenu
               size="m"
-              filled
+              variant="filled"
               up
               items={[
                 {

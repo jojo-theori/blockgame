@@ -33,6 +33,9 @@
 }
 .sb-piece:hover { opacity: 0.6; transform: scale(0.92); }
 .sb-order-k { margin-top: 14px; }
+/* "Draw", with its help at the other end of the line (the line keeps the label's height). */
+.sb-draw-k { display: flex; align-items: center; justify-content: space-between; height: 16px; }
+.sb-draw-help { margin-right: -5px; }
 .sb-draw-icon { width: 20px; height: 20px; fill: currentColor; display: block; margin: 0 auto; }
 
 /* Sandbox: edit and play share this frame (wide side columns, same board spot). */

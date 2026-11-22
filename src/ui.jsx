@@ -8,4 +8,5 @@ export { ConfirmDialog, ActionMenu } from "./ui/overlays.jsx";
 export { PieceIcon, GarbageIcon, Swatch } from "./ui/pieces.jsx";
 export { Icon } from "./ui/icons.jsx";
 export { ICON_NAMES } from "./ui/iconPaths.jsx";
-export { IconButton, Chip, ChipGrid, Well } from "./ui/primitives.jsx";
+export { Button, IconButton, Chip, ChipGrid, Well, HelpTip, Tip } from "./ui/primitives.jsx";
+export { BUTTON, ICON_BUTTON, CHIP } from "./ui/variants.js";

@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { sfx } from "../sound.js";
 import { t } from "../i18n.js";
 import { tr } from "./tr.js";
+import { Tip } from "./primitives.jsx";
 import { PieceIcon } from "./pieces.jsx";
 
 // Move a segmented control's highlight onto its selected button.
@@ -56,10 +57,11 @@ export function Segmented({ options, value, onChange, focus = false, label }) {
           key={o.id}
           role="radio"
           aria-checked={value === o.id}
-          className={value === o.id ? "on" : ""}
           disabled={o.disabled}
-          // An option whose label is a picture names itself with `title`.
-          title={o.title ? t(o.title) : undefined}
+          // An option whose label is a picture names itself with `title`; with
+          // `keys` as well, the name and the keys show in a tip over it.
+          className={(value === o.id ? "on" : "") + (o.keys ? " has-tip" : "")}
+          title={o.title && !o.keys ? t(o.title) : undefined}
           aria-label={o.title ? t(o.title) : undefined}
           onClick={(e) => {
             e.currentTarget.blur();
@@ -68,6 +70,7 @@ export function Segmented({ options, value, onChange, focus = false, label }) {
           }}
         >
           {tr(o.label)}
+          {o.keys && <Tip label={t(o.title)} keys={o.keys} />}
         </button>
       ))}
     </div>

@@ -53,8 +53,8 @@ export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCa
 // ⋯ menu: a round button that opens a short list of actions (right aligned).
 // items: [{ label, onClick, danger?, disabled? }]
 // up: opens above the button. start: the list starts at the button and runs to the right.
-// size, filled: of its round button (see IconButton).
-export function ActionMenu({ items, label = "More", up = false, start = false, size = "s", filled = false }) {
+// size, variant: of its round button (see IconButton).
+export function ActionMenu({ items, label = "More", up = false, start = false, size = "s", variant = "ghost" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -79,7 +79,7 @@ export function ActionMenu({ items, label = "More", up = false, start = false, s
         icon="more"
         label={label}
         size={size}
-        filled={filled}
+        variant={variant}
         className="am-btn"
         aria-haspopup="menu"
         aria-expanded={open}

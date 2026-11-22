@@ -464,7 +464,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
               <div className="lab-buttons">
                 <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />
                 <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
-                <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} lead />
+                <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} variant="lead" />
                 <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
                 <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />
                 {/* One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again. */}

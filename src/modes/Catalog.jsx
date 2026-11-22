@@ -80,9 +80,9 @@ export default function Catalog({ onBack }) {
           </Row>
           <Row name="Icon button">
             <IconButton icon="back" label="Back" />
-            <IconButton icon="more" label="More" filled />
-            <IconButton icon="trash" label="Delete" danger />
-            <IconButton icon="back" label="Back" size="m" filled />
+            <IconButton icon="more" label="More" variant="filled" />
+            <IconButton icon="trash" label="Delete" tone="danger" />
+            <IconButton icon="back" label="Back" size="m" variant="filled" />
             <IconButton icon="close" label="Close" disabled />
           </Row>
           <Row name="Icon">
@@ -96,7 +96,7 @@ export default function Catalog({ onBack }) {
           <Row name="Chip">
             <Chip>{t("Sprint")}</Chip>
             <Chip on>{t("Battle")}</Chip>
-            <Chip danger title={t("Clear all")}>
+            <Chip tone="danger" title={t("Clear all")}>
               <Icon name="trash" size={15} />
             </Chip>
           </Row>

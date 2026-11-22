@@ -16,5 +16,5 @@ export const DRAW_ICONS = {
       <rect x="8.6" y="8.6" width="6.8" height="6.8" rx="1" />
     </svg>
   ),
-  erase: <Icon name="eraser" size={17} />,
+  erase: <Icon name="empty" size={17} />,
 };

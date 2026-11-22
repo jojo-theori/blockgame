@@ -14,8 +14,10 @@ import { useFit } from "../fit.js";
 import ListView from "./sandbox/ListView.jsx";
 import EditView from "./sandbox/EditView.jsx";
 import PlayView from "./sandbox/PlayView.jsx";
-import { emptyBoard, EMPTY, NONE, bags, newId, blank, loadList, saveList, nextTitle, eraseCells } from "./sandbox/store.js";
+import { emptyBoard, EMPTY, NONE, bags, newId, blank, loadList, saveList, nextTitle, eraseCells, PIECES, PAINTS, ERASE_MODES, TOOL_KEYS, CHIP_KEYS, ERASE_KEYS, ORDER_KEYS, TURN_KEYS, HOLD_KEY } from "./sandbox/store.js";
 import { Preview } from "./sandbox/parts.jsx";
+
+const TOOLS = ["piece", "cell", "erase"];
 
 export default function Sandbox({ settings, onBack }) {
   useDisplayToggles(settings);
@@ -443,11 +445,59 @@ export default function Sandbox({ settings, onBack }) {
     },
   });
 
+  // The editor's shortcuts (see store.js for the layout). True if the key was one.
+  const shortcut = (code) => {
+    const toolAt = TOOL_KEYS.indexOf(code);
+    if (toolAt >= 0) {
+      if (TOOLS[toolAt] !== tool) sfx.tick();
+      setTool(TOOLS[toolAt]);
+      return true;
+    }
+    if (tool === "erase") {
+      const at = ERASE_KEYS.indexOf(code);
+      if (at >= 0) {
+        if (ERASE_MODES[at][0] !== eraseMode) sfx.tick();
+        setEraseMode(ERASE_MODES[at][0]);
+        return true;
+      }
+    } else {
+      const at = CHIP_KEYS.indexOf(code);
+      if (at >= 0) {
+        const id = PAINTS[at]; // the seven pieces, then the grey of a garbage row
+        if (tool === "cell") {
+          if (id !== paint) sfx.tick();
+          setPaint(id);
+        } else if (id !== stamp) {
+          sfx.tick();
+          setStamp(id);
+          setStampRot(0);
+        }
+        return true;
+      }
+    }
+    const turnAt = TURN_KEYS.indexOf(code);
+    if (turnAt >= 0) {
+      if (tool === "piece" && stamp !== 8 && stamp !== 7) turn(turnAt ? 1 : -1);
+      return true;
+    }
+    const orderAt = ORDER_KEYS.indexOf(code);
+    if (orderAt >= 0) {
+      addPiece(PIECES[orderAt]);
+      return true;
+    }
+    if (code === HOLD_KEY) {
+      sfx.tick();
+      setHold((hold + 1) % 8); // nothing, then each piece in turn
+      return true;
+    }
+    return false;
+  };
+
   // The key handler reaches the open board through this, so it needn't be
   // rebound on every render.
   const editFns = useRef({});
   useEffect(() => {
-    editFns.current = { setOrder, save: saveDraft, toList, start, undo };
+    editFns.current = { setOrder, save: saveDraft, toList, start, undo, shortcut };
   });
 
   // ─── KEYS ───
@@ -469,12 +519,8 @@ export default function Sandbox({ settings, onBack }) {
           e.preventDefault();
           return editFns.current.start();
         }
-        // The player's own rotate keys turn the piece to place.
-        const a = keysRef.current[e.code];
-        if (tool === "piece" && !e.metaKey && !e.ctrlKey && (a === "rotateCW" || a === "rotateCCW" || a === "rotate180")) {
-          e.preventDefault();
-          return turn(a === "rotateCW" ? 1 : a === "rotateCCW" ? -1 : 2);
-        }
+        // Tools, chips, turning, the order and the hold each have their keys.
+        if (!e.metaKey && !e.ctrlKey && !e.altKey && editFns.current.shortcut(e.code)) return e.preventDefault();
         // Backspace takes the last piece off the order.
         if (e.code === "Backspace") {
           e.preventDefault();
