@@ -14,6 +14,7 @@ import Lab from "./modes/Lab.jsx";
 import Settings from "./modes/Settings.jsx";
 import Experiments from "./modes/Experiments.jsx";
 import ComingSoon from "./modes/ComingSoon.jsx";
+import Sandbox from "./modes/Sandbox.jsx";
 import { KeyHints, TopBar, FocusWarning } from "./ui.jsx";
 import { useFocusWarning } from "./display.js";
 import { sfx, setSoundEnabled as setSfxEnabled, setSoundOptions } from "./sound.js";
@@ -43,7 +44,7 @@ const MODES = [
   { id: "opening", label: "Opening", color: "#b14fd0", desc: "Practise openers piece by piece: TKI, PCO, DT Cannon, Albatross.", ready: true, beta: true },
   { id: "finesse", label: "Finesse", color: "#5cc45c", desc: "Place each piece in the fewest key presses.", ready: true, beta: true },
   { id: "lab", label: "Replay", color: "#3fc8b4", desc: "Watch a run again from its log.", ready: true, beta: true },
-  { id: "sandbox", label: "Sandbox", color: "#f2913d", desc: "Build a board of your own and play it.", ready: false },
+  { id: "sandbox", label: "Sandbox", color: "#f2913d", desc: "Build a board, set the pieces, and play it.", ready: true, beta: true },
   { id: "experiments", label: "Lab", color: "#f2cb4c", desc: "Things being tried out, just for fun.", ready: true, beta: true },
 ];
 
@@ -255,6 +256,7 @@ export default function App() {
         {view === "finesse" && <Finesse settings={settings} onBack={goMenu} />}
         {view === "lab" && <Lab settings={settings} initial={labLog} onBack={goMenu} />}
         {view === "experiments" && <Experiments settings={settings} onBack={goMenu} />}
+        {view === "sandbox" && <Sandbox settings={settings} onBack={goMenu} />}
         {current && !current.ready && <ComingSoon label={t(current.label)} color={current.color} onBack={goMenu} />}
       </main>
 

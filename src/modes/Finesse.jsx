@@ -429,7 +429,7 @@ export default function Finesse({ settings, onBack }) {
             <MultiSelect
               label="Piece types"
               all
-              options={PIECES.map((p) => ({ ...p, color: COLORS[p.id] }))}
+              options={PIECES.map((p) => ({ ...p, piece: p.id }))}
               values={pieces}
               onChange={setPieces}
             />
