@@ -13,7 +13,7 @@ export default function ListView(p) {
       <h1 className="title">{t("Sandbox")}</h1>
       <p className="lede">{t("Your boards. Build one, set its pieces, and play it.")}</p>
       {/* Fixed-height list: it scrolls, so the buttons below never move */}
-      <div className="sb-list">
+      <div className="sb-list scroll">
         {items.length === 0 && <div className="sb-none">{t("No boards yet.")}</div>}
         {items.map((b, i) => (
           <div key={b.id} className="sb-item" style={{ "--i": i }}>
@@ -44,8 +44,6 @@ export default function ListView(p) {
             </button>
             <div className="sb-item-more">
               <ActionMenu
-                size="m"
-                filled
                 items={[
                   {
                     label: "Play",

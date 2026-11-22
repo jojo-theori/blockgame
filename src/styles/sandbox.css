@@ -51,7 +51,8 @@
   overflow-y: auto;
   display: grid;
   width: 100%;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  /* Never wider than the list itself, so a narrow window does not scroll sideways. */
+  grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
   align-content: start;
   gap: 10px;
   margin-top: 8px;
