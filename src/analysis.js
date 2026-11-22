@@ -610,7 +610,8 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
     scores: {
       macro: !places.length ? 0 : sprint ? sprintMacro(outcome, goal) : round(100 * Math.exp(-(engine ? Math.max(0, regret / places.length - ENGINE_BASE) / ENGINE_SCALE : regret / places.length / 6.5))),
       dexterity: dexterityScore(pps, mode),
-      finesse: finesseScore(scored.filter((p) => !p.ev.finesseFault).length, scored.length),
+      // A log may carry the score alone, without the key counts behind it.
+      finesse: played?.finesse ?? finesseScore(scored.filter((p) => !p.ev.finesseFault).length, scored.length),
     },
     engine: !!engine,
     outcome,

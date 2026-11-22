@@ -144,7 +144,10 @@ test("a Sprint packed for a QR code replays to the same board, lines and final t
   assert.ok(b.every((e, i) => i === 0 || e.t >= b[i - 1].t), "times in order (each landing is not kept)");
   assert.equal(b.at(-1).t, a.at(-1).t, "the final time exactly");
   assert.deepEqual(buildFrames(b).frames.at(-1).matrix, buildFrames(a).frames.at(-1).matrix);
-  assert.deepEqual(logMode(back, b), logMode(text, a));
+  const { analyze } = await import("../src/analysis.js");
+  const buildReplay = (log) => ((events) => ({ events, ...buildFrames(events), mode: logMode(log, events) }))(parseLog(log));
+  assert.deepEqual({ ...logMode(back, b), finesse: undefined }, { ...logMode(text, a), finesse: undefined });
+  assert.equal((await analyze(buildReplay(back))).scores.finesse, (await analyze(buildReplay(text))).scores.finesse, "the finesse score is kept");
   assert.ok(packed.length < 100, `packed to ${packed.length} characters for ${a.length} events`);
   assert.equal(packRun(back), packed, "and packs again to the same text");
   // A log that does not name its seed lists the pieces, and reads back the same.

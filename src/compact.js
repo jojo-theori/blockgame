@@ -4,11 +4,13 @@
 // else a replay shows (lines, combos, the board) follows from those. A
 // 40-line run comes to about 100 bytes, which a phone reads easily off the
 // rank card. What is not kept: how the pieces moved on the way down, when
-// each one landed (the replay spaces them evenly) and the key counts; the
-// longer link (pack.js) has those.
+// each one landed (the replay spaces them evenly) and the key counts, of
+// which only the finesse score they came to is kept; the longer link
+// (pack.js) has those.
 //
 // The run is written as a row of choices, each one out of a known number:
 //   version (of 16), goal lines (1024), events (1024), time in ms (2^22),
+//   the finesse score (101),
 //   how the pieces are told (3): each one named, by its place in a bag of
 //   seven, or by the seed that dealt them, and then that seed (2^32),
 //   how many pieces did not simply fall to rest (events + 1), and for each
@@ -37,8 +39,9 @@
 // before stop opening.
 import { COLS, ROWS, getShape, pieceOrder } from "./game.js";
 import { parseLog, logMode } from "./replay.js";
+import { finesseScore } from "./analysis.js";
 
-const VERSION = 6;
+const VERSION = 7;
 const NAMED = 0;
 const BAGS = 1;
 const SEED = 2;
@@ -244,11 +247,16 @@ export function packRun(text) {
     }
     take = true;
   }
+  // The finesse score, as the analysis works it out; a log that only carries
+  // the score passes it on.
+  const scored = events.filter((e) => e.kind === "place" && e.optimal > 0);
+  const finesse = mode.finesse ?? finesseScore(scored.filter((e) => !e.finesseFault).length, scored.length);
   const head = [
     [VERSION, 16],
     [Math.min(1023, mode.lines || 0), 1024],
     [count, 1024],
     [Math.min(2 ** 22 - 1, Math.round(events.at(-1).t * 1000)), 2 ** 22],
+    [Math.min(100, finesse), 101],
     [how, 3],
     ...(how === SEED ? [[+seed, 2 ** 32]] : []),
     [odd.length, count + 1],
@@ -268,6 +276,7 @@ export function unpackRun(packed) {
     const goal = get(1024);
     const count = get(1024);
     const end = get(2 ** 22);
+    const finesse = get(101);
     const how = get(3);
     const seed = how === SEED ? get(2 ** 32) : null;
     const deal = how === SEED ? pieceOrder(seed) : null;
@@ -321,7 +330,7 @@ export function unpackRun(packed) {
       lines.push(`${num} ${stamp} ${LETTERS[current]} spawn(3,-1) → placed(${x},${y}) rot=${rot} | keys=0${words ? ` | ${words}` : ""}`);
       take = true;
     }
-    return [`SPRINT ${goal}L${deal ? ` | SEED:${seed}` : ""}`, "", ...lines].join("\n");
+    return [`SPRINT ${goal}L | FNS:${finesse}${deal ? ` | SEED:${seed}` : ""}`, "", ...lines].join("\n");
   } catch {
     return null;
   }
