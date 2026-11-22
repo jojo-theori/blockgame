@@ -147,7 +147,7 @@ function SeatMenu({ k, title, items, cursor, side, copied }) {
 }
 
 // overlay: the pause or result screen, shown over this seat's board.
-function PlayerBoard({ engineRef, label, sub, result, mirror, log, logMode, isCpu, keyProfile, hints, overlay }) {
+function PlayerBoard({ engineRef, label, sub, mirror, log, logMode, isCpu, keyProfile, hints, overlay }) {
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -192,7 +192,6 @@ function PlayerBoard({ engineRef, label, sub, result, mirror, log, logMode, isCp
       <div>
         <div className="v s">{label}</div>
         {sub && <div className="k" style={{ marginTop: 4 }}>{sub}</div>}
-        {result && <div className="k" style={{ marginTop: 12, color: "var(--fg)" }}>{result}</div>}
       </div>
       {keyProfile && <KeyStrokes key={keyProfile} profile={keyProfile} />}
     </div>
@@ -635,9 +634,23 @@ export default function Battle({ settings, onBack }) {
   // every human seat, never on a CPU seat (with two CPUs, on the left board).
   const menuUp = phase === "paused" || done;
   const showMenu = [menuUp && (left !== "cpu" || humanSeats === 0), menuUp && right !== "cpu"];
-  const menuText = {
-    k: done ? t("{name} topped out", { name: winner === "p1" ? nameP2 : nameP1 }) : null,
-    title: done ? t("{name} wins", { name: winner === "p1" ? nameP1 : nameP2 }) : t("Paused"),
+  // A result reads the same on every board, a CPU's too: what ended the game
+  // (small, above), then how it went for whoever is looking at that board.
+  // A board without a menu of its own (a CPU's) shows the words and no buttons.
+  const reason = done ? t("{name} topped out", { name: winner === "p1" ? nameP2 : nameP1 }) : null;
+  const seatMenu = (side) => {
+    if (!showMenu[side] && !done) return null;
+    const won = winner === (side ? "p2" : "p1");
+    return (
+      <SeatMenu
+        k={reason}
+        title={done ? t(won ? "You win" : "You lose") : t("Paused")}
+        items={showMenu[side] ? menuItems : []}
+        cursor={ownMenus && showMenu[side] ? cursors[side] : null}
+        side={side}
+        copied={copiedSide === side}
+      />
+    );
   };
   // Each human seat gets the key hints under its own queue; a CPU seat has none.
   const hints = [[["Esc"], phase === "paused" ? "resume" : "pause"]];
@@ -660,25 +673,23 @@ export default function Battle({ settings, onBack }) {
             engineRef={engine1Ref}
             label={nameP1}
             sub={levelOf(left, leftLevel)}
-            result={done ? t(winner === "p1" ? "Won" : "Lost") : null}
             log={showLog ? "left" : null}
             logMode={logModes[0]}
             isCpu={left === "cpu"}
             keyProfile={profileOf(left)}
             hints={left === "cpu" ? null : hints}
-            overlay={showMenu[0] && <SeatMenu {...menuText} items={menuItems} cursor={ownMenus ? cursors[0] : null} side={0} copied={copiedSide === 0} />}
+            overlay={seatMenu(0)}
           />
           <PlayerBoard
             engineRef={engine2Ref}
             label={nameP2}
             sub={levelOf(right, rightLevel)}
-            result={done ? t(winner === "p2" ? "Won" : "Lost") : null}
             log={showLog ? "right" : null}
             logMode={logModes[1]}
             isCpu={right === "cpu"}
             keyProfile={profileOf(right)}
             hints={right === "cpu" ? null : hints}
-            overlay={showMenu[1] && <SeatMenu {...menuText} items={menuItems} cursor={ownMenus ? cursors[1] : null} side={1} copied={copiedSide === 1} />}
+            overlay={seatMenu(1)}
           />
         </div>
         {phase === "countdown" && <Countdown text={countdownText} />}
