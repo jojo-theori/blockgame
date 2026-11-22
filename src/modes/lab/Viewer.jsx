@@ -39,7 +39,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
   // the board and its narrow side column, kept to four fifths of their size at
   // most (a taller board pushes the transport off a phone's screen) and centred.
   const phone = usePhone();
-  const zoom = phone ? Math.min(0.8, (window.innerWidth - 24) / 372) : fit;
+  const zoom = phone ? Math.min(0.8, (window.innerWidth - 40) / 372) : fit;
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -342,7 +342,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
         {t("Replay")}
         {replay.mode.mode === "unknown" ? "" : ` · ${modeName(replay.mode, "")}`}
       </div>
-      <div style={{ zoom, "--accent": ACCENT, "--unzoom": 1 / zoom, "--phone-w": `${(window.innerWidth - 24) / zoom}px` }}>
+      <div style={{ zoom, "--accent": ACCENT, "--unzoom": 1 / zoom, "--phone-w": `${(window.innerWidth - 40) / zoom}px` }}>
         <div className={"play" + (phone ? " lab-phone" : "")}>
           <ReplayLog events={shown} total={step} />
           <div className="side">
