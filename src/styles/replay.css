@@ -87,21 +87,32 @@
 .lab-phone .lab-trackrow { grid-row: 6; position: sticky; bottom: 68px; z-index: 6; display: flex; align-items: center; gap: 14px; padding: 12px 0; background: var(--bg); }
 .lab-phone .lab-track { flex: 1; }
 .lab-phone .lab-buttons { grid-row: 7; position: sticky; bottom: 0; z-index: 7; justify-content: center; gap: 14px; margin-left: 0; zoom: calc(var(--unzoom) * 1.3); padding: 6px 0; background: var(--bg); }
-.lab-phone .lab-foot { grid-row: 8; padding-bottom: 28px; }
+/* The last row ends the page, clear of the phone's own bar; its buttons are 48 px tall. */
+.lab-phone .lab-foot { grid-row: 8; margin-top: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.lab-phone .lab-foot .lab-menu { height: 48px; }
+.lab-phone .lab-foot > :last-child { width: 48px; height: 48px; }
 .lab-phone .lab-speed { margin-left: 0; }
-/* The review, tightened for a phone: each score on one line with its name,
-   and the summary as a strip (seal at the left, words beside it). */
-.lab-phone .lab-top { min-height: 28px; }
-.lab-phone .lab-scores > div { display: flex; align-items: baseline; gap: 7px; }
-.lab-phone .lab-scores .v { margin-top: 0; font-size: var(--t5); }
+/* The review, tightened for a phone. The scores run as one line of text at
+   the top left, the question mark after them; a tap anywhere on the line
+   shows what they mean. The summary is a strip: seal, words, and at the right
+   an icon for what a tap does. */
+.lab-phone .lab-top { min-height: 28px; justify-content: flex-start; gap: 6px; cursor: pointer; }
+.lab-phone .lab-scores { display: flex; width: auto; padding-right: 0; }
+.lab-phone .lab-scores > div { display: flex; align-items: center; gap: 5px; }
+.lab-phone .lab-scores > div + div::before { content: "·"; margin: 0 7px 0 3px; color: var(--faint); }
+.lab-phone .lab-scores .v { margin-top: 0; font-size: var(--t3); }
+.lab-phone .lab-scores .lab-wait { width: 18px; }
+.lab-phone .lab-help { position: static; order: 2; }
+.lab-phone .lab-tip { left: 0; right: auto; width: min(300px, 100%); }
+.lab-phone .lab-top.help-open .lab-tip { opacity: 1; visibility: visible; transform: none; }
 .lab-phone .lab-moment { gap: 10px; }
-.lab-phone .lab-award { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 14px; padding: 12px 14px 10px; text-align: left; }
-.lab-phone .lab-award .lab-seal { grid-row: 1 / span 2; width: 44px; height: 44px; margin: 0 4px 0 2px; font-size: 20px; }
-.lab-phone .lab-award-title { align-self: end; font-size: var(--t4); }
-.lab-phone .lab-award-note { align-self: start; margin-top: 2px; font-size: var(--t2); }
-.lab-phone .lab-traits { grid-column: 1 / -1; margin-top: 10px; gap: 4px; }
-.lab-phone .lab-traits li { font-size: var(--t2); }
-.lab-phone .lab-award-hint { grid-column: 1 / -1; margin-top: 8px; text-align: center; }
+.lab-phone .lab-award { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 14px; padding: 12px 14px; text-align: left; }
+.lab-phone .lab-award .lab-seal { grid-area: 1 / 1 / 3 / 2; width: 44px; height: 44px; margin: 0 4px 0 2px; font-size: 20px; }
+.lab-phone .lab-award-title { grid-area: 1 / 2; align-self: end; font-size: var(--t4); }
+.lab-phone .lab-award-note { grid-area: 2 / 2; align-self: start; margin-top: 2px; font-size: var(--t2); }
+.lab-phone .lab-traits { display: none; }
+.lab-phone .lab-award-hint { grid-area: 1 / 3 / 3 / 4; margin: 0 2px 0 0; display: flex; }
+.lab-phone .lab-award-hint span { display: none; }
 .main:has(.lab-phone) { align-items: flex-start; overflow-y: auto; margin-top: 52px; padding: 8px 20px 0; }
 .app:has(.lab-phone) .ftr { display: none; }
 
@@ -238,6 +249,8 @@
 .lab-award.open .lab-seal { transition: transform 0.25s var(--out); }
 .lab-award-hint { margin-top: 14px; font-size: var(--t1); letter-spacing: 0.04em; color: var(--faint); transition: color 0.2s var(--out); }
 .lab-award.open:hover .lab-award-hint { color: var(--rank); }
+.lab-award-hint svg { display: none; }
+.lab-phone .lab-award-hint svg { display: block; }
 .lab-award.open:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 /* The seal. The letter and its step are two boxes centred on one line, so the
    + or − sits on the letter's middle rather than on the text baseline. */

@@ -4,7 +4,7 @@ import { KIND_NAMES, SCORES } from "./consts.js";
 import { pointsOf, rankOf } from "./rank.js";
 import { drawRankCard, saveRankCard } from "./rankCard.js";
 import { foilOf } from "../../holo/foils.js";
-import { Button, IconButton } from "../../ui.jsx";
+import { Button, Icon, IconButton } from "../../ui.jsx";
 import { loadName, saveName, NAME_MAX, NAME_PLACEHOLDER } from "../../name.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -284,7 +284,11 @@ export function Award({ review, card }) {
           ))}
         </ul>
       )}
-      <div className="lab-award-hint">{t(card?.shared ? "Show the card" : "Click to save")}</div>
+      {/* In words under the card; on a phone, as an icon at its right edge. */}
+      <div className="lab-award-hint">
+        <Icon name={card?.shared ? "eye" : "download"} size={20} />
+        <span>{t(card?.shared ? "Show the card" : "Click to save")}</span>
+      </div>
     </div>
   );
 }

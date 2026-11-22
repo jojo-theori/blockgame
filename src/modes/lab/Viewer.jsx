@@ -22,6 +22,16 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
   const total = events.length;
   // A link that opens this run for anyone (the run itself rides in the link).
   const [linked, setLinked] = useState(false);
+  // On a phone there is no hover: a tap anywhere on the score row shows what
+  // the scores mean, and a tap elsewhere puts it away.
+  const [helpOpen, setHelpOpen] = useState(false);
+  const topRef = useRef(null);
+  useEffect(() => {
+    if (!helpOpen) return;
+    const away = (e) => !topRef.current?.contains(e.target) && setHelpOpen(false);
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [helpOpen]);
   const copyLink = () =>
     replayLink(replay.text)
       .then((url) => navigator.clipboard.writeText(url))
@@ -407,7 +417,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
               foot of the board. Nothing here changes the page's layout. */}
           <div className="lab-side">
             {/* The scores: soft pulses while they are worked out, then the numbers. */}
-            <div className="lab-top">
+            <div ref={topRef} className={"lab-top" + (helpOpen ? " help-open" : "")} onClick={phone ? () => setHelpOpen((v) => !v) : undefined}>
               {review && typeof review === "object" && <ScoreHelp review={review} mode={replay.mode.mode} />}
               {review !== null && (
                 <div className={"lab-scores" + (typeof review === "number" ? " waiting" : "")}>
@@ -466,8 +476,10 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                       <Award
                         review={review}
                         card={{
-                          // A run that came by a link is someone else's: the card is to look at.
-                          shared,
+                          // A run that came by a link is someone else's: the card is to
+                          // look at. So is one unpacked from a QR code, however it got
+                          // here (such a log carries its finesse score in its header).
+                          shared: shared || replay.mode.finesse != null,
                           // A CPU's card carries its name; a person's, the name they set on the card.
                           name: replay.mode.me && !/^P[12]$/.test(replay.mode.me) ? replay.mode.me : "",
                           mode: modeName({ mode: replay.mode.mode, lines: replay.mode.lines }, ""),
