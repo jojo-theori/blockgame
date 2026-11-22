@@ -30,8 +30,8 @@ import {
 } from "../ui.jsx";
 import { BUTTON, ICON_BUTTON, CHIP } from "../ui/variants.js";
 import { toast } from "../ui/toast.js";
-import { RankSeal } from "./lab/Summary.jsx";
-import { ALL_RANKS } from "./lab/rank.js";
+import { Award } from "./lab/Summary.jsx";
+import { ALL_RANKS, RANK_MAX } from "./lab/rank.js";
 
 const ACCENT = "#f2cb4c";
 const COLOURS = ["--fg", "--dim", "--faint", "--muted", "--line", "--hover", "--fill", "--bad", "--accent"];
@@ -589,16 +589,15 @@ const PAGES = {
     title: "Rank",
     source: "modes/lab/rank.js · modes/lab/Summary.jsx",
     use: "The rank of a run, out of 130 points. The higher it is, the more it is dressed up.",
-    props: [["RankSeal letter · step", "SSS to E · + or − (A to D)"]],
+    props: [["Award review · card", "the scores and traits · whose run and what it was"]],
     Body: () => (
+      // Each is the summary card itself, so it leans, glows and opens its
+      // card as it does after a run; the scores are the lowest that earn the rank.
       <div className="cat-ranks">
-        {ALL_RANKS.map((r) => (
-          <div key={r.letter + r.step} className={"lab-award still rank-" + r.letter}>
-            <RankSeal letter={r.letter} step={r.step} />
-            <div className="lab-award-title">{t(r.title)}</div>
-            <div className="lab-award-note">{r.min}+</div>
-          </div>
-        ))}
+        {ALL_RANKS.map((r) => {
+          const score = Math.ceil((r.min * 100) / RANK_MAX);
+          return <Award key={r.letter + r.step} review={{ scores: { macro: score, dexterity: score, finesse: score }, traits: [] }} card={{ name: "PLAYER", mode: t("Battle"), vs: "vs Cold Clear" }} />;
+        })}
       </div>
     ),
   },
