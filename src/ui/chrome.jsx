@@ -1,7 +1,10 @@
-// Top bar (always visible, top right): settings, sound, language, theme, full screen.
+// Top bar (always visible, top right): settings, sound, language, theme, full
+// screen. On a phone they fold into one menu, with rows tall enough to tap.
 import { useEffect, useState } from "react";
 import { sfx } from "../sound.js";
 import { IconButton } from "./primitives.jsx";
+import { ActionMenu } from "./overlays.jsx";
+import { usePhone } from "../fit.js";
 
 export function TopBar({ lang, setLang, theme, setTheme, sound, setSound, onSettings }) {
   const [full, setFull] = useState(() => !!document.fullscreenElement);
@@ -16,6 +19,26 @@ export function TopBar({ lang, setLang, theme, setTheme, sound, setSound, onSett
     fn();
   };
   const canFull = !!document.documentElement.requestFullscreen;
+  const phone = usePhone();
+  const toggleFull = () => (full ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {});
+  if (phone)
+    return (
+      <div className="topbar phone">
+        <ActionMenu
+          icon="menu"
+          label="Menu"
+          size="m"
+          touch
+          items={[
+            { label: "Settings", icon: "gear", onClick: onSettings },
+            { label: sound ? "Sound off" : "Sound on", icon: sound ? "sound" : "mute", onClick: () => setSound(!sound) },
+            { label: theme === "light" ? "Dark mode" : "Light mode", icon: theme === "light" ? "moon" : "sun", onClick: () => setTheme(theme === "light" ? "dark" : "light") },
+            { label: lang === "ko" ? "English" : "한국어", icon: "globe", onClick: () => setLang(lang === "ko" ? "en" : "ko") },
+            ...(canFull ? [{ label: full ? "Exit full screen" : "Full screen", icon: full ? "shrink" : "expand", onClick: toggleFull }] : []),
+          ]}
+        />
+      </div>
+    );
   return (
     <div className="topbar">
       <IconButton icon="gear" label="Settings" onClick={click(onSettings)} />
@@ -34,7 +57,7 @@ export function TopBar({ lang, setLang, theme, setTheme, sound, setSound, onSett
         <IconButton
           icon={full ? "shrink" : "expand"}
           label={full ? "Exit full screen" : "Full screen"}
-          onClick={click(() => (full ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}))}
+          onClick={click(toggleFull)}
         />
       )}
     </div>

@@ -198,8 +198,11 @@ export default function App() {
   }, [devProfile, keysVersion]);
   // A finished game's log, handed to Replay from its result screen.
   const [labLog, setLabLog] = useState("");
+  // Whether that log came by a link: someone else's run, to watch, not to keep.
+  const [labShared, setLabShared] = useState(false);
   const analyze = useCallback((text) => {
     saveRecent(text);
+    setLabShared(false);
     setLabLog(text);
     setView("lab");
   }, []);
@@ -214,6 +217,7 @@ export default function App() {
     history.replaceState(null, "", (run ? "/" : location.pathname) + location.search);
     Promise.resolve(run ? unpackRun(packed) : unpack(packed)).then((text) => {
       if (!text) return;
+      setLabShared(true);
       setLabLog(text);
       setView("lab");
     });
@@ -221,6 +225,7 @@ export default function App() {
   const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${orientMark}${theme}`, analyze };
   const goMenu = () => {
     setLabLog("");
+    setLabShared(false);
     setSettingsOpen(false);
     setView("menu");
   };
@@ -291,7 +296,7 @@ export default function App() {
         {view === "battle" && <Battle settings={settings} onBack={goMenu} />}
         {view === "opening" && <Opening settings={settings} onBack={goMenu} />}
         {view === "finesse" && <Finesse settings={settings} onBack={goMenu} />}
-        {view === "lab" && <Lab settings={settings} initial={labLog} onBack={goMenu} />}
+        {view === "lab" && <Lab settings={settings} initial={labLog} shared={labShared} onBack={goMenu} />}
         {view === "experiments" && <Experiments settings={settings} onBack={goMenu} />}
         {view === "sandbox" && <Sandbox settings={settings} onBack={goMenu} />}
         {current && !current.ready && <ComingSoon label={t(current.label)} color={current.color} onBack={goMenu} />}

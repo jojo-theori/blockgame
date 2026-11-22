@@ -24,6 +24,8 @@
   font-size: var(--t3);
   color: var(--dim);
 }
+/* On a phone it sits in the middle of the top bar, between the mark and the menu. */
+@media (max-width: 719px) { .mode-label { left: 60px; right: 60px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
 
 /* Overlays on top of a board */
 .veil {

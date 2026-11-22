@@ -100,7 +100,8 @@ function RankCardView({ what: given, onClose }) {
     // The field is there all along (it fades in), so it is focused by hand.
     requestAnimationFrame(() => fieldRef.current?.focus());
   };
-  const what = useMemo(() => ({ ...given, name: given.name || name || NAME_PLACEHOLDER }), [given, name]);
+  // Someone else's run (shared) does not take this device's name.
+  const what = useMemo(() => ({ ...given, name: given.name || (given.shared ? "" : name || NAME_PLACEHOLDER) }), [given, name]);
   const keep = () => {
     setName(saveName(draft));
     setEditing(false);
@@ -160,8 +161,9 @@ function RankCardView({ what: given, onClose }) {
         {foil && <div className="card__shine" style={foil.shine} />}
         {foil ? <div className="card__glare" /> : <i className="lab-glare" />}
       </div>
-      {/* The buttons and the name field share one place and trade it with a fade. */}
-      <div className="lab-cardview-foot" onClick={(e) => e.stopPropagation()}>
+      {/* The buttons and the name field share one place and trade it with a fade.
+          Someone else's card (shared) is only to look at: nothing to save or name. */}
+      <div className="lab-cardview-foot" style={given.shared ? { display: "none" } : undefined} onClick={(e) => e.stopPropagation()}>
         <form
           className={"lab-cardview-name" + (editing ? " on" : "")}
           onSubmit={(e) => {
@@ -268,7 +270,7 @@ export function Award({ review, card }) {
           ))}
         </ul>
       )}
-      <div className="lab-award-hint">{t("Click to save")}</div>
+      <div className="lab-award-hint">{t(card?.shared ? "Show the card" : "Click to save")}</div>
     </div>
   );
 }

@@ -63,6 +63,8 @@ export const PATHS = {
   // Nothing here / take away: a square drawn in dashes
   empty: <rect x="5.5" y="5.5" width="13" height="13" rx="2" strokeDasharray="3 2.6" />,
   // Filled shapes
+  globe: <path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM3.5 12h17M12 3.5c-2.6 2.4-3.9 5.200-3.9 8.500s1.300 6.100 3.900 8.500c2.600-2.400 3.900-5.200 3.900-8.500S14.600 5.900 12 3.500Z" />,
+  menu: <path d="M4.5 7h15M4.5 12h15M4.5 17h15" />,
   more: (
     <g fill="currentColor" stroke="none">
       <circle cx="6" cy="12" r="1.6" />

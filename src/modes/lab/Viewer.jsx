@@ -7,7 +7,7 @@ import { evalPosition } from "../../bots/review.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../../render.js";
 import { Stat, KeyHints, ReplayLog, PauseMenu, IconButton, Icon } from "../../ui.jsx";
 import { toast } from "../../ui/toast.js";
-import { useFit } from "../../fit.js";
+import { useFit, usePhone } from "../../fit.js";
 import { selectKey, keyLabel } from "../../keys.js";
 import { pathAt } from "../../trace.js";
 import { replayLink } from "../../pack.js";
@@ -17,7 +17,7 @@ import { ScoreHelp, Award } from "./Summary.jsx";
 import { KindIcon, GradeIcon } from "./icons.jsx";
 import { Typed, CountUp } from "./motion.jsx";
 
-export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
+export default function Viewer({ replay, shared = false, look, keysOff, onClose, onMenu }) {
   const { events, frames, dealt } = replay;
   const total = events.length;
   // A link that opens this run for anyone (the run itself rides in the link).
@@ -37,7 +37,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
   // tall instead: the board as wide as it goes with hold and next beside it,
   // then the transport and the review under it, and the page scrolls. 372 is
   // the board and its narrow side column.
-  const phone = window.innerWidth < 720;
+  const phone = usePhone();
   const zoom = phone ? Math.min(1, (window.innerWidth - 24) / 372) : fit;
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
@@ -451,6 +451,8 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                       <Award
                         review={review}
                         card={{
+                          // A run that came by a link is someone else's: the card is to look at.
+                          shared,
                           // A CPU's card carries its name; a person's, the name they set on the card.
                           name: replay.mode.me && !/^P[12]$/.test(replay.mode.me) ? replay.mode.me : "",
                           mode: modeName({ mode: replay.mode.mode, lines: replay.mode.lines }, ""),

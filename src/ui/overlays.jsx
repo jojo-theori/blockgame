@@ -56,7 +56,7 @@ export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCa
 // items: [{ label, onClick, danger?, disabled? }]
 // up: opens above the button. start: the list starts at the button and runs to the right.
 // size, variant: of its round button (see IconButton).
-export function ActionMenu({ items, label = "More", up = false, start = false, size = "s", variant = "ghost" }) {
+export function ActionMenu({ items, label = "More", up = false, start = false, size = "s", variant = "ghost", icon = "more", touch = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -80,9 +80,9 @@ export function ActionMenu({ items, label = "More", up = false, start = false, s
     };
   }, [open]);
   return (
-    <div ref={ref} className={"am" + (open ? " open" : "") + (up ? " up" : "") + (start ? " start" : "")}>
+    <div ref={ref} className={"am" + (open ? " open" : "") + (up ? " up" : "") + (start ? " start" : "") + (touch ? " touch" : "")}>
       <IconButton
-        icon="more"
+        icon={icon}
         label={label}
         size={size}
         variant={variant}
