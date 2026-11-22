@@ -2,8 +2,10 @@
 import { t } from "../../i18n.js";
 import { KIND_NAMES, SCORES } from "./consts.js";
 import { pointsOf, rankOf } from "./rank.js";
-import { saveRankCard } from "./rankCard.js";
-import { IconButton } from "../../ui.jsx";
+import { drawRankCard, saveRankCard } from "./rankCard.js";
+import { IconButton, Button } from "../../ui.jsx";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { KindIcon } from "./icons.jsx";
 
 function verdict(review) {
@@ -76,20 +78,67 @@ export function RankSeal({ letter, step }) {
   );
 }
 
+// The card, large, over the page: it leans toward the pointer like a card in
+// the hand, with a light moving across it. Save is underneath; a click
+// outside or Esc closes it.
+function RankCardView({ what, onClose }) {
+  const src = useMemo(() => drawRankCard(what).toDataURL("image/png"), [what]);
+  const cardRef = useRef(null);
+  useEffect(() => {
+    const key = (e) => {
+      if (e.key !== "Escape") return;
+      e.stopImmediatePropagation();
+      onClose();
+    };
+    window.addEventListener("keydown", key, true);
+    return () => window.removeEventListener("keydown", key, true);
+  }, [onClose]);
+  const lean = (e) => {
+    const el = cardRef.current;
+    const box = el.getBoundingClientRect();
+    const x = (e.clientX - box.left) / box.width - 0.5;
+    const y = (e.clientY - box.top) / box.height - 0.5;
+    el.style.setProperty("--rx", `${(-y * 16).toFixed(2)}deg`);
+    el.style.setProperty("--ry", `${(x * 20).toFixed(2)}deg`);
+    el.style.setProperty("--gx", `${((x + 0.5) * 100).toFixed(1)}%`);
+    el.style.setProperty("--gy", `${((y + 0.5) * 100).toFixed(1)}%`);
+  };
+  const rest = () => ["--rx", "--ry"].forEach((k) => cardRef.current.style.setProperty(k, "0deg"));
+  return createPortal(
+    <div className="lab-cardview" onPointerMove={lean} onPointerLeave={rest} onClick={onClose}>
+      <div ref={cardRef} className="lab-cardview-card" onClick={(e) => e.stopPropagation()}>
+        <img src={src} alt="" draggable={false} />
+      </div>
+      <div className="lab-cardview-actions" onClick={(e) => e.stopPropagation()}>
+        <Button variant="primary" icon="download" onClick={() => saveRankCard(what)}>
+          {t("Save as image")}
+        </Button>
+        <Button variant="ghost" onClick={onClose}>
+          {t("Close")}
+        </Button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // The summary, set out like a certificate so it never reads as one of the
 // move comments: a seal with the rank, the title, then what stood out.
 export function Award({ review, card }) {
   const v = verdict(review);
   const [key, vars] = v.note;
-  const save = (e) => {
+  // The card to keep: opened large first, saved from there.
+  const [shown, setShown] = useState(null);
+  const open = (e) => {
     e.currentTarget.blur();
-    saveRankCard({ ...v, ...card, title: t(v.title), date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
+    setShown({ ...v, ...card, title: t(v.title), date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
   };
   return (
     <div className={"lab-award rank-" + v.letter}>
       <div className="lab-award-save">
-        <IconButton icon="download" label="Save as image" onClick={save} />
+        <IconButton icon="download" label="Save as image" onClick={open} />
       </div>
+      {shown && <RankCardView what={shown} onClose={() => setShown(null)} />}
       <RankSeal letter={v.letter} step={v.step} />
       <div className="lab-award-title">{t(v.title)}</div>
       <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>

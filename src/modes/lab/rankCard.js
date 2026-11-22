@@ -162,6 +162,9 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   return canvas;
 }
 
+// The card's file name, by rank.
+export const rankCardName = (what) => `jbl-${what.letter}${what.step === "+" ? "-plus" : what.step ? "-minus" : ""}.png`;
+
 export function saveRankCard(what) {
   drawRankCard(what).toBlob((blob) => {
     const a = document.createElement("a");
