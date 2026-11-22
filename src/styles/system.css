@@ -67,17 +67,30 @@
 .well.empty { display: grid; place-items: center; }
 .well-hint { margin: 0; padding: 0 10px; font-size: var(--t2); line-height: 1.5; color: var(--faint); text-align: center; text-wrap: balance; word-break: keep-all; }
 
-/* Components page (Lab) */
-.cat { width: min(100%, 780px); display: flex; flex-direction: column; gap: 22px; text-align: left; }
-.cat-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 16px; }
+/* Components page (Lab): the list of pages on the left, one page on the right. */
+.cat { width: min(100%, 820px); display: grid; grid-template-columns: 132px 1fr; gap: 48px; align-items: start; text-align: left; }
+.cat-nav { display: flex; flex-direction: column; gap: 16px; }
+.cat-nav .k { margin-bottom: 4px; }
+.cat-nav button { display: block; width: 100%; padding: 4px 0; border: 0; background: transparent; font: inherit; font-size: var(--t3); text-align: left; color: var(--dim); cursor: pointer; transition: color 0.15s var(--out); }
+.cat-nav button:hover, .cat-nav button.on { color: var(--fg); }
+.cat-nav button.on { font-weight: 500; }
+.cat-doc { display: flex; flex-direction: column; gap: 26px; min-width: 0; animation: appear 0.2s var(--out); }
+.cat-doc h2 { margin: 0; font-size: var(--t6); font-weight: 500; color: var(--fg); }
+.cat-doc header p { margin: 6px 0 4px; font-size: var(--t3); color: var(--dim); }
+.cat-doc header small { font-size: var(--t2); color: var(--faint); }
+.cat-props { display: grid; grid-template-columns: 170px 1fr; gap: 6px 16px; margin: 10px 0 0; font-size: var(--t2); }
+.cat-props dt { color: var(--fg); }
+.cat-props dd { margin: 0; color: var(--dim); }
+.cat-demo { display: flex; flex-direction: column; gap: 10px; }
 .cat-items { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 .cat-token { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t2); color: var(--dim); }
 .cat-token i { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line); }
+.cat-token .cat-bar { width: 6px; border-radius: 3px; background: var(--dim); box-shadow: none; }
+.cat-token .cat-corner { width: 34px; height: 34px; background: var(--fill); }
+.cat-gap { display: inline-flex; }
+.cat-gap i { border-radius: 3px; background: var(--dim); box-shadow: none; }
 .cat-type { color: var(--fg); line-height: 1; }
 .cat-type small { font-size: var(--t1); color: var(--faint); }
-.cat-row:has(> .stack) { align-items: start; }
-.cat-row:has(> .stack) > .k { line-height: 72px; }
-.cat-items.stack { flex-direction: column; align-items: flex-start; gap: 16px; }
 .cat-play { display: grid; grid-template-columns: 200px 1fr; align-items: center; gap: 10px 24px; width: 100%; }
 .cat-stage { display: grid; place-items: center; height: 72px; }
 .cat-stage .block { justify-self: stretch; }
@@ -85,6 +98,7 @@
 .cat-knob { display: grid; grid-template-columns: 80px max-content; align-items: center; }
 .cat-code { grid-column: 1 / -1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--t2); color: var(--dim); }
 .cat-matrix { display: grid; grid-template-columns: 100px repeat(var(--cols), 110px); align-items: center; gap: 10px 0; }
+.cat-tip-host { position: relative; font-size: var(--t2); color: var(--dim); cursor: default; }
 .cat-fixed { width: 210px; }
 .cat-well { width: 210px; height: 64px; }
 
