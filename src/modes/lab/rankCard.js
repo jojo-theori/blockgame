@@ -26,7 +26,7 @@ function rounded(ctx, x, y, w, h, r) {
 
 // what: { letter, step, title, scores: [[label, value]], name, mode, vs, date,
 // time } — time is a finished Sprint's, and then it is the largest line.
-export function drawRankCard({ letter, step, title, scores, name, mode, vs, date, time }) {
+export function drawRankCard({ letter, step, title, scores, name, mode, vs, date, time }, { baked = false } = {}) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -78,6 +78,8 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   ctx.fillStyle = sheen;
   ctx.fillRect(m, m, W - 2 * m, 420);
   ctx.restore();
+
+  if (baked) bakeFoil(ctx, letter, m);
 
   ctx.textBaseline = "middle";
   text("JBL", m + 56, m + 78, 40, 800, "#ffffff", "left");
@@ -241,8 +243,42 @@ export function drawFoilMask({ letter, step }) {
 // The card's file name, by rank.
 export const rankCardName = (what) => `jbl-${what.letter}${what.step === "+" ? "-plus" : what.step ? "-minus" : ""}.png`;
 
+// On the page the foil is live (it follows the pointer); a saved picture gets
+// a still one, caught at one angle: slanted streaks of light, a wash of
+// colour burnt into the glass, and a glare in a corner. How much, by rank.
+const BAKED = { E: 0, D: 0.1, C: 0.14, B: 0.18, A: 0.22, S: 0.28, SS: 0.34, SSS: 0.42 };
+function bakeFoil(ctx, letter, m) {
+  const k = BAKED[letter];
+  if (!k) return;
+  ctx.save();
+  rounded(ctx, m, m, W - 2 * m, H - 2 * m, 56);
+  ctx.clip();
+  const slant = (stops) => {
+    // A gradient running across the card at a slant (about 115°).
+    const g = ctx.createLinearGradient(0, H * 0.15, W, H * 0.85);
+    stops.forEach(([at, color]) => g.addColorStop(at, color));
+    return g;
+  };
+  ctx.globalCompositeOperation = "color-dodge";
+  ctx.globalAlpha = k;
+  ctx.fillStyle = slant([[0, "#ff5fa8"], [0.2, "#ffd75e"], [0.4, "#6fe3a1"], [0.6, "#5fb8ff"], [0.8, "#b98cff"], [1, "#ff5fa8"]]);
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = "screen";
+  ctx.globalAlpha = k * 0.9;
+  const clear = "rgba(255, 255, 255, 0)";
+  ctx.fillStyle = slant([[0, clear], [0.3, clear], [0.36, "rgba(255, 255, 255, 0.5)"], [0.4, clear], [0.52, clear], [0.55, "rgba(255, 255, 255, 0.28)"], [0.58, clear], [0.74, clear], [0.8, "rgba(255, 255, 255, 0.4)"], [0.86, clear], [1, clear]]);
+  ctx.fillRect(0, 0, W, H);
+  const glare = ctx.createRadialGradient(W * 0.28, H * 0.16, 0, W * 0.28, H * 0.16, W * 0.7);
+  glare.addColorStop(0, "rgba(255, 255, 255, 0.5)");
+  glare.addColorStop(1, clear);
+  ctx.globalAlpha = k;
+  ctx.fillStyle = glare;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
 export function saveRankCard(what) {
-  drawRankCard(what).toBlob((blob) => {
+  drawRankCard(what, { baked: true }).toBlob((blob) => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `jbl-${what.letter}${what.step === "+" ? "-plus" : what.step ? "-minus" : ""}.png`;

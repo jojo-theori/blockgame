@@ -86,11 +86,23 @@ function RankCardView({ what: given, onClose }) {
   // A person's card carries their name, which they can set here; a CPU's
   // card carries the CPU's.
   const [name, setName] = useState(loadName);
-  const [draft, setDraft] = useState(null); // the name being typed, while it is being edited
+  const [draft, setDraft] = useState(""); // the name as it is being typed
+  const [editing, setEditing] = useState(false);
+  const fieldRef = useRef(null);
+  const editingRef = useRef(false);
+  useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
+  const edit = () => {
+    setDraft(name);
+    setEditing(true);
+    // The field is there all along (it fades in), so it is focused by hand.
+    requestAnimationFrame(() => fieldRef.current?.focus());
+  };
   const what = useMemo(() => ({ ...given, name: given.name || name || NAME_PLACEHOLDER }), [given, name]);
   const keep = () => {
     setName(saveName(draft));
-    setDraft(null);
+    setEditing(false);
   };
   const src = useMemo(() => drawRankCard(what).toDataURL("image/png"), [what]);
   // Where this rank's foil sits (nowhere on the low ranks: they are matte).
@@ -104,7 +116,9 @@ function RankCardView({ what: given, onClose }) {
     const key = (e) => {
       if (e.key !== "Escape") return;
       e.stopImmediatePropagation();
-      onClose();
+      // Esc backs out one step: out of naming first, then out of the card.
+      if (editingRef.current) setEditing(false);
+      else onClose();
     };
     window.addEventListener("keydown", key, true);
     return () => window.removeEventListener("keydown", key, true);
@@ -140,10 +154,10 @@ function RankCardView({ what: given, onClose }) {
         {mask && foil.grain && <i className={"lab-foil-grain " + foil.grain} style={mask} />}
         <i className="lab-glare" />
       </div>
-      {draft !== null && (
+      {/* The buttons and the name field share one place and trade it with a fade. */}
+      <div className="lab-cardview-foot" onClick={(e) => e.stopPropagation()}>
         <form
-          className="lab-cardview-name"
-          onClick={(e) => e.stopPropagation()}
+          className={"lab-cardview-name" + (editing ? " on" : "")}
           onSubmit={(e) => {
             e.preventDefault();
             keep();
@@ -151,7 +165,8 @@ function RankCardView({ what: given, onClose }) {
         >
           <span className="lab-cardview-field">
             <input
-              autoFocus
+              ref={fieldRef}
+              tabIndex={editing ? 0 : -1}
               value={draft}
               maxLength={NAME_MAX}
               placeholder={NAME_PLACEHOLDER}
@@ -161,32 +176,32 @@ function RankCardView({ what: given, onClose }) {
               onKeyDown={(e) => {
                 // Typing here must not reach the replay's own keys.
                 e.stopPropagation();
-                if (e.key === "Escape") setDraft(null);
+                if (e.key === "Escape") setEditing(false);
               }}
             />
             <span className="lab-cardview-count">
               {draft.length}/{NAME_MAX}
             </span>
           </span>
-          <Button variant="primary" size="s" type="submit">
+          <Button variant="primary" size="l" type="submit">
             {t("Save")}
           </Button>
-          <IconButton icon="close" label="Cancel" onClick={() => setDraft(null)} />
+          <IconButton icon="close" label="Cancel" size="m" onClick={() => setEditing(false)} />
         </form>
-      )}
-      <div className="lab-cardview-actions" style={{ display: draft !== null ? "none" : undefined }} onClick={(e) => e.stopPropagation()}>
-        <Button variant="primary" icon="download" onClick={() => saveRankCard(what)}>
+        <div className={"lab-cardview-actions" + (editing ? "" : " on")}>
+        <Button variant="primary" size="l" icon="download" onClick={() => saveRankCard(what)}>
           {t("Save as image")}
         </Button>
         {given.name ? (
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="l" onClick={onClose}>
             {t("Close")}
           </Button>
         ) : (
-          <Button variant="ghost" icon="pencil" onClick={() => setDraft(name)}>
+          <Button variant="ghost" size="l" icon="pencil" onClick={edit}>
             {t("Edit name")}
           </Button>
         )}
+        </div>
       </div>
     </div>,
     document.body,

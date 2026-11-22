@@ -276,9 +276,11 @@
 .lab-foil-grain { mix-blend-mode: overlay; }
 .lab-foil-grain.lines { background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.5) 0 1px, rgba(0, 0, 0, 0.35) 1px 3px); opacity: 0.55; }
 .lab-glare { background: radial-gradient(circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.22), transparent 55%); mix-blend-mode: screen; }
-.lab-cardview-actions { display: flex; align-items: center; gap: 8px; height: var(--h-m); }
-/* Naming the card: the field takes the place of the buttons under it. */
-.lab-cardview-name { display: flex; align-items: center; gap: 8px; height: var(--h-m); }
+/* Under the card: the buttons, or the field for naming it. They share one
+   place, every control the same height, and trade it with a short fade. */
+.lab-cardview-foot { display: grid; justify-items: center; align-items: center; height: var(--h-m); }
+.lab-cardview-actions, .lab-cardview-name { grid-area: 1 / 1; display: flex; align-items: center; gap: 8px; height: var(--h-m); opacity: 0; visibility: hidden; transform: translateY(6px) scale(0.98); transition: opacity 0.22s var(--out), transform 0.22s var(--out), visibility 0s 0.22s; }
+.lab-cardview-actions.on, .lab-cardview-name.on { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
 /* The count sits inside the field, at its end. */
 .lab-cardview-field { position: relative; display: block; }
 .lab-cardview-name input { width: 230px; height: var(--h-m); padding: 0 58px 0 16px; border: 0; border-radius: var(--r-pill); background: var(--fill); color: var(--fg); font: inherit; font-size: var(--t3); outline: 1px solid var(--line); }
