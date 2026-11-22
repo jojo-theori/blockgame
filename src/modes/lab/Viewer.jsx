@@ -334,6 +334,8 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
 
   // One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again.
   // It ends the row of transport buttons; on a phone it sits beside the timeline.
+  // Play and pause: in the middle of the transport, or on a phone at the head of the timeline.
+  const playButton = <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} variant="lead" />;
   const speedButton = (
                 <button
                   type="button"
@@ -534,6 +536,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
 
             <div className="lab-transport">
               <div className="lab-trackrow">
+              {phone && <span className="lab-play">{playButton}</span>}
               <div className="lab-track">
                 <input
                   type="range"
@@ -571,7 +574,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                 {/* A phone has no room for the jumps to either end: the timeline does that. */}
                 {!phone && <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />}
                 <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
-                <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} variant="lead" />
+                {!phone && playButton}
                 <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
                 {!phone && <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />}
                 {!phone && speedButton}
@@ -585,9 +588,17 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                     as on the keyboard), with the engine's line first when there is one. */}
                 {phone && !overview && review && typeof review === "object" && (
                   <span className="lab-hop">
-                    {moment?.best && <IconButton icon={shownLine ? "stop" : "eye"} label={shownLine ? "Stop" : "Show"} variant="filled" onClick={blur(() => (shownLine ? setLine(null) : showLine()))} />}
+                    {moment?.best && (
+                      <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
+                        <Icon name={shownLine ? "stop" : "eye"} size={15} />
+                        {t(shownLine ? "Stop" : "Show")}
+                      </button>
+                    )}
                     <IconButton icon="up" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
-                    <IconButton icon={hasNext ? "down" : "first"} label={hasNext ? "Next" : "Restart"} variant="lead" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length} />
+                    <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
+                      <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next")}</span>
+                      <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Restart")}</span>
+                    </button>
                   </span>
                 )}
               </div>
