@@ -16,7 +16,7 @@ import {
 } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { Segmented, Stat, SetupInfo, Countdown, KeyHints, Kbd, Advanced, KeyStrokes, EngineLog, PauseMenu } from "../ui.jsx";
-import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions } from "../display.js";
+import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions, useCountdown } from "../display.js";
 import { useFit } from "../fit.js";
 import {
   OPENERS,
@@ -82,7 +82,6 @@ export default function Opening({ settings, onBack }) {
   const [autoNext, setAutoNext] = useState(prefs.autoNext ?? "all"); // off | all
   const [streak, setStreak] = useState(0);
   const [advOpen, setAdvOpen] = useState(false); // always starts folded
-  const [countdownText, setCountdownText] = useState("");
   const [, setTick] = useState(0);
   const [result, setResult] = useState(null);
   const [missFlash, setMissFlash] = useState(0);
@@ -98,7 +97,7 @@ export default function Opening({ settings, onBack }) {
   const rafRef = useRef(null);
   const loopRef = useRef(null);
   const lastTimeRef = useRef(0);
-  const countdownRef = useRef(null);
+  const [countdownText, countdown, cancelCountdown] = useCountdown();
   const keysRef = useRef(buildKeyMap(loadKeyBindings().solo));
   const settingsRef = useRef(settings);
   const prevPlacedRef = useRef(0);
@@ -352,7 +351,7 @@ export default function Opening({ settings, onBack }) {
   // countdown (continuous mode); opts.keepStreak: don't reset the streak.
   const startGame = useCallback((opts = {}) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     keysRef.current = buildKeyMap(loadKeyBindings().solo);
     const base = OPENERS[opts.idx ?? openerIdx];
     const stageIdx = (opts.idx ?? openerIdx) === openerIdx ? stage : null;
@@ -381,12 +380,8 @@ export default function Opening({ settings, onBack }) {
     showPreview();
     run.current = { ...run.current, step: 0, target: stepTarget(op.steps[0]), done: false, reject: null };
     setPhase("countdown");
-    setCountdownText("Ready");
-    countdownRef.current = setTimeout(() => {
-      setCountdownText("Go");
-      countdownRef.current = setTimeout(() => launch(op, seq, startBoard, seed), 350);
-    }, 550);
-  }, [launch, showPreview, openerIdx, mirror, order, stage]);
+    countdown(() => launch(op, seq, startBoard, seed), 550, 350);
+  }, [launch, showPreview, openerIdx, mirror, order, stage, cancelCountdown, countdown]);
 
   useEffect(() => {
     startRef.current = startGame;
@@ -401,15 +396,15 @@ export default function Opening({ settings, onBack }) {
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     setPhase("select");
-  }, []);
+  }, [cancelCountdown]);
 
   const { pause, resume } = usePause({
     phase,
     setPhase,
     rafRef,
-    countdownRef,
+    cancelCountdown,
     lastTimeRef,
     loopRef,
     engineRef,
@@ -484,9 +479,9 @@ export default function Opening({ settings, onBack }) {
   useEffect(
     () => () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (countdownRef.current) clearTimeout(countdownRef.current);
+      cancelCountdown();
     },
-    [],
+    [cancelCountdown],
   );
 
   // ─── SELECT ───
@@ -638,7 +633,7 @@ export default function Opening({ settings, onBack }) {
         {opener.mirrored ? " · Mirrored" : ""}
       </div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <EngineLog engineRef={engineRef} mode="OPENING" />}
+        {settings.showLog !== false && <EngineLog engineRef={engineRef} />}
         <div className="side" style={{ width: 150 }}>
           <div>
             <div className="k">{t("Hold")}</div>

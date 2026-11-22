@@ -1,0 +1,68 @@
+/* ─── Opening ─── */
+.page.wide { max-width: 880px; }
+.openers { display: grid; grid-template-columns: 1fr 140px; gap: 32px; max-width: 640px; margin: 0 auto; align-items: start; width: 100%; text-align: left; }
+.oplist { display: flex; flex-direction: column; gap: 6px; }
+.oplist button {
+  display: grid;
+  gap: 2px;
+  padding: 8px 22px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--fill);
+  color: var(--dim);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s var(--out), border-color 0.2s var(--out), background 0.2s var(--out);
+}
+.oplist .nm { font-size: var(--t4); }
+.oplist .nm .small { margin-left: 6px; color: var(--faint); }
+.oplist .ds { font-size: var(--t2); color: var(--faint); }
+.oplist button.on { color: var(--fg); border-color: var(--accent); background: var(--hover); }
+.oplist button.on .ds { color: var(--dim); }
+.oplist button:focus { outline: none; }
+/* Fixed-size preview box: openers have 1–3 steps of different heights, and the
+   box must not grow or shrink with them (that would re-centre the page). */
+.preview { display: flex; flex-direction: column; gap: 8px; height: 240px; overflow: hidden; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: var(--t2);
+  color: var(--dim);
+}
+.chip.done { color: var(--faint); border-color: var(--hover); text-decoration: line-through; }
+.chip.next { color: var(--fg); border-color: var(--dim); }
+.chip i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.flash { animation: flash 0.5s var(--out); }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes rise { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: 1; transform: none; } 70% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+@keyframes flash { 0% { color: var(--bad); } 100% { color: inherit; } }
+
+@media (max-width: 760px) {
+  :root { --edge: 16px; }
+  .openers { grid-template-columns: 1fr; }
+}
+
+/* Title-like text (headings, labels, buttons, tabs) is set in capitals;
+   descriptions and hints stay in sentence case. */
+.title, .logo, .sub, .wordmark, .mode-label, .menu button, .k, .group button, .btn,
+.tag, .chip, .oplist .nm, .count, .action-pop, .stat .v, .veil .v, .kbd, .keys .hint {
+  text-transform: uppercase;
+}
+.keys .hint { letter-spacing: 0.06em; }
+.sub, .mode-label, .menu button, .k, .group button, .btn, .tag, .chip, .oplist .nm { letter-spacing: 0.06em; }
+
+/* ─── Finesse ─── */
+.paths { display: flex; flex-direction: column; gap: 8px; }
+.path { display: flex; flex-wrap: wrap; gap: 6px; }
+.last .v { margin: 0; }
+.last.ok .v { color: #5cc45c; }
+.last.bad .v { color: var(--bad); }
+

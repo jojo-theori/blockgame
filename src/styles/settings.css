@@ -1,0 +1,53 @@
+/* ─── Range input ─── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
+input[type="range"]::-moz-range-track { height: 1px; background: var(--line); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6.5px;
+  border-radius: 50%;
+  background: var(--fg);
+  border: 0;
+}
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); border: 0; }
+.slider { display: grid; grid-template-columns: 1fr 64px; gap: 16px; align-items: center; }
+.slider .v { font-size: var(--t4); text-align: right; margin: 0; }
+
+/* ─── Settings ─── */
+.settings { width: 100%; max-width: 480px; margin-top: 24px; text-align: left; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.settings::-webkit-scrollbar { display: none; }
+/* Settings page: the block may shrink and scroll inside, so the actions never leave the screen. */
+.page > .mid { flex: none; }
+.page > .mid.shrink { min-height: 0; flex: 0 1 auto; } /* Settings only: the list scrolls inside */
+.settings .opts { margin-top: 0; gap: 0; align-items: stretch; }
+.settings .opt {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 8px 0;
+}
+.settings .opt > .group { justify-self: start; }
+.settings .opt .k { white-space: nowrap; }
+/* Rows with a longer explanation: the text takes the room and wraps, the control keeps its own width. */
+.settings .opt.wide { grid-template-columns: 1fr auto; }
+.settings .opt.wide > .group { justify-self: end; }
+.settings .opt .k.hint { white-space: normal; text-transform: none; letter-spacing: 0.01em; line-height: 1.45; margin-top: 2px; }
+.keybtn { min-width: 96px; height: 32px; }
+.btn.compact { height: 38px; padding: 0 16px; flex: none; }
+.settings .group { flex: none; }
+.keybtn.rec { border-color: var(--fg); }
+.err { color: var(--bad); font-size: var(--t2); margin-top: 12px; }
+.note { font-size: var(--t2); color: var(--faint); line-height: 1.6; margin: 0 0 12px; }
+

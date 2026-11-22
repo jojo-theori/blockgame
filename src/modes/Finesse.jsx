@@ -5,7 +5,7 @@ import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
 import { drawBoard, clearPlayfield, BOARD_W, BOARD_H } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { Stat, SetupInfo, Countdown, KeyHints, Kbd, Advanced, KeyName, MultiSelect, Switch, KeyStrokes, EngineLog, PauseMenu } from "../ui.jsx";
-import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions } from "../display.js";
+import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions, useCountdown } from "../display.js";
 import { useFit } from "../fit.js";
 import { placements, bestPaths, sameCells } from "../finesse.js";
 
@@ -123,7 +123,6 @@ export default function Finesse({ settings, onBack }) {
   );
   const [allow180, setAllow180] = useState(prefs.allow180 ?? true);
   const [advOpen, setAdvOpen] = useState(false); // always starts folded
-  const [countdownText, setCountdownText] = useState("");
   const [hud, setHud] = useState(EMPTY_HUD);
   const [bind, setBind] = useState(() => loadKeyBindings().solo);
   const [result, setResult] = useState(null);
@@ -134,7 +133,7 @@ export default function Finesse({ settings, onBack }) {
   const rafRef = useRef(null);
   const loopRef = useRef(null);
   const lastTimeRef = useRef(0);
-  const countdownRef = useRef(null);
+  const [countdownText, countdown, cancelCountdown] = useCountdown();
   const settingsRef = useRef(settings);
   const bindRef = useRef(loadKeyBindings().solo);
   const keysRef = useRef(buildKeyMap(loadKeyBindings().solo));
@@ -275,7 +274,7 @@ export default function Finesse({ settings, onBack }) {
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     bindRef.current = loadKeyBindings().solo;
     setBind(bindRef.current);
     setHud(EMPTY_HUD);
@@ -285,16 +284,12 @@ export default function Finesse({ settings, onBack }) {
     engineRef.current = null;
     clearPlayfield(canvasRef.current);
     setPhase("countdown");
-    setCountdownText("Ready");
-    countdownRef.current = setTimeout(() => {
-      setCountdownText("Go");
-      countdownRef.current = setTimeout(launch, 350);
-    }, 550);
-  }, [launch]);
+    countdown(launch, 550, 350);
+  }, [launch, cancelCountdown, countdown]);
 
   const stop = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     if (engineRef.current?.playing && !goal && run.current.done) {
       // Endless: Esc ends the run and shows the result.
       run.current.finished = true;
@@ -302,13 +297,13 @@ export default function Finesse({ settings, onBack }) {
       return;
     }
     setPhase("select");
-  }, [goal]);
+  }, [goal, cancelCountdown]);
 
   const { pause, resume } = usePause({
     phase,
     setPhase,
     rafRef,
-    countdownRef,
+    cancelCountdown,
     lastTimeRef,
     loopRef,
     engineRef,
@@ -372,9 +367,9 @@ export default function Finesse({ settings, onBack }) {
   useEffect(
     () => () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (countdownRef.current) clearTimeout(countdownRef.current);
+      cancelCountdown();
     },
-    [],
+    [cancelCountdown],
   );
 
   // ─── SELECT ───
@@ -469,7 +464,7 @@ export default function Finesse({ settings, onBack }) {
     <>
       <div className="mode-label">Finesse · {goal ? `${goal} pieces` : "Endless"}</div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <EngineLog engineRef={engineRef} mode="FINESSE" />}
+        {settings.showLog !== false && <EngineLog engineRef={engineRef} />}
         <div className="side" style={{ width: 150 }}>
           <Stat k="Time" v={formatTime(hud.clock)} big />
           <Stat k="Pieces" v={goal ? `${st.done} / ${goal}` : st.done} />

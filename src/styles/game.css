@@ -1,0 +1,97 @@
+/* ─── Game layout ─── */
+/* Game screens have a fixed height (the board's) and fixed-width side columns,
+   so nothing that appears or changes during play (hold, hints, feedback) can
+   move the board or re-centre the page. */
+.play {
+  display: flex;
+  gap: 32px;
+  align-items: stretch;
+  height: 560px;
+}
+.side { width: 120px; flex: none; display: flex; flex-direction: column; gap: 24px; min-height: 0; overflow: visible; }
+.side > .keys:last-child { margin-top: auto; }
+.board-wrap, .play canvas { flex: none; }
+.side.right { width: 120px; }
+.stat .v { font-size: var(--t5); }
+.stat .v.big { font-size: var(--t6); }
+.board-wrap { position: relative; }
+.board-frame { outline: 1px solid var(--line); }
+.mode-label {
+  position: fixed;
+  z-index: 30;
+  left: calc(var(--edge) + 44px);
+  top: 17px;
+  font-size: var(--t3);
+  color: var(--dim);
+}
+
+/* Overlays on top of a board */
+.veil {
+  position: absolute;
+  inset: 0;
+  padding: 48px 36px 40px;
+  background: var(--veil);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 6px;
+  animation: fadeIn 0.35s var(--out) both;
+}
+.veil .row-btns { margin-top: auto; }
+.veil .title { font-size: var(--t6); font-weight: 500; letter-spacing: -0.01em; color: var(--fg); }
+.veil .grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 16px;
+  margin: 28px 0 36px;
+}
+.veil .grid2 .v { font-size: var(--t4); margin-top: 4px; }
+.veil .row-btns { flex-direction: column; align-items: stretch; gap: 8px; }
+.veil .btn { height: 34px; font-size: var(--t2); }
+/* Analyze: teal through blue to violet, deep enough to carry white text. */
+.btn.replay { gap: 7px; border-color: transparent; background: linear-gradient(120deg, #17b890 0%, #2b93e6 52%, #7c64f2 100%); color: #fff; box-shadow: 0 6px 22px -8px rgba(43, 147, 230, 0.75); }
+.btn.replay:hover, .btn.replay.focus { filter: brightness(1.12); background: linear-gradient(120deg, #17b890 0%, #2b93e6 52%, #7c64f2 100%); border-color: transparent; color: #fff; }
+.veil .row-btns + .keys { margin-top: 24px; }
+
+.count {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* No dimming layer: it read as a black box over the boards before the start. */
+  pointer-events: none;
+  text-shadow: 0 2px 24px var(--glow);
+  font-size: var(--t7);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+/* Countdown words switch instantly (no fade) so restarts feel snappy */
+
+.action-pop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 36px;
+  text-align: center;
+  font-size: var(--t4);
+  font-weight: 500;
+  pointer-events: none;
+  animation: rise 1s var(--out) forwards;
+}
+
+/* ─── Footer ─── */
+.ftr {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  text-align: center;
+  font-size: var(--t2);
+  color: var(--faint);
+  pointer-events: none;
+  z-index: 5;
+}
+.ftr a { color: var(--dim); text-decoration: none; pointer-events: auto; }
+.ftr a:hover { color: var(--fg); }
+

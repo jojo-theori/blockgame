@@ -1,0 +1,160 @@
+/* ─── Sandbox editor ─── */
+.sb-col { width: 210px; flex: none; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.sb-panel { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.chip-dot.erase { background: transparent; box-shadow: inset 0 0 0 1px var(--dim); }
+.sb-canvas { cursor: crosshair; touch-action: none; }
+.sb-order {
+  height: 96px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 24px;
+  align-content: start;
+  gap: 4px;
+  margin-top: 4px;
+}
+.sb-order.empty { grid-template-columns: 1fr; grid-auto-rows: auto; align-content: center; justify-items: center; }
+.sb-more { display: grid; place-items: center; font-size: 11px; font-variant-numeric: tabular-nums; color: var(--dim); }
+.sb-piece {
+  height: 24px;
+  min-width: 0;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: var(--fill);
+  color: #0a0a0a;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s var(--out), transform 0.15s var(--out);
+}
+.sb-piece:hover { opacity: 0.6; transform: scale(0.92); }
+.sb-order-k { margin-top: 14px; }
+/* "Draw", with its help at the other end of the line (the line keeps the label's height). */
+.sb-draw-k { display: flex; align-items: center; gap: 2px; height: 16px; }
+.sb-draw-icon { width: 20px; height: 20px; fill: currentColor; display: block; margin: 0 auto; }
+
+/* Sandbox: edit and play share this frame (wide side columns, same board spot). */
+.play.sb-stage { gap: 36px; }
+.sb-stage > .side { width: 210px; gap: 8px; text-align: left; }
+.sb-stage > .side.right { width: 210px; }
+.sb-actions { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.sb-actions .btn { width: 100%; height: 40px; }
+/* Edit screen: Back as an icon, to the left of Play. */
+.sb-actions.row { flex-direction: row; }
+.sb-actions.row .btn.primary { flex: 1; width: auto; }
+
+/* ─── Sandbox list ─── */
+.sb-list {
+  /* Takes the room down to the buttons, which stay at the foot of the page. */
+  flex: 1 1 0;
+  min-height: 180px;
+  overflow-y: auto;
+  display: grid;
+  /* As wide as its two columns, so the scrollbar sits right beside the cards. */
+  width: min(100%, 632px);
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  align-content: start;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 2px;
+  text-align: left;
+}
+.sb-none { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--faint); font-size: var(--t2); }
+.sb-item { position: relative; display: flex; transition: background 0.18s var(--out); flex-direction: column; gap: 10px; padding: 12px; border-radius: 16px; background: var(--fill); animation: appear 0.3s var(--out) both; animation-delay: calc(var(--i, 0) * 35ms); }
+.sb-item-main { flex: 1; display: flex; gap: 14px; align-items: center; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+/* The whole card reacts: it is one click target (play). */
+.sb-item:hover { background: var(--hover); }
+.sb-item:hover .sb-item-title { color: var(--accent); }
+/* Drawn about as tall as the three lines of text beside it (parts.jsx sets the size). */
+.sb-thumb { flex: none; border-radius: 3px; }
+.sb-item-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sb-item-title { font-size: var(--t4); font-weight: 500; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.15s var(--out); }
+.sb-item-meta { font-size: var(--t2); color: var(--faint); }
+/* The hold piece sits on the middle of the line of text beside it. */
+.sb-item-set { display: flex; align-items: center; gap: 6px; }
+.sb-item-more { position: absolute; top: 8px; right: 8px; }
+/* A card with its menu open sits above the cards after it. */
+.sb-item:has(.am.open) { z-index: 5; }
+.sb-item-title { padding-right: 28px; }
+.btn.primary-soft { background: var(--accent); color: var(--on-fg); border-color: transparent; }
+.mode-label.sb-title { display: flex; align-items: baseline; gap: 6px; }
+.sb-title-input { field-sizing: content; min-width: 3ch; max-width: 360px; border: 0; background: transparent; color: var(--fg); font: inherit; line-height: inherit; letter-spacing: inherit; text-transform: none; padding: 0; margin: 0; height: auto; outline: none; cursor: text; }
+/* The underline shows only while the title is being edited. */
+.sb-title-input:focus { box-shadow: 0 1px 0 var(--accent); }
+
+/* ─── ⋯ action menu ─── */
+.am { position: relative; flex: none; }
+.am.open .am-btn { background: var(--hover-layer); color: var(--fg); }
+.am-menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 170px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 12px;
+  background: var(--menu);
+  box-shadow: inset 0 0 0 1px var(--stroke), 0 12px 32px var(--shadow);
+  opacity: 0;
+  transform: scale(0.96);
+  transform-origin: top right;
+  pointer-events: none;
+  transition: opacity 0.16s var(--out), transform 0.2s var(--out);
+}
+.am.open .am-menu { opacity: 1; transform: none; pointer-events: auto; }
+.am-menu li { opacity: 0; transition: opacity 0.16s var(--out); }
+.am.open .am-menu li { opacity: 1; transition-delay: calc(var(--i, 0) * 30ms); }
+.am-menu button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--dim); font: inherit; font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; text-align: left; cursor: pointer; }
+.am-menu button:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.am-menu button.danger { color: var(--bad); }
+.am-menu button:disabled { color: var(--muted); cursor: default; }
+@media (prefers-reduced-motion: reduce) { .am-menu, .am-menu li { transition: none; } }
+/* One text line, on the same baseline as the JBL wordmark: nothing here may
+   be taller than the text (the underline and the save link take no height). */
+.mode-label.sb-title { align-items: baseline; pointer-events: auto; line-height: inherit; }
+.piece-icon { display: inline-block; vertical-align: middle; flex: none; }
+.chip-btn .piece-icon { margin: 0 1px; }
+.rlog-p .piece-icon { margin-right: 2px; }
+.sb-item-meta .piece-icon { margin-left: 2px; vertical-align: -1px; }
+.am.up .am-menu { top: auto; bottom: calc(100% + 4px); transform-origin: bottom right; }
+.swatch { display: inline-block; flex: none; vertical-align: middle; }
+.sb-pen { align-self: center; width: 20px; height: 20px; margin-left: -2px; transform: translateY(-2px); display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--faint); cursor: pointer; transition: color 0.15s var(--out), background 0.15s var(--out); }
+/* While the name is being typed the pen goes (its place is kept). */
+.sb-title-input:focus + .sb-pen { visibility: hidden; }
+.sb-pen:hover { color: var(--fg); background: var(--hover); }
+.sb-pen svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
+.sb-title-input:focus + .sb-pen { color: var(--accent); }
+/* Segmented controls in the sandbox side columns fill the column and never
+   run past it: equal buttons that shrink to fit. */
+.sb-col .group { display: flex; width: 100%; box-sizing: border-box; }
+.sb-col .group button { flex: 1 1 0; min-width: 0; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.04em; }
+.am.start .am-menu { right: auto; left: 0; transform-origin: top left; }
+.am.up.start .am-menu { transform-origin: bottom left; }
+/* The sandbox's main button wears the mode colour, like Start on other modes. */
+.sb-actions .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-fg); font-weight: 500; }
+.sb-actions .btn.primary:hover { filter: brightness(1.1); background: var(--accent); }
+.sb-board-actions { margin-top: auto; display: flex; align-items: center; gap: 8px; }
+.sb-board-actions .btn { flex: 1; height: 40px; }
+.sb-board-actions .btn:disabled { opacity: 1; color: var(--muted); background: var(--fill); cursor: default; }
+.sb-edit-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.erase-icon { flex: none; }
+
+/* ─── Checkbox ─── */
+.check-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 30px; padding: 0; border: 0; background: transparent; color: var(--dim); font: inherit; font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; text-align: left; cursor: pointer; transition: color 0.15s var(--out); }
+.check-row:hover, .check-row.on { color: var(--fg); }
+.check-box { width: 16px; height: 16px; flex: none; display: grid; place-items: center; border-radius: 4px; background: var(--cap); transition: background 0.15s var(--out); }
+.check-box svg { width: 12px; height: 12px; fill: none; stroke: var(--on-fg); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(0.6); transition: opacity 0.15s var(--out), transform 0.2s var(--out); }
+.check-row.on .check-box { background: var(--accent); }
+.check-row.on .check-box svg { opacity: 1; transform: none; }
+
+/* Sandbox: Hold label and a narrow dropdown on one row */
+.sb-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sb-field-dd { width: 78px; flex: none; }
+.sb-checks { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; }

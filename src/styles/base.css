@@ -1,0 +1,309 @@
+/* ─── JBL styles ───
+   Centered game layout with a light touch of the umjo design system:
+   Helvetica Neue, neutral greys, pill controls, small labels over large
+   values. Each mode keeps its own accent colour. */
+
+:root {
+  /* Fluid type scale: phone (390px) → desktop (1440px) */
+  --t1: clamp(10px, 9.6px + 0.095vw, 11.5px);
+  --t2: clamp(11px, 10.6px + 0.095vw, 12.5px);
+  --t3: clamp(12px, 11.6px + 0.095vw, 13.5px);
+  --t4: clamp(13px, 12.6px + 0.095vw, 14.5px);
+  --t5: clamp(17px, 15.5px + 0.38vw, 22px);
+  --t6: clamp(20px, 18px + 0.5vw, 26px);
+  --t7: clamp(28px, 22px + 1.1vw, 40px);
+
+  --bg: #0a0a0a;
+  --fg: #ebebeb;
+  --dim: #8a8a8a;
+  --faint: #555;
+  --line: #2a2a2a;
+  --panel: #111;
+  --hover: #1a1a1a;
+  --bad: #e8505b;
+  --out: cubic-bezier(0.22, 1, 0.36, 1);
+  --edge: 24px;
+  --accent: var(--fg);
+  --fg-hi: #fff;
+  --on-fg: #000;
+  --fill: rgba(255, 255, 255, 0.035);
+  --fill-faint: rgba(255, 255, 255, 0.015);
+  --cap: #1c1c1c;
+  --menu: #141414;
+  --muted: #3a3a3a;
+  --track: #262626;
+  --knob-on: #fff;
+  --shadow: rgba(0, 0, 0, 0.6);
+  --grid: #fff;
+  --stroke: rgba(255, 255, 255, 0.07);
+  --veil: rgba(0, 0, 0, 0.88);
+  --glow: rgba(0, 0, 0, 0.9);
+  color-scheme: dark;
+}
+
+/* Light theme. The board canvases follow it too (TONES in render.js). */
+:root[data-theme="light"] {
+  --bg: #f3f3f1;
+  --fg: #161616;
+  --dim: #6b6b6b;
+  --faint: #9a9a9a;
+  --line: #d9d9d6;
+  --panel: #ffffff;
+  --hover: #e6e6e3;
+  --fg-hi: #000;
+  --on-fg: #fff;
+  --fill: rgba(0, 0, 0, 0.045);
+  --fill-faint: rgba(0, 0, 0, 0.02);
+  --cap: #e2e2df;
+  --menu: #ffffff;
+  --muted: #c2c2bf;
+  --track: #d4d4d1;
+  --knob-on: #fff;
+  --shadow: rgba(0, 0, 0, 0.12);
+  --grid: #000;
+  --stroke: rgba(0, 0, 0, 0.08);
+  --veil: rgba(251, 251, 250, 0.9);
+  --glow: rgba(255, 255, 255, 0.9);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button { font: inherit; color: inherit; }
+canvas { display: block; }
+
+.app {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+/* ─── Chrome ─── */
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  opacity: 0.02;
+  pointer-events: none;
+  /* One layer for the lines and the pieces. The pieces are the grid's own
+     colour and sit in the same layer, so a piece is a solid patch of that
+     colour (no lines show inside it) and it can never slip off the cells: a
+     few of them, far apart, each filling whole 14px cells edge to edge. */
+  --lines: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-image: var(--minos), var(--lines); /* --minos: the tile of pieces, set from bg.jsx */
+  background-size: 420px 210px, 14px 14px, 14px 14px;
+  /* Drifts slowly on the home screen. Elsewhere it pauses where it is (no jump
+     back), and resumes when you come home. One loop = one tile of pieces, which
+     is a whole number of cells, so it is seamless. */
+  animation: grid-drift 240s linear infinite;
+  animation-play-state: paused;
+}
+.app.is-home .bg-grid { animation-play-state: running; }
+/* The piece under the mouse, lit in its own colour over the grid. */
+.bg-glow { position: fixed; left: 0; top: 0; pointer-events: none; overflow: visible; fill: currentColor; opacity: 0; filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px currentColor); transition: opacity 0.35s var(--out); will-change: transform, opacity; }
+.bg-glow.on { opacity: 0.85; transition-duration: 0.12s; }
+/* A clicked piece: its old place shows plain grid, and it falls in its colour
+   to the foot of the window, where it lands with a small give. */
+.bg-hole, .bg-drop { position: fixed; left: 0; top: 0; pointer-events: none; overflow: visible; will-change: transform; }
+.bg-hole .fill { fill: var(--bg); }
+.bg-hole .lines { fill: none; stroke: var(--grid); stroke-opacity: 0.02; stroke-width: 1; }
+.bg-drop { fill: currentColor; opacity: 0.5; filter: drop-shadow(0 0 6px currentColor); }
+.bg-drop.landed g { animation: bg-thud 0.28s var(--out); transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes bg-thud { 0% { transform: scaleY(0.72) scaleX(1.12); } 60% { transform: scaleY(1.06) scaleX(0.98); } }
+@media (prefers-reduced-motion: reduce) { .bg-drop.landed g { animation: none; } }
+@keyframes grid-drift { from { background-position: 0 0; } to { background-position: 420px 210px; } }
+.wordmark {
+  position: absolute;
+  z-index: 30;
+  left: var(--edge);
+  top: 16px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: var(--t4);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+/* ─── Segmented group (pill) ─── */
+.group {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 4px;
+}
+.group button {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font-size: var(--t3);
+  height: 30px;
+  padding: 0 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s var(--out);
+}
+.group button:not(.on):not(:disabled):hover { color: var(--fg); }
+.group button.on { color: var(--on-fg); }
+.group button:disabled { opacity: 0.3; cursor: default; }
+
+/* ─── Buttons ─── */
+.btn {
+  height: 38px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--fill);
+  color: var(--fg);
+  font-size: var(--t3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.25s var(--out), border-color 0.25s var(--out), color 0.25s var(--out);
+}
+.btn:hover, .btn.focus { background: var(--hover); border-color: var(--dim); }
+.btn.primary { background: var(--fg); border-color: var(--fg); color: var(--on-fg); }
+.btn.primary:hover, .btn.primary.focus { background: var(--fg-hi); border-color: var(--fg-hi); }
+.btn.ghost { border-color: transparent; color: var(--dim); }
+.btn.ghost:hover { color: var(--fg); background: var(--hover); }
+/* The focus ring sits on the button's own edge, so it lines up with the fill
+   and the hover border. Filled (white) buttons keep it outside to stay visible. */
+.btn:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+.btn.primary:focus-visible, .group button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.row-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ─── Type ─── */
+.k { font-size: var(--t3); color: var(--dim); }
+.v { font-size: var(--t6); margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.v.s { font-size: var(--t5); }
+.v.xs { font-size: var(--t4); }
+.dim { color: var(--dim); }
+.faint { color: var(--faint); }
+.small { font-size: var(--t2); }
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 14px;
+  font-size: var(--t1);
+  color: var(--faint);
+  line-height: 1.6;
+}
+.keys .hint { display: inline-flex; align-items: center; gap: 5px; }
+.keys .hint.on, .keys .hint.on .kbd { color: var(--fg); }
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--cap);
+  color: var(--dim);
+  font: inherit;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+.kbd.icon { width: 18px; padding: 0; }
+.kbd-arrow { width: 7px; height: 7px; display: block; }
+
+/* ─── Main area ─── */
+.main {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px var(--edge);
+}
+/* Pages fill the main area: content starts from a fixed top, and the action
+   block (buttons + key hints) is anchored to the bottom, so its position never
+   depends on how much content sits above it. */
+.page, .home {
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: clamp(16px, 5vh, 56px) 0 0;
+}
+/* Three bands: title at the top, the settings block directly under it (top
+   aligned, so switching tabs or options never moves what is already on screen),
+   actions anchored to the bottom. */
+.page > .actions, .home > .keys { margin-top: auto; padding-top: 32px; }
+.page > .opts, .page > .mid { margin-top: 0; margin-bottom: auto; padding-top: 28px; }
+.home > .menu { margin-top: auto; margin-bottom: auto; padding-top: 32px; }
+.page > .opts ~ .actions, .page > .mid ~ .actions, .home > .menu ~ .keys { margin-top: 0; }
+.mid { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.opts.inline { flex-direction: row; justify-content: center; flex-wrap: wrap; gap: 20px 32px; }
+.page::-webkit-scrollbar, .home::-webkit-scrollbar { display: none; }
+.title { font-size: var(--t7); font-weight: 600; letter-spacing: -0.03em; line-height: 1; margin: 0; color: var(--accent); }
+.lede { font-size: var(--t3); color: var(--dim); line-height: 1.55; max-width: 30em; margin: 12px 0 0; text-wrap: balance; word-break: keep-all; }
+
+/* ─── Home ─── */
+.logo { font-size: clamp(64px, 15vh, 120px); font-weight: 700; letter-spacing: -0.05em; line-height: 0.9; margin: 0; }
+.sub { font-size: var(--t3); color: var(--dim); margin: 14px 0 0; }
+.menu { display: flex; flex-direction: column; gap: 10px; width: 300px; }
+.menu button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--fill);
+  color: var(--dim);
+  font-size: var(--t4);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s var(--out), border-color 0.2s var(--out), background 0.2s var(--out);
+}
+.menu .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.menu button.on { color: var(--fg); border-color: var(--accent); background: var(--hover); }
+.menu button.soon { color: var(--muted); cursor: default; background: var(--fill-faint); }
+.menu button.soon .dot { opacity: 0.3; }
+.menu button.soon.on { border-color: var(--line); background: var(--fill-faint); color: var(--faint); }
+.menu .tag { margin-left: auto; font-size: var(--t1); color: var(--faint); }
+.menu button:focus { outline: none; }
+
+/* ─── Option rows (select screens) ─── */
+.opts { margin-top: 0; display: flex; flex-direction: column; align-items: center; gap: 18px; width: 100%; }
+.opt { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.opt > .k { transition: color 0.25s var(--out); }
+.opt.focus > .k { color: var(--fg); } /* keyboard focus shows on the label only; segments stay strokeless */
+.actions { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.actions .btn.primary { min-width: 180px; height: 42px; background: var(--accent); border-color: var(--accent); color: var(--on-fg); font-weight: 500; }
+.actions .btn.primary:hover, .actions .btn.primary.focus { filter: brightness(1.12); background: var(--accent); }
+/* Buttons that sit together share one size; key hints keep a fixed gap below them. */
+.actions .btn { min-width: 180px; height: 42px; }
+.actions > .keys { margin-top: 18px; }
+

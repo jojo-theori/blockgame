@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
+import { saveRecent } from "./recent.js";
+import { unpack, HASH } from "./pack.js";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
 import { useDevProfiles } from "./dev.js";
@@ -15,7 +17,7 @@ import Settings from "./modes/Settings.jsx";
 import Experiments from "./modes/Experiments.jsx";
 import ComingSoon from "./modes/ComingSoon.jsx";
 import Sandbox from "./modes/Sandbox.jsx";
-import { KeyHints, TopBar, FocusWarning } from "./ui.jsx";
+import { KeyHints, TopBar, FocusWarning, Toaster } from "./ui.jsx";
 import { useFocusWarning } from "./display.js";
 import { sfx, setSoundEnabled as setSfxEnabled, setSoundOptions } from "./sound.js";
 
@@ -170,8 +172,20 @@ export default function App() {
   // A finished game's log, handed to Replay from its result screen.
   const [labLog, setLabLog] = useState("");
   const analyze = useCallback((text) => {
+    saveRecent(text);
     setLabLog(text);
     setView("lab");
+  }, []);
+  // A link to a run (see pack.js) opens straight into its replay.
+  useEffect(() => {
+    if (!location.hash.startsWith(HASH)) return;
+    const packed = location.hash.slice(HASH.length);
+    history.replaceState(null, "", location.pathname + location.search);
+    unpack(packed).then((text) => {
+      if (!text) return;
+      setLabLog(text);
+      setView("lab");
+    });
   }, []);
   const settings = { das, arr, sdf, soundEnabled, showLog, showKeys, setShowLog, setShowKeys, settingsOpen, openSettings, keysVersion, look: `${skin}${cellLines}${orientMark}${theme}`, analyze };
   const goMenu = () => {
@@ -184,6 +198,7 @@ export default function App() {
   return (
     <div className={"app" + (view === "menu" ? " is-home" : "")}>
       <Background theme={theme} />
+      <Toaster />
       {view !== "menu" && (
         <button className="wordmark" onClick={goMenu} title={t("Home")}>
           JBL

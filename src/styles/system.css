@@ -1,0 +1,124 @@
+/* ─── Design system ───
+   Sizes and shapes the parts share, and the small parts themselves
+   (ui/primitives.jsx). A screen's own sheet places them; it does not
+   restyle them. */
+:root {
+  /* Control heights */
+  --h-s: 32px; /* chips, small round buttons */
+  --h-m: 40px; /* the main button of a column, large round buttons */
+  /* Corners */
+  --r-pill: 999px;
+  --r-box: 12px;
+  --r-card: 14px;
+  /* Space between things */
+  --gap-s: 4px;
+  --gap-m: 6px;
+  --gap-l: 8px;
+  /* Hover as a see-through layer, so it shows on any surface (the page, a
+     card, a dialog) and not only where a fixed colour happens to differ. */
+  --hover-layer: rgba(255, 255, 255, 0.09);
+}
+:root[data-theme="light"] { --hover-layer: rgba(0, 0, 0, 0.07); }
+
+/* Button: size, tone and width, each on its own class beside .btn and its
+   variant (primary / ghost), so any of them goes with any other. */
+.btn.size-s { height: 34px; padding: 0 16px; font-size: var(--t2); }
+.btn.size-l { height: var(--h-m); }
+.btn.block { width: 100%; }
+.btn.tone-danger { background: rgba(232, 80, 91, 0.1); border-color: transparent; color: var(--bad); }
+.btn.tone-danger:hover { background: rgba(232, 80, 91, 0.18); border-color: transparent; color: var(--bad); }
+.btn.primary.tone-danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn.primary.tone-danger:hover { filter: brightness(1.1); background: var(--bad); border-color: var(--bad); }
+.btn.ghost.tone-danger { background: transparent; }
+.btn.ghost.tone-danger:hover { background: rgba(232, 80, 91, 0.12); }
+.btn.tone-accent, .btn.tone-accent:hover { color: var(--accent); }
+.btn.primary.tone-accent { background: var(--accent); border-color: var(--accent); color: var(--on-fg); }
+.btn.primary.tone-accent:hover { filter: brightness(1.1); background: var(--accent); border-color: var(--accent); }
+.btn.primary.tone-accent, .btn.primary.tone-accent:hover { color: var(--on-fg); }
+.ds-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+
+/* Line icons */
+.ds-icon { display: block; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+/* Alone in a segmented control, an icon sits in the middle of its cell. */
+.group button .ds-icon { margin: 0 auto; }
+
+/* Round icon button */
+.icon-btn { flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--dim); cursor: pointer; transition: background 0.18s var(--out), color 0.18s var(--out); }
+.icon-btn.s { width: var(--h-s); height: var(--h-s); }
+.icon-btn.m { width: var(--h-m); height: var(--h-m); }
+.icon-btn.filled { background: var(--fill); }
+.icon-btn:hover:not(:disabled) { background: var(--hover-layer); color: var(--fg); }
+.icon-btn.tone-danger:hover:not(:disabled) { color: var(--bad); }
+.icon-btn.lead { background: var(--fg); color: var(--on-fg); }
+.icon-btn.lead:hover:not(:disabled) { background: var(--fg-hi); color: var(--on-fg); }
+.icon-btn.lead.tone-danger, .icon-btn.lead.tone-danger:hover:not(:disabled) { background: var(--bad); color: #fff; }
+.icon-btn.lang { font: inherit; font-size: var(--t1); font-weight: 600; letter-spacing: 0.04em; }
+.icon-btn:disabled { opacity: 0.3; cursor: default; }
+.icon-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+
+/* Chips in a grid */
+.chip-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); gap: var(--gap-m); }
+.chip-grid .chip-btn { width: 100%; min-width: 0; height: var(--h-s); padding: 0; margin: 0; justify-content: center; }
+.chip-btn.tone-danger:not(.on) { color: var(--dim); }
+.chip-btn.tone-danger:not(.on):hover { color: var(--bad); }
+
+/* Soft box */
+.well { padding: 8px; border-radius: var(--r-box); background: var(--fill); }
+.well.empty { display: grid; place-items: center; }
+.well-hint { margin: 0; padding: 0 10px; font-size: var(--t2); line-height: 1.5; color: var(--faint); text-align: center; text-wrap: balance; word-break: keep-all; }
+
+/* Toast: a short word at the foot of the screen, gone by itself. */
+.toast-zone { position: fixed; left: 0; right: 0; bottom: 56px; z-index: 200; display: flex; justify-content: center; pointer-events: none; }
+.toast { display: inline-flex; align-items: center; gap: 8px; height: var(--h-m); padding: 0 18px 0 14px; border-radius: var(--r-pill); background: var(--fg); color: var(--on-fg); font-size: var(--t2); box-shadow: 0 10px 28px var(--shadow); animation: toast-in 0.22s var(--out) both, toast-out 0.25s var(--out) 1.95s both; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(4px); } }
+
+/* Components page (Lab): the list of pages on the left, one page on the right. */
+.cat { width: min(100%, 820px); display: grid; grid-template-columns: 132px 1fr; gap: 48px; align-items: start; text-align: left; }
+.cat-nav { display: flex; flex-direction: column; gap: 16px; }
+.cat-nav .k { margin-bottom: 4px; }
+.cat-nav button { display: block; width: 100%; padding: 4px 0; border: 0; background: transparent; font: inherit; font-size: var(--t3); text-align: left; color: var(--dim); cursor: pointer; transition: color 0.15s var(--out); }
+.cat-nav button:hover, .cat-nav button.on { color: var(--fg); }
+.cat-nav button.on { font-weight: 500; }
+.cat-doc { display: flex; flex-direction: column; gap: 26px; min-width: 0; animation: appear 0.2s var(--out); }
+.cat-doc h2 { margin: 0; font-size: var(--t6); font-weight: 500; color: var(--fg); }
+.cat-doc header p { margin: 6px 0 4px; font-size: var(--t3); color: var(--dim); }
+.cat-doc header small { font-size: var(--t2); color: var(--faint); }
+.cat-props { display: grid; grid-template-columns: 170px 1fr; gap: 6px 16px; margin: 10px 0 0; font-size: var(--t2); }
+.cat-props dt { color: var(--fg); }
+.cat-props dd { margin: 0; color: var(--dim); }
+.cat-demo { display: flex; flex-direction: column; gap: 10px; }
+.cat-items { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.cat-token { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t2); color: var(--dim); }
+.cat-token i { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line); }
+.cat-token .cat-bar { width: 6px; border-radius: 3px; background: var(--dim); box-shadow: none; }
+.cat-token .cat-corner { width: 34px; height: 34px; background: var(--fill); }
+.cat-gap { display: inline-flex; }
+.cat-gap i { border-radius: 3px; background: var(--dim); box-shadow: none; }
+.cat-type { color: var(--fg); line-height: 1; }
+.cat-type small { font-size: var(--t1); color: var(--faint); }
+.cat-play { display: grid; grid-template-columns: 200px 1fr; align-items: center; gap: 10px 24px; width: 100%; }
+.cat-stage { display: grid; place-items: center; height: 72px; }
+.cat-stage .block { justify-self: stretch; }
+.cat-knobs { display: flex; flex-direction: column; gap: 6px; }
+.cat-knob { display: grid; grid-template-columns: 80px max-content; align-items: center; }
+.cat-code { grid-column: 1 / -1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--t2); color: var(--dim); }
+.cat-matrix { display: grid; grid-template-columns: 100px repeat(var(--cols), 110px); align-items: center; gap: 10px 0; }
+.cat-tip-host { position: relative; font-size: var(--t2); color: var(--dim); cursor: default; }
+.cat-fixed { width: 210px; }
+.cat-well { width: 210px; height: 64px; }
+
+/* Help: a question mark, and its text on hover or focus */
+.help-tip { position: relative; display: inline-flex; z-index: 5; }
+.help-tip > button { width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--faint); cursor: help; transition: color 0.2s var(--out); }
+.help-tip:hover > button, .help-tip > button:focus-visible { color: var(--fg); }
+.help-tip-body { position: absolute; top: calc(100% + 6px); right: 0; width: 250px; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--r-box); background: var(--menu); border: 1px solid var(--line); box-shadow: 0 12px 32px var(--shadow); text-align: left; text-transform: none; letter-spacing: 0; font-size: var(--t2); line-height: 1.5; color: var(--dim); opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.18s var(--out), transform 0.18s var(--out), visibility 0.18s; pointer-events: none; }
+.help-tip.start .help-tip-body { left: 0; right: auto; }
+.help-tip:hover .help-tip-body, .help-tip:focus-within .help-tip-body { opacity: 1; visibility: visible; transform: none; }
+.help-keys { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 7px 12px; }
+.help-keys > span:nth-child(odd) { display: inline-flex; gap: 3px; white-space: nowrap; }
+
+/* Tip: the name of a control and its keys, over it while the pointer is there */
+.has-tip { position: relative; overflow: visible !important; }
+.tip-body { position: absolute; z-index: 30; left: 50%; bottom: calc(100% + 7px); display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 8px; background: var(--menu); border: 1px solid var(--line); box-shadow: 0 8px 20px var(--shadow); font-size: var(--t2); font-weight: 400; letter-spacing: 0; text-transform: none; white-space: nowrap; color: var(--fg); opacity: 0; visibility: hidden; transform: translate(-50%, 3px); transition: opacity 0.15s var(--out) 0.25s, transform 0.15s var(--out) 0.25s, visibility 0s 0.4s; pointer-events: none; }
+.has-tip:hover > .tip-body, .has-tip:focus-visible > .tip-body { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: 0.25s, 0.25s, 0.25s; }

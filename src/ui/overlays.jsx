@@ -1,0 +1,151 @@
+// Things that open over the page: confirm dialog, action menu.
+import { Icon } from "./icons.jsx";
+import { onToast } from "./toast.js";
+import { useEffect, useRef, useState } from "react";
+import { sfx } from "../sound.js";
+import { t } from "../i18n.js";
+import { tr } from "./tr.js";
+import { IconButton } from "./primitives.jsx";
+
+// Confirm dialog for destructive actions. Esc or the backdrop cancels; Enter
+// confirms. Focus starts on Cancel so a stray Enter/Space never destroys.
+export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCancel }) {
+  const cancelRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    cancelRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        onCancel();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [open, onCancel]);
+  if (!open) return null;
+  return (
+    <div className="dialog-back" onPointerDown={(e) => e.target === e.currentTarget && onCancel()}>
+      <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dlg-title">
+        <div id="dlg-title" className="dialog-title">
+          {tr(title)}
+        </div>
+        {body && <p className="dialog-body">{tr(body)}</p>}
+        <div className="dialog-actions">
+          <button ref={cancelRef} type="button" className="btn" onClick={onCancel}>
+            {t("Cancel")}
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            onClick={() => {
+              sfx.select();
+              onConfirm();
+            }}
+          >
+            {tr(confirmLabel)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ⋯ menu: a round button that opens a short list of actions (right aligned).
+// items: [{ label, onClick, danger?, disabled? }]
+// up: opens above the button. start: the list starts at the button and runs to the right.
+// size, variant: of its round button (see IconButton).
+export function ActionMenu({ items, label = "More", up = false, start = false, size = "s", variant = "ghost" }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e) => !ref.current?.contains(e.target) && setOpen(false);
+    const key = (e) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        setOpen(false);
+      }
+    };
+    // Scrolling what is behind it would leave the menu hanging where it was.
+    const scroll = (e) => !ref.current?.contains(e.target) && setOpen(false);
+    document.addEventListener("pointerdown", down);
+    window.addEventListener("keydown", key, true);
+    document.addEventListener("scroll", scroll, true);
+    return () => {
+      document.removeEventListener("pointerdown", down);
+      window.removeEventListener("keydown", key, true);
+      document.removeEventListener("scroll", scroll, true);
+    };
+  }, [open]);
+  return (
+    <div ref={ref} className={"am" + (open ? " open" : "") + (up ? " up" : "") + (start ? " start" : "")}>
+      <IconButton
+        icon="more"
+        label={label}
+        size={size}
+        variant={variant}
+        className="am-btn"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.currentTarget.blur();
+          sfx.tick();
+          setOpen((o) => !o);
+        }}
+      />
+      <ul className="am-menu" role="menu">
+        {items.map((it, i) => (
+          <li key={it.label} style={{ "--i": i }}>
+            <button
+              type="button"
+              role="menuitem"
+              className={it.danger ? "danger" : ""}
+              disabled={it.disabled}
+              tabIndex={open ? 0 : -1}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                it.onClick();
+              }}
+            >
+              {it.icon && <Icon name={it.icon} size={15} />}
+              {tr(it.label)}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ─── Toast ───
+// A short word at the foot of the screen that something happened, gone again
+// by itself. toast(text) (ui/toast.js) from anywhere; <Toaster /> sits once at
+// the top of the app and shows the latest.
+const TOAST_MS = 2200;
+export function Toaster() {
+  const [note, setNote] = useState(null); // { text, n }
+  useEffect(() => {
+    let n = 0;
+    onToast((text) => setNote({ text, n: ++n }));
+    return () => onToast(null);
+  }, []);
+  useEffect(() => {
+    if (!note) return;
+    const id = setTimeout(() => setNote(null), TOAST_MS);
+    return () => clearTimeout(id);
+  }, [note]);
+  return (
+    <div className="toast-zone" aria-live="polite">
+      {note && (
+        <div key={note.n} className="toast">
+          <Icon name="check" size={15} />
+          {tr(note.text)}
+        </div>
+      )}
+    </div>
+  );
+}

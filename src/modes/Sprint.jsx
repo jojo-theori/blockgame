@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
-import { BlockEngine, formatTime, buildReplayText, buildLogText } from "../game.js";
+import { BlockEngine, formatTime, buildReplayText } from "../game.js";
+import { createTrace } from "../trace.js";
 import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Stat, SetupInfo, Countdown, KeyHints, ReplayLog, KeyStrokes, PauseMenu } from "../ui.jsx";
-import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions } from "../display.js";
+import { Stat, SetupInfo, Countdown, KeyHints, ReplayLog, KeyStrokes, PauseMenu, Icon } from "../ui.jsx";
+import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions, useCountdown } from "../display.js";
 import { useFit } from "../fit.js";
 
 const SPRINT_OPTIONS = [1, 20, 40, 100, 1000];
@@ -28,7 +29,6 @@ export default function Sprint({ settings, onBack }) {
 
   // select | countdown | playing | completed | gameover
   const [phase, setPhase] = useState("select");
-  const [countdownText, setCountdownText] = useState("");
   const [displayTime, setDisplayTime] = useState("0:00.00");
   const [displayLines, setDisplayLines] = useState(40);
   const [displayPPS, setDisplayPPS] = useState("0.00");
@@ -37,7 +37,6 @@ export default function Sprint({ settings, onBack }) {
   const actionPieceRef = useRef(-1);
   const [displayAttack, setDisplayAttack] = useState(0);
   const [stats, setStats] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [log, setLog] = useState({ events: [], total: 0 });
   const logLenRef = useRef(0);
   // Always opens on 40 lines, whatever was played last.
@@ -50,6 +49,9 @@ export default function Sprint({ settings, onBack }) {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  // How each piece moved, kept beside the engine's own log.
+  const traceRef = useRef(null);
 
   // ─── RENDERER ───
   const render = useCallback(() => {
@@ -67,6 +69,7 @@ export default function Sprint({ settings, onBack }) {
         ? (engine.placedBlocks / engine.clock).toFixed(2)
         : "0.00";
     const s = settingsRef.current;
+    const moves = traceRef.current?.text();
     return {
       ...engine.stats,
       time: engine.clock,
@@ -74,15 +77,17 @@ export default function Sprint({ settings, onBack }) {
       lines: engine.lines,
       attack: engine.totalAttack,
       blocks: engine.placedBlocks,
-      replayText: buildReplayText(
-        engine,
-        { das: s.das, arr: s.arr, sprintLines: engine.sprintLines },
-        {
-          time: engine.clock,
-          pps: parseFloat(pps),
-          blocks: engine.placedBlocks,
-        },
-      ),
+      // The log, then how each piece moved (for a replay at the real pace).
+      replayText:
+        buildReplayText(
+          engine,
+          { das: s.das, arr: s.arr, sprintLines: engine.sprintLines },
+          {
+            time: engine.clock,
+            pps: parseFloat(pps),
+            blocks: engine.placedBlocks,
+          },
+        ) + (moves ? "\n\n" + moves : ""),
     };
   }, []);
 
@@ -127,6 +132,7 @@ export default function Sprint({ settings, onBack }) {
       const dt = lastTimeRef.current ? timestamp - lastTimeRef.current : 16;
       lastTimeRef.current = timestamp;
       engine.update(Math.min(dt, 100), performance.now());
+      traceRef.current?.sample(engine);
 
       setDisplayTime(formatTime(engine.clock));
       setDisplayLines(engine.linesRemaining);
@@ -174,6 +180,8 @@ export default function Sprint({ settings, onBack }) {
     logLenRef.current = 0;
     setLog({ events: [], total: 0 });
     engine.start(heldActions(keysRef.current));
+    traceRef.current = createTrace();
+    traceRef.current.sample(engine);
     setPhase("playing");
     setDisplayAction("");
     setDisplayAttack(0);
@@ -182,11 +190,11 @@ export default function Sprint({ settings, onBack }) {
     rafRef.current = requestAnimationFrame(gameLoopRef.current);
   }, []);
 
-  const countdownRef = useRef(null);
+  const [countdownText, countdown, cancelCountdown] = useCountdown();
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     // The engine is made now, not at "Go", so the countdown can show the pieces
     // that are coming. The seed keeps that order when start() resets it.
     const s = settingsRef.current;
@@ -201,14 +209,8 @@ export default function Sprint({ settings, onBack }) {
     setPhase("countdown");
     setDisplayAction("");
     actionPieceRef.current = -1;
-    setCountdownText("Ready");
-    countdownRef.current = setTimeout(() => {
-      setCountdownText("Go");
-      countdownRef.current = setTimeout(() => {
-        launchGame();
-      }, 500);
-    }, 700);
-  }, [launchGame, sprintLines, render]);
+    countdown(launchGame, 700, 500);
+  }, [launchGame, sprintLines, render, cancelCountdown, countdown]);
 
   // Coming from the setup screen the canvases only exist once the game view is up.
   useEffect(() => {
@@ -219,17 +221,17 @@ export default function Sprint({ settings, onBack }) {
     phase,
     setPhase,
     rafRef,
-    countdownRef,
+    cancelCountdown,
     lastTimeRef,
     loopRef: gameLoopRef,
     engineRef,
     restart: startGame,
   });
-  const toSetup = () => {
+  const toSetup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     setPhase("select");
-  };
+  }, [cancelCountdown]);
 
   const settingsOpen = !!settings.settingsOpen;
   // A new skin shows at once, even on a paused board.
@@ -257,18 +259,6 @@ export default function Sprint({ settings, onBack }) {
           return;
         }
       }
-      if (e.code === "KeyC") {
-        if ((phase === "completed" || phase === "gameover") && stats?.replayText) {
-          navigator.clipboard
-            .writeText(stats.replayText)
-            .then(() => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            })
-            .catch((err) => console.error("Copy failed:", err));
-          return;
-        }
-      }
       if (e.key === "Escape") {
         if (phase === "playing" || phase === "countdown") return pause();
         if (phase === "paused") return resume();
@@ -284,7 +274,10 @@ export default function Sprint({ settings, onBack }) {
 
       if (!action || phase !== "playing") return;
       e.preventDefault();
+      // Noted before and after: a hard drop locks the piece inside the call.
+      traceRef.current?.sample(engineRef.current);
       engineRef.current?.onKeyDown(action, performance.now());
+      traceRef.current?.sample(engineRef.current);
       sfxForAction(action);
     };
     const handleKeyUp = (e) => {
@@ -298,7 +291,7 @@ export default function Sprint({ settings, onBack }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [phase, startGame, stats, onBack, pause, resume, settingsOpen]);
+  }, [phase, startGame, stats, onBack, pause, resume, settingsOpen, toSetup]);
 
   // Reload bindings whenever entering select (settings may have been edited)
   useEffect(() => {
@@ -311,39 +304,16 @@ export default function Sprint({ settings, onBack }) {
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (countdownRef.current) clearTimeout(countdownRef.current);
+      cancelCountdown();
     };
-  }, []);
+  }, [cancelCountdown]);
 
-  const copyReplay = async () => {
-    if (!stats?.replayText) return;
-    try {
-      await navigator.clipboard.writeText(stats.replayText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error("Copy failed:", e);
-    }
-  };
-  // Copy the log, or take it straight to Replay.
+  // Take the log straight to Replay.
   const logButtons = (
-    <div className="btn-pair">
-      <button className="btn" onClick={copyReplay}>
-        {copied ? (
-          <>
-            <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12.5l4.5 4.5L19 7.5" />
-            </svg>
-            {t("Copied!")}
-          </>
-        ) : (
-          t("Copy log")
-        )}
-      </button>
-      <button className="btn replay" onClick={() => settings.analyze(stats.replayText)}>
-        {t("Analyze")}
-      </button>
-    </div>
+    <button className="btn replay" onClick={() => settings.analyze(stats.replayText)}>
+      <Icon name="robot" size={16} />
+      {t("Analyze")}
+    </button>
   );
 
   // ─── SELECT SCREEN ───
@@ -397,7 +367,7 @@ export default function Sprint({ settings, onBack }) {
     <>
       <div className="mode-label">Sprint · {sprintLines} lines</div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} getText={() => buildLogText(engineRef.current, `SPRINT ${sprintLines}L`)} />}
+        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} />}
         <div className="side">
           <div>
             <div className="k">{t("Hold")}</div>

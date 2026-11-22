@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadKeyBindings } from "./keys.js";
 import { sfx } from "./sound.js";
 
@@ -80,12 +80,13 @@ export function tune(engine, s) {
 // Esc pauses a solo game instead of leaving it. Pausing stops the loop (the
 // clock stops too) and lets go of held keys; resuming picks up where it was.
 // A pause during the countdown restarts the countdown on resume.
-export function usePause({ phase, setPhase, rafRef, countdownRef, lastTimeRef, loopRef, engineRef, restart }) {
+// cancelCountdown: stops a countdown in progress (modes without one leave it out).
+export function usePause({ phase, setPhase, rafRef, cancelCountdown, lastTimeRef, loopRef, engineRef, restart }) {
   const from = useRef(null);
   const pause = () => {
     if (phase !== "playing" && phase !== "countdown") return;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown?.();
     const e = engineRef.current;
     if (e) for (const a of ["left", "right", "softdrop"]) e.onKeyUp?.(a);
     from.current = phase;
@@ -143,4 +144,26 @@ export function useFocusWarning() {
     };
   }, []);
   return inGame && !focused;
+}
+
+// "Ready", then "Go", then the game: the two beats before every run. Each
+// mode says how long they last. Returns the word to show, a function that
+// starts the countdown, and one that stops it (pause, leaving for the setup
+// screen; it also stops when the screen goes away).
+export function useCountdown() {
+  const [text, setText] = useState("");
+  const timer = useRef(null);
+  const cancel = useCallback(() => {
+    clearTimeout(timer.current);
+    timer.current = null;
+  }, []);
+  const run = useCallback((onGo, ready, go) => {
+    setText("Ready");
+    timer.current = setTimeout(() => {
+      setText("Go");
+      timer.current = setTimeout(onGo, go);
+    }, ready);
+  }, []);
+  useEffect(() => cancel, [cancel]);
+  return [text, run, cancel];
 }

@@ -42,6 +42,9 @@ export class BotPlayer {
     this.lastDropAt = 0;
     this.lastMoveAt = 0;
     this.alive = true;
+    // Called just before a hard drop, when the piece is where it will fall
+    // from (a watcher of the piece's path would otherwise miss the last move).
+    this.onStep = null;
   }
 
   dispose() {
@@ -77,6 +80,7 @@ export class BotPlayer {
     this.lastMoveAt = now;
     if (ch === "V" || !this.plan) {
       if (ch !== "V") applyMove(e, ch);
+      this.onStep?.();
       e.hardDrop();
       this.plan = null;
       this.lastDropAt = now;

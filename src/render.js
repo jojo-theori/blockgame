@@ -53,8 +53,8 @@ export function setOrientMark(on) {
   orientMark = !!on;
 }
 // The marked cell in the spawn state (row, col in the piece's box), chosen by
-// the user: I's third cell from the left, and the bottom middle of S and Z.
-const MARK0 = { 1: [1, 2], 5: [1, 1], 6: [1, 1] };
+// the user: I's second cell from the left, and the bottom middle of S and Z.
+const MARK0 = { 1: [1, 1], 5: [1, 1], 6: [1, 1] };
 function markCell(id, rot) {
   let pos = MARK0[id];
   if (!pos) return null;

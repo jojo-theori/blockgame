@@ -1,0 +1,154 @@
+/* ─── Motion ───
+   Interruptible: state changes are CSS transitions, so a new state retargets
+   them mid-flight; nothing blocks input. Staggered: things that appear
+   together arrive one after another. Optimistic: state changes first, and
+   motion only decorates it. */
+.seg-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--fg);
+  pointer-events: none;
+  transition: transform 0.32s var(--out), width 0.32s var(--out), opacity 0.2s;
+}
+
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+
+.page > *, .home > *, .actions > *, .veil > *, .row-btns > * {
+  animation: enter 0.42s var(--out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.menu > button, .oplist > button, .opts > .opt, .settings .opts > .opt {
+  animation: enter 0.42s var(--out) both;
+  animation-delay: calc(120ms + var(--i, 0) * 35ms);
+}
+.actions > * { animation-delay: calc(200ms + var(--i, 0) * 40ms); }
+.row-btns > * { animation-delay: calc(160ms + var(--i, 0) * 40ms); }
+/* Game screens only fade in (no movement), before play starts. */
+.play > * { animation: appear 0.35s var(--out) both; animation-delay: calc(var(--i, 0) * 50ms); }
+.mode-label, .wordmark { animation: appear 0.35s var(--out) both; }
+
+/* Press and focus feedback */
+.btn, .menu button, .oplist button, .group button { transition-property: color, background, border-color, transform; }
+.btn:active, .menu button:active, .oplist button:active { transform: scale(0.98); transition-duration: 0.08s; }
+.menu .dot { transition: transform 0.3s var(--out); }
+.menu button.on .dot { transform: scale(1.35); }
+.last { animation: appear 0.25s var(--out); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+.page > :nth-child(1), .home > :nth-child(1), .menu > :nth-child(1), .oplist > :nth-child(1), .opts > :nth-child(1), .actions > :nth-child(1), .veil > :nth-child(1), .row-btns > :nth-child(1), .settings .opts > :nth-child(1), .play > :nth-child(1) { --i: 1; }
+.page > :nth-child(2), .home > :nth-child(2), .menu > :nth-child(2), .oplist > :nth-child(2), .opts > :nth-child(2), .actions > :nth-child(2), .veil > :nth-child(2), .row-btns > :nth-child(2), .settings .opts > :nth-child(2), .play > :nth-child(2) { --i: 2; }
+.page > :nth-child(3), .home > :nth-child(3), .menu > :nth-child(3), .oplist > :nth-child(3), .opts > :nth-child(3), .actions > :nth-child(3), .veil > :nth-child(3), .row-btns > :nth-child(3), .settings .opts > :nth-child(3), .play > :nth-child(3) { --i: 3; }
+.page > :nth-child(4), .home > :nth-child(4), .menu > :nth-child(4), .oplist > :nth-child(4), .opts > :nth-child(4), .actions > :nth-child(4), .veil > :nth-child(4), .row-btns > :nth-child(4), .settings .opts > :nth-child(4), .play > :nth-child(4) { --i: 4; }
+.page > :nth-child(5), .home > :nth-child(5), .menu > :nth-child(5), .oplist > :nth-child(5), .opts > :nth-child(5), .actions > :nth-child(5), .veil > :nth-child(5), .row-btns > :nth-child(5), .settings .opts > :nth-child(5), .play > :nth-child(5) { --i: 5; }
+.page > :nth-child(6), .home > :nth-child(6), .menu > :nth-child(6), .oplist > :nth-child(6), .opts > :nth-child(6), .actions > :nth-child(6), .veil > :nth-child(6), .row-btns > :nth-child(6), .settings .opts > :nth-child(6), .play > :nth-child(6) { --i: 6; }
+.page > :nth-child(7), .home > :nth-child(7), .menu > :nth-child(7), .oplist > :nth-child(7), .opts > :nth-child(7), .actions > :nth-child(7), .veil > :nth-child(7), .row-btns > :nth-child(7), .settings .opts > :nth-child(7), .play > :nth-child(7) { --i: 7; }
+.page > :nth-child(8), .home > :nth-child(8), .menu > :nth-child(8), .oplist > :nth-child(8), .opts > :nth-child(8), .actions > :nth-child(8), .veil > :nth-child(8), .row-btns > :nth-child(8), .settings .opts > :nth-child(8), .play > :nth-child(8) { --i: 8; }
+.page > :nth-child(9), .home > :nth-child(9), .menu > :nth-child(9), .oplist > :nth-child(9), .opts > :nth-child(9), .actions > :nth-child(9), .veil > :nth-child(9), .row-btns > :nth-child(9), .settings .opts > :nth-child(9), .play > :nth-child(9) { --i: 9; }
+.page > :nth-child(10), .home > :nth-child(10), .menu > :nth-child(10), .oplist > :nth-child(10), .opts > :nth-child(10), .actions > :nth-child(10), .veil > :nth-child(10), .row-btns > :nth-child(10), .settings .opts > :nth-child(10), .play > :nth-child(10) { --i: 10; }
+.page > :nth-child(11), .home > :nth-child(11), .menu > :nth-child(11), .oplist > :nth-child(11), .opts > :nth-child(11), .actions > :nth-child(11), .veil > :nth-child(11), .row-btns > :nth-child(11), .settings .opts > :nth-child(11), .play > :nth-child(11) { --i: 11; }
+.page > :nth-child(12), .home > :nth-child(12), .menu > :nth-child(12), .oplist > :nth-child(12), .opts > :nth-child(12), .actions > :nth-child(12), .veil > :nth-child(12), .row-btns > :nth-child(12), .settings .opts > :nth-child(12), .play > :nth-child(12) { --i: 12; }
+
+/* ─── Advanced settings (collapsible) ─── */
+.adv { width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 16px; }
+.adv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dim);
+  font-size: var(--t2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s var(--out), background 0.2s var(--out);
+}
+.adv-toggle:hover { color: var(--fg); background: var(--hover); }
+.adv-chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; transition: transform 0.3s var(--out); }
+.adv.open .adv-chev { transform: rotate(180deg); }
+.adv-sum { margin-top: 6px; font-size: var(--t1); color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+/* Open: the area grows first, then the options drift in one after another.
+   Close: the options fade out quickly, then the area folds. Nothing is ever
+   seen being clipped (no wipe). All transitions, so a click mid-way reverses. */
+.adv-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  transition: grid-template-rows 0.3s var(--out) 0.08s;
+}
+.adv.open .adv-body { grid-template-rows: 1fr; transition: grid-template-rows 0.34s var(--out); }
+.adv-inner { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s 0.4s; }
+.adv.open .adv-inner { visibility: visible; transition: visibility 0s; }
+.adv .opts > .opt {
+  animation: none;
+  opacity: 0;
+  transform: translateY(-6px);
+  filter: blur(2px);
+  transition: opacity 0.12s var(--out), transform 0.16s var(--out), filter 0.12s var(--out);
+}
+.adv.open .opts > .opt {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition: opacity 0.32s var(--out), transform 0.42s var(--out), filter 0.32s var(--out);
+  transition-delay: calc(110ms + var(--i, 0) * 45ms);
+}
+.adv .opts { margin-top: 0; padding-top: 18px; }
+.adv .opts.inline { gap: 16px 24px; }
+.adv .group button { padding: 0 11px; }
+
+/* Inline check shown on a button after a successful action (e.g. Copied) */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+
+/* Inline text link (e.g. "Change them in Settings") */
+.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--faint);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: text-decoration-color 0.2s var(--out);
+}
+.link:hover { text-decoration-color: var(--fg); }
+
+/* Dev: a short note when the key profile is swapped by typing a name */
+.dev-note { position: fixed; z-index: 200; left: 50%; bottom: 56px; transform: translateX(-50%); padding: 7px 14px; border-radius: 999px; background: var(--fg); color: var(--on-fg); font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; pointer-events: none; animation: appear 0.25s var(--out) both; display: flex; align-items: center; gap: 6px; }
+.dev-note svg { width: 16px; height: 16px; }
+.dev-note svg circle { fill: #2fa84a; }
+.dev-note svg path { fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Settings → Skin: one row per skin, its name and a strip of sample cells */
+.skin-list { display: flex; flex-direction: column; gap: 6px; }
+.skin-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 46px;
+  padding: 0 14px 0 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  transition: background 0.2s var(--out), border-color 0.2s var(--out), color 0.2s var(--out);
+}
+.skin-list button:hover { background: var(--hover); color: var(--fg); }
+.skin-list button.on { border-color: var(--fg); color: var(--fg); background: var(--fill); }
+.skin-list canvas { flex: none; display: block; }
+

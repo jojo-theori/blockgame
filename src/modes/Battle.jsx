@@ -1,12 +1,13 @@
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { t } from "../i18n.js";
-import { usePlaying, useDisplayToggles, useSettingsDialog, tune, heldActions } from "../display.js";
+import { usePlaying, useDisplayToggles, useSettingsDialog, tune, heldActions, useCountdown } from "../display.js";
 import { ROWS, CELL, BlockEngine, buildLogText } from "../game.js";
 import { CPUPlayer } from "../cpu.js";
 import { BotPlayer } from "../bots/player.js";
+import { createTrace } from "../trace.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, prep, boardTone, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
-import { SetupInfo, Countdown, KeyHints, Dropdown, Stepper, EngineLog, KeyStrokes } from "../ui.jsx";
+import { SetupInfo, Countdown, KeyHints, Dropdown, Stepper, EngineLog, KeyStrokes, Icon } from "../ui.jsx";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { useFit } from "../fit.js";
 
@@ -107,38 +108,19 @@ function createEngine(settings, attackBonus = 0, seed) {
 // The pause or result menu over one seat's board. cursor: the button this
 // seat's own keys are on, when each player drives their own menu (two humans);
 // without it the shared keyboard navigation works the menu.
-// side: 0 left, 1 right, handed to the button's action; copied: this seat's
-// log was just copied.
-function SeatMenu({ k, title, items, cursor, side, copied }) {
+// side: 0 left, 1 right, handed to the button's action.
+function SeatMenu({ k, title, items, cursor, side }) {
   return (
     <div className="veil pause" data-nav={cursor == null ? undefined : "off"}>
       {k && <div className="k">{k}</div>}
       <div className="title">{title}</div>
       <div className="row-btns">
         {items.map((it, i) => {
-          if (it.beside) return null; // drawn in the row of the button before it
-          const button = (b, at) => (
-            <button key={b.label} className={"btn" + (b.kind ? " " + b.kind : "") + (cursor === at ? " cursor" : "")} onClick={() => b.run(side)}>
-              {b.copy && copied ? (
-                <>
-                  <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 12.5l4.5 4.5L19 7.5" />
-                  </svg>
-                  {t("Copied!")}
-                </>
-              ) : (
-                t(b.label)
-              )}
+          return (
+            <button key={it.label} className={"btn" + (it.kind ? " " + it.kind : "") + (cursor === i ? " cursor" : "")} onClick={() => it.run(side)}>
+              {it.icon && <Icon name={it.icon} size={16} />}
+              {t(it.label)}
             </button>
-          );
-          const next = items[i + 1];
-          return next?.beside ? (
-            <div key={it.label} className="btn-pair">
-              {button(it, i)}
-              {button(next, i + 1)}
-            </div>
-          ) : (
-            button(it, i)
           );
         })}
       </div>
@@ -147,7 +129,7 @@ function SeatMenu({ k, title, items, cursor, side, copied }) {
 }
 
 // overlay: the pause or result screen, shown over this seat's board.
-function PlayerBoard({ engineRef, label, sub, result, mirror, log, logMode, isCpu, keyProfile, hints, overlay }) {
+function PlayerBoard({ engineRef, label, sub, mirror, log, isCpu, keyProfile, hints, overlay }) {
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -192,7 +174,6 @@ function PlayerBoard({ engineRef, label, sub, result, mirror, log, logMode, isCp
       <div>
         <div className="v s">{label}</div>
         {sub && <div className="k" style={{ marginTop: 4 }}>{sub}</div>}
-        {result && <div className="k" style={{ marginTop: 12, color: "var(--fg)" }}>{result}</div>}
       </div>
       {keyProfile && <KeyStrokes key={keyProfile} profile={keyProfile} />}
     </div>
@@ -218,7 +199,7 @@ function PlayerBoard({ engineRef, label, sub, result, mirror, log, logMode, isCp
 
   return (
     <div className="play" style={{ gap: 20 }}>
-      {log && <EngineLog engineRef={engineRef} side={log} keys={!isCpu} mode={logMode} />}
+      {log && <EngineLog engineRef={engineRef} side={log} keys={!isCpu} />}
       {hold}
       {board}
       {next}
@@ -249,19 +230,19 @@ export default function Battle({ settings, onBack }) {
   // Room for the logs and the key input is always kept, so J and K never move
   // or rescale the boards.
   const zoom = useFit(2 * (SIDE_W + BOARD_W + METER_W + HOLD_W + 46) + 56 + 2 * LOG_W, 600);
-  const [countdownText, setCountdownText] = useState("");
   const [, forceUpdate] = useState(0);
   const [winner, setWinner] = useState(null); // "p1" | "p2"
 
   const engine1Ref = useRef(null);
   const engine2Ref = useRef(null);
   const cpusRef = useRef([]);
+  const tracesRef = useRef([]);
   const seatsRef = useRef(["p1", "cpu"]);
   const rafRef = useRef(null);
   const lastTimeRef = useRef(0);
   const phaseRef = useRef("select");
   const settingsRef = useRef(settings);
-  const countdownRef = useRef(null);
+  const [countdownText, countdown, cancelCountdown] = useCountdown();
   const loopRef = useRef(null);
 
   // Key map per player
@@ -309,6 +290,8 @@ export default function Battle({ settings, onBack }) {
       e1.update(cappedDt, now);
       e2.update(cappedDt, now);
       for (const cpu of cpusRef.current) cpu.update(now);
+      tracesRef.current[0]?.sample(e1);
+      tracesRef.current[1]?.sample(e2);
 
       // Hand over attack whenever it is there: player pieces lock inside key
       // handlers, between frames, so "placed this frame" would miss them.
@@ -350,9 +333,18 @@ export default function Battle({ settings, onBack }) {
     e1.start(heldActions(p1KeysRef.current));
     e2.start(heldActions(p2KeysRef.current));
     seatsRef.current = [left, right];
+    // How each side's pieces moved, for the replay (see trace.js).
+    const traces = [createTrace(), createTrace()];
+    tracesRef.current = traces;
+    traces[0].sample(e1);
+    traces[1].sample(e2);
+    const watched = (cpu, engine, trace) => {
+      if (cpu) cpu.onStep = () => trace.sample(engine);
+      return cpu;
+    };
     cpusRef.current = [
-      left === "cpu" ? makeCpu(e1, leftBot, leftLevel) : null,
-      right === "cpu" ? makeCpu(e2, rightBot, rightLevel) : null,
+      left === "cpu" ? watched(makeCpu(e1, leftBot, leftLevel), e1, traces[0]) : null,
+      right === "cpu" ? watched(makeCpu(e2, rightBot, rightLevel), e2, traces[1]) : null,
     ].filter(Boolean);
     setWinner(null);
     phaseRef.current = "playing";
@@ -362,18 +354,14 @@ export default function Battle({ settings, onBack }) {
   }, [left, right, leftLevel, rightLevel, leftBot, rightBot]);
 
   const runCountdown = useCallback(() => {
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     setPhase("countdown");
-    setCountdownText("Ready");
-    countdownRef.current = setTimeout(() => {
-      setCountdownText("Go");
-      countdownRef.current = setTimeout(launch, 500);
-    }, 700);
-  }, [launch]);
+    countdown(launch, 700, 500);
+  }, [launch, cancelCountdown, countdown]);
 
   const startGame = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     reloadKeys();
     // Same seed on both sides: both players get exactly the same pieces.
     const seed = Math.floor(Math.random() * 2 ** 31);
@@ -383,14 +371,14 @@ export default function Battle({ settings, onBack }) {
     cpusRef.current = [];
     setWinner(null);
     runCountdown();
-  }, [runCountdown, reloadKeys, leftHandicap, rightHandicap]);
+  }, [runCountdown, reloadKeys, leftHandicap, rightHandicap, cancelCountdown]);
 
   // Pause (Esc). A match is shared, so nothing restarts from a single key:
   // rematch and exit live in the pause menu.
   const pausedFromRef = useRef(null);
   const pause = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     pausedFromRef.current = phaseRef.current;
     // Let go of every held key so nothing keeps moving after the pause.
     for (const e of [engine1Ref.current, engine2Ref.current]) {
@@ -399,7 +387,7 @@ export default function Battle({ settings, onBack }) {
     }
     phaseRef.current = "paused";
     setPhase("paused");
-  }, []);
+  }, [cancelCountdown]);
   const resume = useCallback(() => {
     if (pausedFromRef.current === "countdown") {
       runCountdown();
@@ -413,9 +401,9 @@ export default function Battle({ settings, onBack }) {
   usePlaying(phase === "playing" || phase === "countdown");
   const toSetup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (countdownRef.current) clearTimeout(countdownRef.current);
+    cancelCountdown();
     setPhase("select");
-  }, []);
+  }, [cancelCountdown]);
 
   const settingsOpen = !!settings.settingsOpen;
 
@@ -424,7 +412,6 @@ export default function Battle({ settings, onBack }) {
   // rotate counter-clockwise to go back.
   // Copies the log of the seat that asked (0 left, 1 right); that seat's
   // button says so for a moment.
-  const [copiedSide, setCopiedSide] = useState(null);
   // Header of a copied log: whose board it is and who they played, with a
   // CPU's level in brackets and each side's handicap when it has one, e.g.
   // "BATTLE P1 +2 vs Cold Clear (Hard)".
@@ -436,17 +423,16 @@ export default function Battle({ settings, onBack }) {
     const b = seat(right, rightBot, rightLevel, rightHandicap);
     return [`BATTLE ${a} vs ${b}`, `BATTLE ${b} vs ${a}`];
   }, [left, right, leftBot, rightBot, leftLevel, rightLevel, leftHandicap, rightHandicap]);
-  const copyLog = useCallback((side) => {
-    navigator.clipboard
-      .writeText(buildLogText((side ? engine2Ref : engine1Ref).current, logModes[side]))
-      .then(() => {
-        setCopiedSide(side);
-        setTimeout(() => setCopiedSide((s) => (s === side ? null : s)), 2000);
-      })
-      .catch((err) => console.error("Copy failed:", err));
-  }, [logModes]);
+  // A side's log, with how its pieces moved underneath.
+  const logText = useCallback(
+    (side) => {
+      const moves = tracesRef.current[side]?.text();
+      return buildLogText((side ? engine2Ref : engine1Ref).current, logModes[side]) + (moves ? "\n\n" + moves : "");
+    },
+    [logModes],
+  );
   const { analyze } = settings;
-  const analyzeLog = useCallback((side) => analyze(buildLogText((side ? engine2Ref : engine1Ref).current, logModes[side])), [analyze, logModes]);
+  const analyzeLog = useCallback((side) => analyze(logText(side)), [analyze, logText]);
   const menuItems = useMemo(
     () =>
       phase === "paused"
@@ -459,14 +445,15 @@ export default function Battle({ settings, onBack }) {
         : phase === "finished"
           ? [
               { label: "Rematch", kind: "primary", run: startGame },
-              { label: "Copy log", copy: true, run: copyLog },
-              { label: "Analyze", kind: "replay", beside: true, run: analyzeLog },
+              { label: "Analyze", kind: "replay", icon: "robot", run: analyzeLog },
               { label: "Mode options", run: toSetup },
               { label: "Main menu", kind: "ghost", run: onBack },
             ]
           : null,
-    [phase, resume, startGame, toSetup, copyLog, analyzeLog, onBack],
+    [phase, resume, startGame, toSetup, analyzeLog, onBack],
   );
+  // A CPU's board has no menu of its own, but its game can be looked at too.
+  const cpuItems = useMemo(() => [{ label: "Analyze", kind: "replay", icon: "robot", run: analyzeLog }], [analyzeLog]);
   const ownMenus = humanSeats === 2;
   // Cursors of the left and right seat, kept per phase so each menu opens on
   // its first button.
@@ -521,14 +508,18 @@ export default function Battle({ settings, onBack }) {
       const a1 = p1KeysRef.current[e.code];
       if (a1) {
         e.preventDefault();
+        tracesRef.current[0]?.sample(engine1Ref.current);
         engine1Ref.current?.onKeyDown(a1, performance.now());
+        tracesRef.current[0]?.sample(engine1Ref.current);
         sfxForAction(a1);
         return;
       }
       const a2 = p2KeysRef.current[e.code];
       if (a2) {
         e.preventDefault();
+        tracesRef.current[1]?.sample(engine2Ref.current);
         engine2Ref.current?.onKeyDown(a2, performance.now());
+        tracesRef.current[1]?.sample(engine2Ref.current);
         sfxForAction(a2);
       }
     };
@@ -550,9 +541,9 @@ export default function Battle({ settings, onBack }) {
   useEffect(
     () => () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (countdownRef.current) clearTimeout(countdownRef.current);
+      cancelCountdown();
     },
-    [],
+    [cancelCountdown],
   );
 
   // ─── SELECT SCREEN ───
@@ -640,9 +631,22 @@ export default function Battle({ settings, onBack }) {
   // every human seat, never on a CPU seat (with two CPUs, on the left board).
   const menuUp = phase === "paused" || done;
   const showMenu = [menuUp && (left !== "cpu" || humanSeats === 0), menuUp && right !== "cpu"];
-  const menuText = {
-    k: done ? t("{name} topped out", { name: winner === "p1" ? nameP2 : nameP1 }) : null,
-    title: done ? t("{name} wins", { name: winner === "p1" ? nameP1 : nameP2 }) : t("Paused"),
+  // A result reads the same on every board, a CPU's too: what ended the game
+  // (small, above), then how it went for whoever is looking at that board.
+  // A board without a menu of its own (a CPU's) shows the words and no buttons.
+  const reason = done ? t("{name} topped out", { name: winner === "p1" ? nameP2 : nameP1 }) : null;
+  const seatMenu = (side) => {
+    if (!showMenu[side] && !done) return null;
+    const won = winner === (side ? "p2" : "p1");
+    return (
+      <SeatMenu
+        k={reason}
+        title={done ? t(won ? "You win" : "You lose") : t("Paused")}
+        items={showMenu[side] ? menuItems : done ? cpuItems : []}
+        cursor={ownMenus && showMenu[side] ? cursors[side] : null}
+        side={side}
+      />
+    );
   };
   // Each human seat gets the key hints under its own queue; a CPU seat has none.
   const hints = [[["Esc"], phase === "paused" ? "resume" : "pause"]];
@@ -665,25 +669,21 @@ export default function Battle({ settings, onBack }) {
             engineRef={engine1Ref}
             label={nameP1}
             sub={levelOf(left, leftLevel)}
-            result={done ? t(winner === "p1" ? "Won" : "Lost") : null}
             log={showLog ? "left" : null}
-            logMode={logModes[0]}
             isCpu={left === "cpu"}
             keyProfile={profileOf(left)}
             hints={left === "cpu" ? null : hints}
-            overlay={showMenu[0] && <SeatMenu {...menuText} items={menuItems} cursor={ownMenus ? cursors[0] : null} side={0} copied={copiedSide === 0} />}
+            overlay={seatMenu(0)}
           />
           <PlayerBoard
             engineRef={engine2Ref}
             label={nameP2}
             sub={levelOf(right, rightLevel)}
-            result={done ? t(winner === "p2" ? "Won" : "Lost") : null}
             log={showLog ? "right" : null}
-            logMode={logModes[1]}
             isCpu={right === "cpu"}
             keyProfile={profileOf(right)}
             hints={right === "cpu" ? null : hints}
-            overlay={showMenu[1] && <SeatMenu {...menuText} items={menuItems} cursor={ownMenus ? cursors[1] : null} side={1} copied={copiedSide === 1} />}
+            overlay={seatMenu(1)}
           />
         </div>
         {phase === "countdown" && <Countdown text={countdownText} />}
