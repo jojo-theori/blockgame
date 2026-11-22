@@ -70,6 +70,7 @@ export const PATHS = {
       <circle cx="18" cy="12" r="1.6" />
     </g>
   ),
+  copy: <path d="M9 9h10v10H9zM5 15V5h10" />,
   play: <path d="M8.5 5.5v13l10-6.5z" fill="currentColor" stroke="none" />,
   pause: <path d="M8 5.5h2.5v13H8zM13.5 5.5H16v13h-2.5z" fill="currentColor" stroke="none" />,
   stop: <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none" />,

@@ -4,7 +4,7 @@ import { BlockEngine, formatTime, buildReplayText, buildLogText } from "../game.
 import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
-import { Stat, SetupInfo, Countdown, KeyHints, ReplayLog, KeyStrokes, PauseMenu } from "../ui.jsx";
+import { Stat, SetupInfo, Countdown, KeyHints, ReplayLog, KeyStrokes, PauseMenu, Icon } from "../ui.jsx";
 import { useDisplayToggles, usePause, useSettingsDialog, tune, heldActions, useCountdown } from "../display.js";
 import { useFit } from "../fit.js";
 
@@ -318,23 +318,14 @@ export default function Sprint({ settings, onBack }) {
       console.error("Copy failed:", e);
     }
   };
-  // Copy the log, or take it straight to Replay.
+  // Take the log straight to Replay, or copy it.
   const logButtons = (
     <div className="btn-pair">
-      <button className="btn" onClick={copyReplay}>
-        {copied ? (
-          <>
-            <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12.5l4.5 4.5L19 7.5" />
-            </svg>
-            {t("Copied!")}
-          </>
-        ) : (
-          t("Copy log")
-        )}
-      </button>
       <button className="btn replay" onClick={() => settings.analyze(stats.replayText)}>
         {t("Analyze")}
+      </button>
+      <button className="btn icon-only" onClick={copyReplay} title={t(copied ? "Copied!" : "Copy log")} aria-label={t("Copy log")}>
+        <Icon name={copied ? "check" : "copy"} size={16} />
       </button>
     </div>
   );

@@ -6,7 +6,7 @@ import { CPUPlayer } from "../cpu.js";
 import { BotPlayer } from "../bots/player.js";
 import { buildKeyMap, loadKeyBindings } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, prep, boardTone, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
-import { SetupInfo, Countdown, KeyHints, Dropdown, Stepper, EngineLog, KeyStrokes } from "../ui.jsx";
+import { SetupInfo, Countdown, KeyHints, Dropdown, Stepper, EngineLog, KeyStrokes, Icon } from "../ui.jsx";
 import { sfx, sfxForAction, trackSfx } from "../sound.js";
 import { useFit } from "../fit.js";
 
@@ -118,17 +118,14 @@ function SeatMenu({ k, title, items, cursor, side, copied }) {
         {items.map((it, i) => {
           if (it.beside) return null; // drawn in the row of the button before it
           const button = (b, at) => (
-            <button key={b.label} className={"btn" + (b.kind ? " " + b.kind : "") + (cursor === at ? " cursor" : "")} onClick={() => b.run(side)}>
-              {b.copy && copied ? (
-                <>
-                  <svg className="btn-check" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M5 12.5l4.5 4.5L19 7.5" />
-                  </svg>
-                  {t("Copied!")}
-                </>
-              ) : (
-                t(b.label)
-              )}
+            <button
+              key={b.label}
+              className={"btn" + (b.kind ? " " + b.kind : "") + (b.copy ? " icon-only" : "") + (cursor === at ? " cursor" : "")}
+              onClick={() => b.run(side)}
+              title={b.copy ? t(copied ? "Copied!" : b.label) : undefined}
+              aria-label={b.copy ? t(b.label) : undefined}
+            >
+              {b.copy ? <Icon name={copied ? "check" : "copy"} size={16} /> : t(b.label)}
             </button>
           );
           const next = items[i + 1];
@@ -453,8 +450,8 @@ export default function Battle({ settings, onBack }) {
         : phase === "finished"
           ? [
               { label: "Rematch", kind: "primary", run: startGame },
-              { label: "Copy log", copy: true, run: copyLog },
-              { label: "Analyze", kind: "replay", beside: true, run: analyzeLog },
+              { label: "Analyze", kind: "replay", run: analyzeLog },
+              { label: "Copy log", copy: true, beside: true, run: copyLog },
               { label: "Mode options", run: toSetup },
               { label: "Main menu", kind: "ghost", run: onBack },
             ]

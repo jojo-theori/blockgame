@@ -50,6 +50,8 @@
 .veil .btn { height: 34px; font-size: var(--t2); }
 .btn-pair { display: flex; gap: 6px; }
 .btn-pair .btn { flex: 1 1 0; min-width: 0; padding-inline: 8px; white-space: nowrap; }
+/* Beside a wide button: one icon, as wide as it is tall. */
+.btn-pair .btn.icon-only { flex: none; aspect-ratio: 1; padding: 0; }
 .btn.replay { background: #3fc8b4; border-color: transparent; color: #04201c; }
 .btn.replay:hover { background: #55d6c3; }
 .veil .row-btns + .keys { margin-top: 24px; }
