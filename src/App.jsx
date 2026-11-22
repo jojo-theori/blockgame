@@ -296,7 +296,7 @@ export default function App() {
       </main>
 
       <footer className="ftr">
-        {t("Inspired by")}{" "}
+        {t("Rules after")}{" "}
         <a href="https://jstris.jezevec10.com/" target="_blank" rel="noopener noreferrer">
           Jstris
         </a>{" "}

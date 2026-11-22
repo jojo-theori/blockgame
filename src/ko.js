@@ -164,7 +164,7 @@ export default {
   Position: "위치",
   Speed: "속도",
   Home: "홈",
-  "Inspired by": "영감",
+  "Rules after": "규칙",
   "Openers after": "오프너",
   "Card foils": "카드 효과",
   "Made by": "제작",
