@@ -62,6 +62,9 @@ export function Segmented({ options, value, onChange, focus = false, label }) {
           aria-checked={value === o.id}
           className={value === o.id ? "on" : ""}
           disabled={o.disabled}
+          // An option whose label is a picture names itself with `title`.
+          title={o.title ? t(o.title) : undefined}
+          aria-label={o.title ? t(o.title) : undefined}
           onClick={(e) => {
             e.currentTarget.blur();
             if (o.id !== value) sfx.tick();
@@ -306,7 +309,7 @@ export function Dropdown({ label, value, options, onChange }) {
                 </svg>
                 {tr(o.label)}
               </span>
-              {o.id === value ? <span className="dd-note">{t("Current")}</span> : o.note && <span className="dd-note">{tr(o.note)}</span>}
+              {o.note && <span className="dd-note">{tr(o.note)}</span>}
             </button>
           </li>
         ))}
@@ -800,10 +803,11 @@ export function ActionMenu({ items, label = "More", up = false, start = false })
 // is named (chips, lists, logs) instead of its letter. size = one cell in px.
 // Cells meet edge to edge with square corners, so it reads as one shape.
 const LETTER_TO_ID = { I: 1, T: 2, L: 3, J: 4, S: 5, Z: 6, O: 7 };
-export function PieceIcon({ id, type, size = 5, gap = 0 }) {
+// rot: the rotation to draw it in (0 as it spawns).
+export function PieceIcon({ id, type, size = 5, gap = 0, rot = 0 }) {
   const pid = id ?? LETTER_TO_ID[type];
   if (!pid) return null;
-  const shape = getShape(pid, 0);
+  const shape = getShape(pid, rot);
   const cells = [];
   shape.forEach((row, r) => row.forEach((v, c) => v && cells.push([r, c])));
   const r0 = Math.min(...cells.map(([r]) => r));
