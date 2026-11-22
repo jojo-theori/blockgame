@@ -438,7 +438,7 @@ export default {
   DXT: "피지컬",
   FNS: "피네스",
   "How well the stack was built. Every move is compared with the best move of the Cold Clear engine.": "스택을 얼마나 잘 쌓았는지입니다. 매 수를 Cold Clear 엔진의 최선과 비교합니다.",
-  "The engine itself scores 90 to 95. Stacking flat with no mistakes, but no T-spins, is about 65 to 70.": "엔진 자신이 90~95점입니다. T스핀 없이 실수 없이 평평하게만 쌓으면 65~70점입니다.",
+  "The engine itself scores 95 or more. Stacking flat with no mistakes, but no T-spins, is about 75 to 80.": "엔진 자신은 95점 이상입니다. T스핀 없이 실수 없이 평평하게만 쌓으면 75~80점입니다.",
   "How well the stack was built. Every move is compared with the best spot for gaps, height and flatness.": "스택을 얼마나 잘 쌓았는지입니다. 매 수를 빈칸·높이·평평함 기준의 최선 자리와 비교합니다.",
   "A stack with no covered gaps scores 90 or more. In a Battle the engine is the yardstick instead.": "빈칸 없이 쌓으면 90점 이상입니다. 배틀에서는 엔진이 기준이 됩니다.",
   "How fast the pieces go down.": "블록을 놓는 속도입니다.",

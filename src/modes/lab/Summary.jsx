@@ -28,7 +28,7 @@ export function ScoreHelp({ review, mode }) {
       mode === "sprint"
         ? ["How well the stack was built, read off the result: how little was left on the board, and how much was cleared in quads.", "40 lines in 100 pieces, all quads, is 100. All singles in 102 pieces is 55. The moves pointed out come from an engine tuned for Sprint."]
         : review.engine
-        ? ["How well the stack was built. Every move is compared with the best move of the Cold Clear engine.", "The engine itself scores 90 to 95. Stacking flat with no mistakes, but no T-spins, is about 65 to 70."]
+        ? ["How well the stack was built. Every move is compared with the best move of the Cold Clear engine.", "The engine itself scores 95 or more. Stacking flat with no mistakes, but no T-spins, is about 75 to 80."]
         : ["How well the stack was built. Every move is compared with the best spot for gaps, height and flatness.", "A stack with no covered gaps scores 90 or more. In a Battle the engine is the yardstick instead."],
     ],
     [

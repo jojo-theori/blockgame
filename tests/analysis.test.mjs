@@ -35,8 +35,8 @@ test("Battle macro ranks play from random to Cold Clear", async () => {
   const cc = await score("cc");
   assert.ok(random < 20, `random play scored ${random}`);
   assert.ok(random < sloppy && sloppy < stacker && stacker < cc, `not in order: ${[random, sloppy, stacker, cc]}`);
-  // Not seeded either: its own play has scored 86 to 96.
-  assert.ok(cc >= 80, `Cold Clear scored ${cc}`);
+  // Not seeded either. The engine's own noise is taken off, so its play sits at the top.
+  assert.ok(cc >= 92, `Cold Clear scored ${cc}`);
 });
 
 test("the engine is rarely told it was wrong about its own moves", async () => {

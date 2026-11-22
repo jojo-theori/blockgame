@@ -154,6 +154,11 @@ const ENGINE_CAP = 800; // one disaster should not sink the whole score
 const ENGINE_RANK = 5;
 const ENGINE_GRADES = { inaccuracy: 300, mistake: 450, blunder: 700 };
 const ENGINE_SCALE = 280;
+// What the engine's own play costs per move when it is reviewed after a real
+// Battle (garbage coming in, a deeper search than the review's): about 50.
+// That much is taken as the noise of the yardstick and not held against the
+// run, so engine-level play scores in the high 90s.
+const ENGINE_BASE = 40;
 const engineCost = (loss) => Math.min(Math.max(0, loss - ENGINE_FLOOR), ENGINE_CAP);
 const engineFlag = (loss, rank) => (loss >= ENGINE_GRADES.inaccuracy && rank >= ENGINE_RANK) || loss >= ENGINE_GRADES.blunder;
 
@@ -603,7 +608,7 @@ export async function analyze({ events, frames, dealt, mode: played }, onProgres
   onProgress(1);
   return {
     scores: {
-      macro: !places.length ? 0 : sprint ? sprintMacro(outcome, goal) : round(100 * Math.exp(-regret / places.length / (engine ? ENGINE_SCALE : 6.5))),
+      macro: !places.length ? 0 : sprint ? sprintMacro(outcome, goal) : round(100 * Math.exp(-(engine ? Math.max(0, regret / places.length - ENGINE_BASE) / ENGINE_SCALE : regret / places.length / 6.5))),
       dexterity: dexterityScore(pps, mode),
       finesse: finesseScore(scored.filter((p) => !p.ev.finesseFault).length, scored.length),
     },
