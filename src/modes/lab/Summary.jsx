@@ -1,38 +1,20 @@
 // The run as a whole: the summary card and the help on the scores.
 import { t } from "../../i18n.js";
-import { KIND_NAMES } from "./consts.js";
+import { KIND_NAMES, SCORES } from "./consts.js";
+import { RANK_MAX, pointsOf, rankOf } from "./rank.js";
+import { saveRankCard } from "./rankCard.js";
+import { IconButton } from "../../ui.jsx";
 import { KindIcon } from "./icons.jsx";
-
-// The run as a whole: a rank from the three scores together, a title that
-// goes with it, and which of the three carried it or held it back.
-// The bars are set so an ordinary run lands in the Bs, and each letter has
-// three steps (+, plain, −), so two runs seldom come out the same.
-// [lowest average, letter, title]; each letter spans 15 points, 5 a step.
-const RANKS = [
-  [85, "S", "Near flawless"],
-  [70, "A", "A strong run"],
-  [55, "B", "A solid run"],
-  [40, "C", "Room to grow"],
-  [25, "D", "An uneven run"],
-  [0, "E", "Back to basics"],
-];
-// "B+" for the top third of a letter's span, "B-" for the bottom third.
-// S and E have no steps: one is the top, the other everything below D.
-function rankOf(avg) {
-  const [min, letter, title] = RANKS.find(([low]) => avg >= low);
-  const step = letter === "S" || letter === "E" ? "" : avg >= min + 10 ? "+" : avg < min + 5 ? "−" : "";
-  return { letter, rank: letter + step, title };
-}
 
 function verdict(review) {
   const kinds = Object.keys(KIND_NAMES);
   // Macro counts double: quick, exact hands do not make up for a poor stack.
-  const avg = (2 * review.scores.macro + review.scores.dexterity + review.scores.finesse) / 4;
-  const { letter, rank, title } = rankOf(avg);
+  const points = pointsOf(review.scores);
+  const { letter, step, title } = rankOf(points);
   const sorted = [...kinds].sort((a, b) => review.scores[b] - review.scores[a]);
   const [best, worst] = [sorted[0], sorted[sorted.length - 1]];
   const even = review.scores[best] - review.scores[worst] < 10;
-  return { letter, rank, title, note: even ? ["Even across all three."] : ["Strongest in {best}, weakest in {worst}.", { best: KIND_NAMES[best], worst: KIND_NAMES[worst] }] };
+  return { letter, step, title, points, note: even ? ["Even across all three."] : ["Strongest in {best}, weakest in {worst}.", { best: KIND_NAMES[best], worst: KIND_NAMES[worst] }] };
 }
 
 // What the three scores mean and where the bar sits, on hover (or focus) of a
@@ -83,15 +65,35 @@ export function ScoreHelp({ review, mode }) {
   );
 }
 
+// The seal: the rank's letter in a ring, with its step (+ or −) set smaller
+// beside it. The S ranks are dressed up in replay.css.
+export function RankSeal({ letter, step }) {
+  return (
+    <div className={"lab-seal seal-" + letter} aria-label={letter + step}>
+      <span>{letter}</span>
+      {step && <i>{step}</i>}
+    </div>
+  );
+}
+
 // The summary, set out like a certificate so it never reads as one of the
 // move comments: a seal with the rank, the title, then what stood out.
-export function Award({ review }) {
+export function Award({ review, caption }) {
   const v = verdict(review);
   const [key, vars] = v.note;
+  const save = (e) => {
+    e.currentTarget.blur();
+    saveRankCard({ ...v, title: t(v.title), caption, scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
+  };
   return (
     <div className={"lab-award rank-" + v.letter}>
-      <div className="lab-seal" aria-label={v.rank}>
-        {v.rank}
+      <div className="lab-award-save">
+        <IconButton icon="download" label="Save as image" onClick={save} />
+      </div>
+      <RankSeal letter={v.letter} step={v.step} />
+      <div className="lab-award-points">
+        {v.points}
+        <small> / {RANK_MAX}</small>
       </div>
       <div className="lab-award-title">{t(v.title)}</div>
       <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>

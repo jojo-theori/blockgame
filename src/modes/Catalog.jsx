@@ -30,6 +30,8 @@ import {
 } from "../ui.jsx";
 import { BUTTON, ICON_BUTTON, CHIP } from "../ui/variants.js";
 import { toast } from "../ui/toast.js";
+import { RankSeal } from "./lab/Summary.jsx";
+import { ALL_RANKS, RANK_MAX } from "./lab/rank.js";
 
 const ACCENT = "#f2cb4c";
 const COLOURS = ["--fg", "--dim", "--faint", "--muted", "--line", "--hover", "--fill", "--bad", "--accent"];
@@ -583,6 +585,26 @@ const PAGES = {
     ],
     Body: ConfirmBody,
   },
+  rank: {
+    title: "Rank",
+    source: "modes/lab/rank.js · modes/lab/Summary.jsx",
+    use: "The rank of a run, out of 130 points. The higher it is, the more it is dressed up.",
+    props: [["RankSeal letter · step", "SSS to E · + or − (A to D)"]],
+    Body: () => (
+      <div className="cat-ranks">
+        {ALL_RANKS.map((r) => (
+          <div key={r.letter + r.step} className={"lab-award still rank-" + r.letter}>
+            <RankSeal letter={r.letter} step={r.step} />
+            <div className="lab-award-title">{t(r.title)}</div>
+            <div className="lab-award-points">
+              {r.min}
+              <small> / {RANK_MAX}</small>
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+  },
   toast: {
     title: "Toast",
     source: "ui/toast.js · ui/overlays.jsx",
@@ -602,7 +624,7 @@ const SECTIONS = [
   ["Tokens", ["colour", "type", "scale"]],
   ["Actions", ["button", "iconButton", "actionMenu"]],
   ["Choosing", ["chip", "segmented", "dropdown", "switch", "checkbox", "stepper"]],
-  ["Display", ["icon", "well", "tip", "kbd", "stat", "pieceIcon"]],
+  ["Display", ["icon", "well", "tip", "kbd", "stat", "pieceIcon", "rank"]],
   ["Overlays", ["confirmDialog", "toast"]],
 ];
 

@@ -439,7 +439,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                         </p>
                       </div>
                     ) : overview ? (
-                      <Award review={review} />
+                      <Award review={review} caption={modeName(replay.mode, "")} />
                     ) : (
                       <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
                     )}

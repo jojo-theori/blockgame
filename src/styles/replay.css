@@ -174,13 +174,39 @@
 .lab-tip-row b .lab-kind-icon { width: 14px; height: 14px; }
 /* The summary: a certificate, centred, with the rank on a seal. */
 .lab-award { --rank: var(--fg); padding: 20px 18px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--fill); text-align: center; animation: appear 0.4s var(--out) both; }
-.lab-award.rank-S { --rank: #e3bf3f; }
+.lab-award { position: relative; }
+/* Listed side by side (the Components page), the cards stay still. */
+.lab-award.still { animation: none; }
+.lab-award.rank-SSS { --rank: #ff9ad0; background: radial-gradient(120% 90% at 50% 0%, rgba(255, 122, 182, 0.16), transparent 60%), var(--fill); border-color: rgba(255, 154, 208, 0.45); }
+.lab-award.rank-SS { --rank: #f6c945; background: radial-gradient(120% 90% at 50% 0%, rgba(246, 201, 69, 0.14), transparent 60%), var(--fill); border-color: rgba(246, 201, 69, 0.4); }
+.lab-award.rank-S { --rank: #e3bf3f; background: radial-gradient(120% 90% at 50% 0%, rgba(227, 191, 63, 0.08), transparent 60%), var(--fill); }
 .lab-award.rank-A { --rank: #5cc45c; }
 .lab-award.rank-B { --rank: #41b6e6; }
 .lab-award.rank-C { --rank: #a66bd6; }
 .lab-award.rank-D { --rank: #e8903a; }
 .lab-award.rank-E { --rank: #e8505b; }
-.lab-seal { width: 54px; height: 54px; margin: 4px auto 12px; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--rank); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 45%, transparent); color: var(--rank); font-size: var(--t6); font-weight: 700; line-height: 1; letter-spacing: -0.02em; white-space: nowrap; }
+/* Save as image: in the corner, showing while the pointer is on the card. */
+.lab-award-save { position: absolute; top: 6px; right: 6px; opacity: 0; transition: opacity 0.18s var(--out); }
+.lab-award:hover .lab-award-save, .lab-award-save:focus-within { opacity: 1; }
+.lab-award-points { margin: -4px 0 8px; font-size: var(--t3); font-weight: 600; color: var(--fg); }
+.lab-award-points small { font-size: var(--t2); font-weight: 400; color: var(--faint); }
+/* The seal. The letter and its step are two boxes centred on one line, so the
+   + or − sits on the letter's middle rather than on the text baseline. */
+.lab-seal { position: relative; isolation: isolate; width: 54px; height: 54px; margin: 4px auto 12px; display: flex; align-items: center; justify-content: center; gap: 1px; border-radius: 50%; border: 1.5px solid var(--rank); box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 45%, transparent); color: var(--rank); font-size: var(--t6); font-weight: 700; line-height: 1; white-space: nowrap; }
+.lab-seal span { display: block; }
+.lab-seal i { display: block; font-style: normal; font-size: 0.62em; line-height: 1; transform: translateY(-0.04em); }
+/* S: gold with a glow. SS: a ring of turning gold. SSS: a ring of every colour. */
+.lab-seal.seal-S, .lab-seal.seal-SS, .lab-seal.seal-SSS { width: 64px; height: 64px; }
+.lab-seal.seal-S { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px color-mix(in srgb, var(--rank) 55%, transparent), 0 0 22px rgba(227, 191, 63, 0.45); }
+.lab-seal.seal-SS, .lab-seal.seal-SSS { border-color: transparent; background: var(--bg); box-shadow: 0 0 26px color-mix(in srgb, var(--rank) 55%, transparent); }
+.lab-seal.seal-SS::before, .lab-seal.seal-SSS::before { content: ""; position: absolute; inset: -4px; z-index: -2; border-radius: 50%; background: conic-gradient(#f6c945, #fff6d6, #e3a53f, #fff1b8, #f6c945); animation: seal-turn 6s linear infinite; }
+.lab-seal.seal-SSS::before { inset: -5px; background: conic-gradient(#ff7ab6, #ffd75e, #6fe3a1, #5fb8ff, #b98cff, #ff7ab6); animation-duration: 3.5s; }
+.lab-seal.seal-SS::after, .lab-seal.seal-SSS::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%; background: var(--bg); }
+.lab-seal.seal-SS span, .lab-seal.seal-SSS span { background: linear-gradient(100deg, #f6c945, #fff6d6 45%, #e3a53f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lab-seal.seal-SSS span { background-image: linear-gradient(100deg, #ff7ab6, #ffd75e 35%, #6fe3a1 60%, #5fb8ff 80%, #b98cff); }
+.lab-seal.seal-SS { font-size: var(--t5); }
+.lab-seal.seal-SSS { font-size: var(--t4); }
+@keyframes seal-turn { to { transform: rotate(360deg); } }
 .lab-award-title { font-size: var(--t5); font-weight: 600; color: var(--fg); line-height: 1.25; }
 .lab-award-note { margin: 5px 0 0; font-size: var(--t3); color: var(--dim); }
 .lab-traits { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; text-align: left; }

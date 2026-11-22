@@ -71,6 +71,7 @@ export const PATHS = {
     </g>
   ),
   copy: <path d="M9 9h10v10H9zM5 15V5h10" />,
+  download: <path d="M12 4.5v10M7.5 10.5 12 15l4.5-4.5M5 19h14" />,
   link: <path d="M10.5 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M13.5 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />,
   robot: (
     <>
