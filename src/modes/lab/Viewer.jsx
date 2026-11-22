@@ -467,12 +467,6 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                           <span className="lab-kind" title={t(KIND_NAMES[moment.kind])}>
                             <KindIcon kind={moment.kind} />
                           </span>
-                          {/* On a phone the way back to the summary is on the comment itself. */}
-                          {phone && (
-                            <button type="button" className="lab-bubble-close" aria-label={t("Back to summary")} onClick={blur(restart)}>
-                              <Icon name="close" size={18} />
-                            </button>
-                          )}
                         </div>
                         <p>
                           <Typed text={t(moment.text[0], moment.text[1])} instant={playing} />
@@ -498,6 +492,12 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
                       />
                     ) : (
                       <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
+                    )}
+                    {/* On a phone the way back to the summary sits beside the comment. */}
+                    {phone && !overview && (
+                      <span className="lab-slot-close">
+                        <IconButton icon="close" label="Back to summary" size="m" onClick={blur(restart)} />
+                      </span>
                     )}
                   </div>
                   {/* Previous and Next come first and never move; Show best joins
@@ -568,17 +568,27 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
               {phone && speedButton}
               </div>
               <div className="lab-buttons">
-                <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />
+                {/* A phone has no room for the jumps to either end: the timeline does that. */}
+                {!phone && <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />}
                 <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
                 <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} variant="lead" />
                 <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
-                <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />
+                {!phone && <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />}
                 {!phone && speedButton}
                 {/* On a phone the way into the key moments ends this row. */}
                 {phone && overview && review && typeof review === "object" && (
                   <button type="button" className="btn primary compact lab-keys" onClick={blur(() => jump(1))} disabled={!moments.length}>
                     {moments.length ? t("{n} key moments", { n: moments.length }) : t("No key moments")}
                   </button>
+                )}
+                {/* And once among them, the way from one to the next (up and down,
+                    as on the keyboard), with the engine's line first when there is one. */}
+                {phone && !overview && review && typeof review === "object" && (
+                  <span className="lab-hop">
+                    {moment?.best && <IconButton icon={shownLine ? "stop" : "eye"} label={shownLine ? "Stop" : "Show"} variant="filled" onClick={blur(() => (shownLine ? setLine(null) : showLine()))} />}
+                    <IconButton icon="up" label="Previous" variant="filled" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
+                    <IconButton icon={hasNext ? "down" : "first"} label={hasNext ? "Next" : "Restart"} variant="lead" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length} />
+                  </span>
                 )}
               </div>
               <div className="lab-foot">
