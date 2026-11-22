@@ -36,7 +36,8 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
   // On a phone (someone who scanned a card's QR code) the screen is laid out
   // tall instead: the board as wide as it goes with hold and next beside it,
   // then the transport and the review under it, and the page scrolls. 372 is
-  // the board and its narrow side column.
+  // the board and its narrow side column: a narrower screen scales them down,
+  // a wider one leaves them their size and moves the column to the far edge.
   const phone = usePhone();
   const zoom = phone ? Math.min(1, (window.innerWidth - 24) / 372) : fit;
   const canvasRef = useRef(null);
@@ -327,7 +328,7 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
         {t("Replay")}
         {replay.mode.mode === "unknown" ? "" : ` · ${modeName(replay.mode, "")}`}
       </div>
-      <div style={{ zoom, "--accent": ACCENT, "--unzoom": 1 / zoom }}>
+      <div style={{ zoom, "--accent": ACCENT, "--unzoom": 1 / zoom, "--phone-w": `${(window.innerWidth - 24) / zoom}px` }}>
         <div className={"play" + (phone ? " lab-phone" : "")}>
           <ReplayLog events={shown} total={step} />
           <div className="side">

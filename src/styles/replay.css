@@ -70,14 +70,14 @@
    then the timeline and the transport, which stay at the foot of the screen
    while the page scrolls, with buttons large enough for a thumb. The board is
    scaled to the screen's width; everything else is at the page's own size. */
-.play.lab-phone { display: grid; grid-template-columns: 280px 80px; grid-template-rows: auto auto auto auto 1fr auto auto auto; gap: 16px 12px; height: auto; align-items: start; }
+.play.lab-phone { width: var(--phone-w); display: grid; grid-template-columns: 280px minmax(80px, 1fr); grid-template-rows: auto auto auto auto 1fr auto auto auto; gap: 16px 12px; height: auto; align-items: start; }
 .lab-phone > .rlog, .lab-phone .keys, .lab-phone .lab-stats > .stat:has(.lab-mode) { display: none; }
 .lab-phone > .side, .lab-phone .lab-side, .lab-phone .lab-transport { display: contents; }
 .lab-phone > .side canvas { zoom: 0.6; }
 .lab-phone > .board-wrap { grid-area: 3 / 1 / 6 / 2; }
-.lab-phone > .side:not(.right) > :first-child { grid-area: 3 / 2; }
-.lab-phone > .side.right > :first-child { grid-area: 4 / 2; }
-.lab-phone .lab-stats { grid-area: 5 / 2; align-self: end; display: flex; flex-direction: column; gap: 12px; }
+.lab-phone > .side:not(.right) > :first-child { grid-area: 3 / 2; justify-self: end; width: 80px; }
+.lab-phone > .side.right > :first-child { grid-area: 4 / 2; justify-self: end; width: 80px; }
+.lab-phone .lab-stats { grid-area: 5 / 2; align-self: end; justify-self: end; width: 80px; display: flex; flex-direction: column; gap: 12px; }
 .lab-phone .lab-stats .v { font-size: var(--t4); white-space: nowrap; }
 .lab-phone .lab-top, .lab-phone .lab-loading, .lab-phone .lab-moment, .lab-phone .lab-track, .lab-phone .lab-buttons, .lab-phone .lab-foot { grid-column: 1 / -1; zoom: var(--unzoom); text-align: left; }
 .lab-phone .lab-top { grid-row: 1; }

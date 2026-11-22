@@ -224,8 +224,13 @@ export function Award({ review, card }) {
   // The card to keep: opened large first, saved from there.
   const [shown, setShown] = useState(null);
   // A taste of the card: it leans a little toward the pointer, with a glow under it.
+  const cardRef = useRef(null);
+  const level = () => ["--rx", "--ry"].forEach((k) => cardRef.current?.style.setProperty(k, "0deg"));
   const lean = (e) => {
     const el = e.currentTarget;
+    // The large card is drawn elsewhere on the page but its events still
+    // come up through here: only the pointer over this card leans it.
+    if (!el.contains(e.target)) return;
     const box = el.getBoundingClientRect();
     const x = (e.clientX - box.left) / box.width - 0.5;
     const y = (e.clientY - box.top) / box.height - 0.5;
@@ -234,12 +239,13 @@ export function Award({ review, card }) {
     el.style.setProperty("--gx", `${((x + 0.5) * 100).toFixed(1)}%`);
     el.style.setProperty("--gy", `${((y + 0.5) * 100).toFixed(1)}%`);
   };
-  const rest = (e) => ["--rx", "--ry"].forEach((k) => e.currentTarget.style.setProperty(k, "0deg"));
+  const rest = level;
   const open = () => {
     setShown({ ...v, ...card, title: t(v.title), date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
   };
   return (
     <div
+      ref={cardRef}
       className={"lab-award open rank-" + v.letter}
       role="button"
       tabIndex={0}
@@ -254,7 +260,15 @@ export function Award({ review, card }) {
         open();
       }}
     >
-      {shown && <RankCardView what={shown} onClose={() => setShown(null)} />}
+      {shown && (
+        <RankCardView
+          what={shown}
+          onClose={() => {
+            setShown(null);
+            level();
+          }}
+        />
+      )}
       <RankSeal letter={v.letter} step={v.step} />
       <div className="lab-award-title">{t(v.title)}</div>
       <p className="lab-award-note">{t(key, vars && { best: t(vars.best), worst: t(vars.worst) })}</p>
