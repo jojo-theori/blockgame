@@ -204,8 +204,9 @@
 .lab-seal.seal-SS::after, .lab-seal.seal-SSS::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%; background: var(--bg); }
 .lab-seal.seal-SS span, .lab-seal.seal-SSS span { background: linear-gradient(100deg, #f6c945, #fff6d6 45%, #e3a53f); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .lab-seal.seal-SSS span { background-image: linear-gradient(100deg, #ff7ab6, #ffd75e 35%, #6fe3a1 60%, #5fb8ff 80%, #b98cff); }
-.lab-seal.seal-SS { font-size: var(--t5); }
-.lab-seal.seal-SSS { font-size: var(--t4); }
+/* The three S ranks share one letter size; SSS is set tight to fill its ring. */
+.lab-seal.seal-SSS { letter-spacing: -0.05em; }
+.lab-seal.seal-SSS span { padding-right: 0.05em; }
 @keyframes seal-turn { to { transform: rotate(360deg); } }
 .lab-award-title { font-size: var(--t5); font-weight: 600; color: var(--fg); line-height: 1.25; }
 .lab-award-note { margin: 5px 0 0; font-size: var(--t3); color: var(--dim); }
