@@ -445,6 +445,8 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                           // The player's name is the seat's until there are accounts.
                           name: replay.mode.me || "PLAYER",
                           mode: modeName({ mode: replay.mode.mode, lines: replay.mode.lines }, ""),
+                          // A Sprint that reached its goal shows its time above all else.
+                          time: replay.mode.mode === "sprint" && frames[total].lines >= (replay.mode.lines || Infinity) ? formatTime(events[total - 1].t) : "",
                           vs: replay.mode.vs ? `vs ${replay.mode.vs}${replay.mode.level ? ` (${t(replay.mode.level)})` : ""}` : "",
                         }}
                       />

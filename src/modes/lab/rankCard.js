@@ -23,8 +23,9 @@ function rounded(ctx, x, y, w, h, r) {
   ctx.roundRect(x, y, w, h, r);
 }
 
-// what: { letter, step, title, scores: [[label, value]], name, mode, vs, date }
-export function drawRankCard({ letter, step, title, scores, name, mode, vs, date }) {
+// what: { letter, step, title, scores: [[label, value]], name, mode, vs, date,
+// time } — time is a finished Sprint's, and then it is the largest line.
+export function drawRankCard({ letter, step, title, scores, name, mode, vs, date, time }) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -126,11 +127,17 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   text(letter, left, cy + size * 0.04, size, 800, ink, "left");
   if (step) text(step, left + lw + 8, cy, size * 0.62, 800, seal[0], "left");
 
-  text(title, cx, 790, 66, 700, "#ffffff");
+  if (time) {
+    text(title, cx, 760, 44, 600, "rgba(255, 255, 255, 0.72)");
+    text(time, cx, 852, 96, 800, "#ffffff");
+  } else {
+    text(title, cx, 790, 66, 700, "#ffffff");
+  }
+  const down = time ? 52 : 0;
   scores.forEach(([label, value], i) => {
     const x = cx + (i - (scores.length - 1) / 2) * 250;
-    text(label, x, 912, 28, 600, "rgba(255, 255, 255, 0.5)");
-    text(String(value), x, 978, 70, 700, "#ffffff");
+    text(label, x, 912 + down, 28, 600, "rgba(255, 255, 255, 0.5)");
+    text(String(value), x, 978 + down, time ? 60 : 70, 700, "#ffffff");
   });
 
   // Whose run, and what it was.
