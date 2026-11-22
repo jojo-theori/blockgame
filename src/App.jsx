@@ -17,7 +17,7 @@ import Settings from "./modes/Settings.jsx";
 import Experiments from "./modes/Experiments.jsx";
 import ComingSoon from "./modes/ComingSoon.jsx";
 import Sandbox from "./modes/Sandbox.jsx";
-import { KeyHints, TopBar, FocusWarning } from "./ui.jsx";
+import { KeyHints, TopBar, FocusWarning, Toaster } from "./ui.jsx";
 import { useFocusWarning } from "./display.js";
 import { sfx, setSoundEnabled as setSfxEnabled, setSoundOptions } from "./sound.js";
 
@@ -198,6 +198,7 @@ export default function App() {
   return (
     <div className={"app" + (view === "menu" ? " is-home" : "")}>
       <Background theme={theme} />
+      <Toaster />
       {view !== "menu" && (
         <button className="wordmark" onClick={goMenu} title={t("Home")}>
           JBL

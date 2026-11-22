@@ -11,7 +11,7 @@ import path from "path";
 const HOME = { "sb-": "sandbox.css", "lab-": "replay.css", "snd-": "replay.css", "cat-": "system.css", "exp-": "replay.css" };
 // The shared parts' own classes: no other sheet may use these names, even as
 // one class among several on an element (".kbd.icon" once broke ".icon").
-const PARTS = ["ds-btn", "ds-icon", "icon-btn", "chip-grid", "well", "well-hint", "help-tip", "help-tip-body", "help-keys", "has-tip", "tip-body"];
+const PARTS = ["toast", "toast-zone", "ds-btn", "ds-icon", "icon-btn", "chip-grid", "well", "well-hint", "help-tip", "help-tip-body", "help-keys", "has-tip", "tip-body"];
 const prefixOf = (name) => Object.keys(HOME).find((p) => name.startsWith(p));
 
 const defined = new Map(); // class → Set(files)

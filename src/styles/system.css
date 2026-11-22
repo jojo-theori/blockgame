@@ -67,6 +67,12 @@
 .well.empty { display: grid; place-items: center; }
 .well-hint { margin: 0; padding: 0 10px; font-size: var(--t2); line-height: 1.5; color: var(--faint); text-align: center; text-wrap: balance; word-break: keep-all; }
 
+/* Toast: a short word at the foot of the screen, gone by itself. */
+.toast-zone { position: fixed; left: 0; right: 0; bottom: 56px; z-index: 200; display: flex; justify-content: center; pointer-events: none; }
+.toast { display: inline-flex; align-items: center; gap: 8px; height: var(--h-m); padding: 0 18px 0 14px; border-radius: var(--r-pill); background: var(--fg); color: var(--on-fg); font-size: var(--t2); box-shadow: 0 10px 28px var(--shadow); animation: toast-in 0.22s var(--out) both, toast-out 0.25s var(--out) 1.95s both; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes toast-out { to { opacity: 0; transform: translateY(4px); } }
+
 /* Components page (Lab): the list of pages on the left, one page on the right. */
 .cat { width: min(100%, 820px); display: grid; grid-template-columns: 132px 1fr; gap: 48px; align-items: start; text-align: left; }
 .cat-nav { display: flex; flex-direction: column; gap: 16px; }

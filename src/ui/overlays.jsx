@@ -1,5 +1,6 @@
 // Things that open over the page: confirm dialog, action menu.
 import { Icon } from "./icons.jsx";
+import { onToast } from "./toast.js";
 import { useEffect, useRef, useState } from "react";
 import { sfx } from "../sound.js";
 import { t } from "../i18n.js";
@@ -116,6 +117,35 @@ export function ActionMenu({ items, label = "More", up = false, start = false, s
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// ─── Toast ───
+// A short word at the foot of the screen that something happened, gone again
+// by itself. toast(text) (ui/toast.js) from anywhere; <Toaster /> sits once at
+// the top of the app and shows the latest.
+const TOAST_MS = 2200;
+export function Toaster() {
+  const [note, setNote] = useState(null); // { text, n }
+  useEffect(() => {
+    let n = 0;
+    onToast((text) => setNote({ text, n: ++n }));
+    return () => onToast(null);
+  }, []);
+  useEffect(() => {
+    if (!note) return;
+    const id = setTimeout(() => setNote(null), TOAST_MS);
+    return () => clearTimeout(id);
+  }, [note]);
+  return (
+    <div className="toast-zone" aria-live="polite">
+      {note && (
+        <div key={note.n} className="toast">
+          <Icon name="check" size={15} />
+          {tr(note.text)}
+        </div>
+      )}
     </div>
   );
 }

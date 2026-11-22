@@ -8,6 +8,7 @@ import { loadRecent, removeRecent } from "../recent.js";
 import { parseMoves } from "../trace.js";
 import { replayLink } from "../pack.js";
 import { Kbd, ActionMenu, ConfirmDialog } from "../ui.jsx";
+import { toast } from "../ui/toast.js";
 import { ACCENT, PASTE_MOD, modeName, MAX_LINES, RECENT_SHOWN } from "./lab/consts.js";
 import Viewer from "./lab/Viewer.jsx";
 
@@ -40,6 +41,7 @@ export default function Lab({ settings, initial = "", onBack }) {
   const copyLink = (run) =>
     replayLink(run)
       .then((url) => navigator.clipboard.writeText(url))
+      .then(() => toast("Link copied"))
       .catch(() => setError("This browser blocked clipboard access for this site."));
   const recent = useMemo(
     () =>

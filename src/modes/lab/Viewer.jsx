@@ -6,6 +6,7 @@ import { analyze, bestLine } from "../../analysis.js";
 import { evalPosition } from "../../bots/review.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../../render.js";
 import { Stat, KeyHints, ReplayLog, PauseMenu, IconButton, Icon } from "../../ui.jsx";
+import { toast } from "../../ui/toast.js";
 import { useFit } from "../../fit.js";
 import { selectKey, keyLabel } from "../../keys.js";
 import { pathAt } from "../../trace.js";
@@ -24,6 +25,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
     replayLink(replay.text)
       .then((url) => navigator.clipboard.writeText(url))
       .then(() => {
+        toast("Link copied");
         setLinked(true);
         setTimeout(() => setLinked(false), 2000);
       })

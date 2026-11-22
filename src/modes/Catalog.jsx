@@ -29,6 +29,7 @@ import {
   Well,
 } from "../ui.jsx";
 import { BUTTON, ICON_BUTTON, CHIP } from "../ui/variants.js";
+import { toast } from "../ui/toast.js";
 
 const ACCENT = "#f2cb4c";
 const COLOURS = ["--fg", "--dim", "--faint", "--muted", "--line", "--hover", "--fill", "--bad", "--accent"];
@@ -582,6 +583,19 @@ const PAGES = {
     ],
     Body: ConfirmBody,
   },
+  toast: {
+    title: "Toast",
+    source: "ui/toast.js · ui/overlays.jsx",
+    use: "A short word that something happened, gone by itself.",
+    props: [["toast(text)", "call from anywhere; <Toaster /> sits once in App"]],
+    Body: () => (
+      <Demo label="toast(text)">
+        <Button icon="link" onClick={() => toast("Link copied")}>
+          {t("Copy link")}
+        </Button>
+      </Demo>
+    ),
+  },
 };
 
 const SECTIONS = [
@@ -589,7 +603,7 @@ const SECTIONS = [
   ["Actions", ["button", "iconButton", "actionMenu"]],
   ["Choosing", ["chip", "segmented", "dropdown", "switch", "checkbox", "stepper"]],
   ["Display", ["icon", "well", "tip", "kbd", "stat", "pieceIcon"]],
-  ["Overlays", ["confirmDialog"]],
+  ["Overlays", ["confirmDialog", "toast"]],
 ];
 
 export default function Catalog({ onBack }) {
