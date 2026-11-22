@@ -1,10 +1,11 @@
-// The run's rank as a picture to keep or post: a tall card (1080 × 1350)
+// The run's rank as a picture to keep or post: a card in the proportions of a
+// trading card (1080 × 1504, 0.718 wide to tall)
 // drawn on a canvas and handed over as a PNG. Laid out like a gift card: a
 // field of the rank's colours, a glass panel on it, the seal in the middle.
 import { qr } from "../../qr.js";
 
 const W = 1080;
-const H = 1350;
+const H = 1504;
 // Per letter: the seal's colours (as replay.css draws them), then the three
 // colours of the field behind.
 const THEMES = {
@@ -84,7 +85,7 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
 
   // The seal: a ring (turning colours for SS and SSS), a dark face, the letter.
   const cx = W / 2;
-  const cy = 470;
+  const cy = 530;
   const r = 200;
   const ring = () => {
     if (!fancy) return seal[0];
@@ -128,16 +129,16 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   if (step) text(step, left + lw + 8, cy, size * 0.62, 800, seal[0], "left");
 
   if (time) {
-    text(title, cx, 760, 44, 600, "rgba(255, 255, 255, 0.72)");
-    text(time, cx, 852, 96, 800, "#ffffff");
+    text(title, cx, 846, 44, 600, "rgba(255, 255, 255, 0.72)");
+    text(time, cx, 940, 96, 800, "#ffffff");
   } else {
-    text(title, cx, 790, 66, 700, "#ffffff");
+    text(title, cx, 880, 66, 700, "#ffffff");
   }
-  const down = time ? 52 : 0;
+  const down = time ? 60 : 0;
   scores.forEach(([label, value], i) => {
     const x = cx + (i - (scores.length - 1) / 2) * 250;
-    text(label, x, 912 + down, 28, 600, "rgba(255, 255, 255, 0.5)");
-    text(String(value), x, 978 + down, time ? 60 : 70, 700, "#ffffff");
+    text(label, x, 1020 + down, 28, 600, "rgba(255, 255, 255, 0.5)");
+    text(String(value), x, 1088 + down, time ? 60 : 70, 700, "#ffffff");
   });
 
   // Whose run, and what it was.
@@ -190,7 +191,7 @@ export function drawFoilMask({ letter, step }) {
   const font = getComputedStyle(document.body).fontFamily;
   const m = 64;
   const cx = W / 2;
-  const cy = 470;
+  const cy = 530;
   const r = 200;
   ctx.fillStyle = "#000";
   ctx.strokeStyle = "#000";
