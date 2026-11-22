@@ -2,7 +2,7 @@
 import { t } from "../../i18n.js";
 import { KIND_NAMES, SCORES } from "./consts.js";
 import { pointsOf, rankOf } from "./rank.js";
-import { drawRankCard, saveRankCard } from "./rankCard.js";
+import { drawRankCard, drawFoilMask, saveRankCard, FOIL } from "./rankCard.js";
 import { Button } from "../../ui.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -83,6 +83,12 @@ export function RankSeal({ letter, step }) {
 // outside or Esc closes it.
 function RankCardView({ what, onClose }) {
   const src = useMemo(() => drawRankCard(what).toDataURL("image/png"), [what]);
+  // Where this rank's foil sits (nowhere on the low ranks: they are matte).
+  const foil = FOIL[what.letter];
+  const mask = useMemo(() => {
+    const url = drawFoilMask(what)?.toDataURL("image/png");
+    return url ? { maskImage: `url(${url})`, WebkitMaskImage: `url(${url})` } : null;
+  }, [what]);
   const cardRef = useRef(null);
   useEffect(() => {
     const key = (e) => {
@@ -117,8 +123,11 @@ function RankCardView({ what, onClose }) {
         onClose();
       }}
     >
-      <div ref={cardRef} className={"lab-cardview-card holo-" + what.letter} onClick={(e) => e.stopPropagation()}>
+      <div ref={cardRef} className="lab-cardview-card" onClick={(e) => e.stopPropagation()}>
         <img src={src} alt="" draggable={false} />
+        {mask && <i className="lab-foil" style={{ ...mask, opacity: foil.strength }} />}
+        {mask && foil.grain && <i className={"lab-foil-grain " + foil.grain} style={mask} />}
+        <i className="lab-glare" />
       </div>
       <div className="lab-cardview-actions" onClick={(e) => e.stopPropagation()}>
         <Button variant="primary" icon="download" onClick={() => saveRankCard(what)}>
