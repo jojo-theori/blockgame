@@ -251,7 +251,7 @@ export default function Settings({ values, onSave, onClose }) {
             <div className="opt wide">
               <div>
                 <div className="k" style={{ color: "var(--fg)" }}>{t("Orientation mark")}</div>
-                <div className="k small hint">{t("One darker cell on I, S, Z and O shows which way the falling piece faces")}</div>
+                <div className="k small hint">{t("One darker cell on I, S and Z shows which way the falling piece faces")}</div>
               </div>
               <Segmented
                 label="Orientation mark"

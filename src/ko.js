@@ -411,5 +411,5 @@ export default {
   "Double-click to reset to {v}": "두 번 클릭하면 {v}로 돌아갑니다",
   "Click to type a value": "클릭해서 값 입력",
   "Orientation mark": "방향 표시",
-  "One darker cell on I, S, Z and O shows which way the falling piece faces": "I·S·Z·O 블록의 한 칸을 더 어둡게 칠해 떨어지는 블록이 어느 방향인지 보여 줍니다",
+  "One darker cell on I, S and Z shows which way the falling piece faces": "I·S·Z 블록의 한 칸을 더 어둡게 칠해 떨어지는 블록이 어느 방향인지 보여 줍니다",
 };

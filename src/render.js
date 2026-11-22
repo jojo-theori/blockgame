@@ -46,20 +46,19 @@ export function boardTone() { return tone; }
 export function setCellLines(on) {
   gaps = !!on;
 }
-// Orientation mark: on pieces that look the same after a turn (I, S, Z, O),
+// Orientation mark: on pieces that look the same after a turn (I, S, Z),
 // one cell of the falling piece is drawn darker, so its rotation state shows.
 let orientMark = false;
 export function setOrientMark(on) {
   orientMark = !!on;
 }
-const O_MARK = [[0, 1], [0, 2], [1, 2], [1, 1]]; // O doesn't move in its box
+// The marked cell in the spawn state (row, col in the piece's box), chosen by
+// the user: I's third cell from the left, and the bottom middle of S and Z.
+const MARK0 = { 1: [1, 2], 5: [1, 1], 6: [1, 1] };
 function markCell(id, rot) {
-  if (id === 7) return O_MARK[rot % 4];
-  if (id !== 1 && id !== 5 && id !== 6) return null;
-  const s0 = getShape(id, 0);
-  const n = s0.length;
-  let pos = null;
-  for (let r = 0; r < n && !pos; r++) for (let c = 0; c < n; c++) if (s0[r][c]) { pos = [r, c]; break; }
+  let pos = MARK0[id];
+  if (!pos) return null;
+  const n = getShape(id, 0).length;
   // Follow that cell as the box turns clockwise.
   for (let k = 0; k < rot % 4; k++) pos = [pos[1], n - 1 - pos[0]];
   return getShape(id, rot)[pos[0]]?.[pos[1]] ? pos : null;
