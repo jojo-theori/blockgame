@@ -79,7 +79,7 @@
 
 /* ─── ⋯ action menu ─── */
 .am { position: relative; flex: none; }
-.am.open .am-btn { background: var(--hover); color: var(--fg); }
+.am.open .am-btn { background: var(--hover-layer); color: var(--fg); }
 .am-menu {
   position: absolute;
   z-index: 60;

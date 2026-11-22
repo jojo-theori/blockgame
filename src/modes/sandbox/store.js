@@ -1,4 +1,5 @@
 // Sandbox: saved boards, the pieces and cells a board is made of, and what an erase takes.
+import { OPENERS, LETTER_ID } from "../../openings.js";
 import { COLS, ROWS } from "../../game.js";
 
 export const ACCENT = "#f2913d";
@@ -35,17 +36,53 @@ export const newId = () => Date.now().toString(36) + Math.random().toString(36).
 
 export const blank = (title) => ({ id: newId(), title, board: emptyBoard(), marks: emptyBoard(), order: [], hold: 0, randomAfter: true, gravity: false, updatedAt: Date.now() });
 
+// ── Examples ──
+// Boards that come with the Sandbox, added to the list once (delete one and it
+// stays gone). Built from the opener book, so they are the shapes Opening teaches.
+const EXAMPLES_SEEN = "jbl-sandbox-examples";
+// DT Cannon with both bags down and the two T pieces to come: a T-spin double,
+// then a T-spin triple into the hole it leaves.
+export function dtCannonExample() {
+  const [bag1, bag2] = OPENERS.find((o) => o.id === "dt").steps;
+  const b = blank("DT: TSD → TST");
+  const marks = new Map(); // "bag letter" → the number that ties a piece's cells together
+  const mark = (key) => marks.get(key) ?? marks.set(key, marks.size + 1).get(key);
+  bag2.grid.forEach((row, i) => {
+    const r = ROWS - bag2.grid.length + i;
+    // The first bag sits on the floor too, so its rows line up from the bottom.
+    const under = bag1.grid[i - (bag2.grid.length - bag1.grid.length)];
+    [...row].forEach((ch, c) => {
+      const letter = ch === "X" ? under[c] : ch;
+      if (letter === "." || ch === "T") return; // the T of this step is the one to spin in
+      b.board[r][c] = LETTER_ID[letter];
+      b.marks[r][c] = mark((ch === "X" ? "1" : "2") + letter);
+    });
+  });
+  return { ...b, order: [LETTER_ID.T, LETTER_ID.T] };
+}
+function withExamples(list) {
+  try {
+    if (localStorage.getItem(EXAMPLES_SEEN)) return list;
+    localStorage.setItem(EXAMPLES_SEEN, "1");
+  } catch {
+    return list;
+  }
+  const out = [...list, dtCannonExample()];
+  saveList(out);
+  return out;
+}
+
 export function loadList() {
   try {
     const list = JSON.parse(localStorage.getItem(LIST) || "null");
-    if (Array.isArray(list)) return list.filter((b) => Array.isArray(b.board) && b.board.length === ROWS);
+    if (Array.isArray(list)) return withExamples(list.filter((b) => Array.isArray(b.board) && b.board.length === ROWS));
     // First run with lists: bring over the one board the editor used to keep.
     const one = JSON.parse(localStorage.getItem(STORE) || "null");
-    if (one && Array.isArray(one.board) && one.board.length === ROWS) return [{ ...blank("Board 1"), ...one, id: newId(), title: "Board 1" }];
+    if (one && Array.isArray(one.board) && one.board.length === ROWS) return withExamples([{ ...blank("Board 1"), ...one, id: newId(), title: "Board 1" }]);
   } catch {
     /* ignore */
   }
-  return [];
+  return withExamples([]);
 }
 
 export function saveList(list) {
