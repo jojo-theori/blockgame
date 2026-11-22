@@ -1,7 +1,9 @@
 // ─── A small QR code ───
-// Enough for a link: byte mode, error correction level L, versions 1 to 20
-// (up to 858 bytes), mask 0. Returns the modules as rows of booleans (true is
-// dark), or null when the text is too long.
+// Enough for a link: error correction level L, versions 1 to 20 (up to 858
+// bytes), mask 0. The text goes in as bytes, except a long tail made only of
+// digits, capitals and " $%*+-./:", which goes in the denser alphanumeric
+// mode (11 bits to two characters). Returns the modules as rows of booleans
+// (true is dark), or null when the text is too long.
 
 // Level L, by version: check bytes per block, and how many blocks.
 const EC = [0, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28];
@@ -28,8 +30,9 @@ function totalWords(version) {
   return Math.floor(bits / 8);
 }
 const dataWords = (version) => totalWords(version) - EC[version] * BLOCKS[version];
-// The length field is one byte up to version 9, two after.
-const room = (version) => dataWords(version) - (version < 10 ? 2 : 3);
+const ALNUM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+// How long a tail has to be before a segment of its own pays for itself.
+const TAIL_MIN = 24;
 
 // GF(256) arithmetic for the Reed–Solomon check bytes (polynomial 0x11d).
 const mul = (a, b) => {
@@ -70,20 +73,35 @@ export function formatBits(mask) {
 }
 
 export function qr(text) {
-  const bytes = [...new TextEncoder().encode(text)];
+  // Split off the tail that can go in alphanumeric mode.
+  let cut = text.length;
+  while (cut > 0 && ALNUM.includes(text[cut - 1])) cut--;
+  if (text.length - cut < TAIL_MIN) cut = text.length;
+  const bytes = [...new TextEncoder().encode(text.slice(0, cut))];
+  const tail = text.slice(cut);
+  // The bits it all takes: each segment is a mode (4), a length (longer from
+  // version 10), then its contents.
+  const need = (version) => (bytes.length ? 4 + (version < 10 ? 8 : 16) + bytes.length * 8 : 0) + (tail ? 4 + (version < 10 ? 9 : 11) + Math.floor(tail.length / 2) * 11 + (tail.length % 2) * 6 : 0);
   let version = 1;
-  while (version <= MAX_VERSION && bytes.length > room(version)) version++;
+  while (version <= MAX_VERSION && need(version) > dataWords(version) * 8) version++;
   if (version > MAX_VERSION) return null;
   const capacity = dataWords(version);
 
-  // Mode (byte), length, the bytes, a terminator, then padding.
   const bits = [];
   const push = (value, n) => {
     for (let i = n - 1; i >= 0; i--) bits.push((value >>> i) & 1);
   };
-  push(4, 4);
-  push(bytes.length, version < 10 ? 8 : 16);
-  bytes.forEach((b) => push(b, 8));
+  if (bytes.length) {
+    push(4, 4);
+    push(bytes.length, version < 10 ? 8 : 16);
+    bytes.forEach((b) => push(b, 8));
+  }
+  if (tail) {
+    push(2, 4);
+    push(tail.length, version < 10 ? 9 : 11);
+    for (let i = 0; i + 1 < tail.length; i += 2) push(ALNUM.indexOf(tail[i]) * 45 + ALNUM.indexOf(tail[i + 1]), 11);
+    if (tail.length % 2) push(ALNUM.indexOf(tail.at(-1)), 6);
+  }
   push(0, Math.min(4, capacity * 8 - bits.length));
   while (bits.length % 8) bits.push(0);
   const data = [];

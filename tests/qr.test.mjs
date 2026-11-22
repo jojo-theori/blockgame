@@ -19,4 +19,6 @@ test("QR: check bytes, format bits and the fixed patterns are right", () => {
   assert.equal(qr("x".repeat(425)).length, 69, "version 13");
   assert.equal(qr("x".repeat(858)).length, 97, "version 20");
   assert.equal(qr("x".repeat(859)), null);
+  // A tail of digits and capitals takes less room than the same length in bytes.
+  assert.ok(qr("https://example.com/#q=" + "A1$".repeat(100)).length < qr("https://example.com/#q=" + "a1_".repeat(100)).length);
 });

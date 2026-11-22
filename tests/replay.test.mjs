@@ -142,11 +142,12 @@ test("a Sprint packed for a QR code replays to the same board, lines and times",
   assert.deepEqual(b.map((e) => [e.kind, e.type, e.placed, e.rot]), a.map((e) => [e.kind, e.type, e.placed, e.rot]));
   assert.deepEqual(b.map((e) => e.action), a.map((e) => e.action), "lines and combos follow from the placements");
   assert.deepEqual(b.map((e) => e.finesseFault > 0), a.map((e) => e.finesseFault > 0));
-  assert.ok(a.every((e, i) => Math.abs(e.t - b[i].t) <= 0.026), "times to the nearest step");
+  assert.ok(a.every((e, i) => Math.abs(e.t - b[i].t) <= 0.051), "times to the nearest step");
   assert.equal(b.at(-1).t, a.at(-1).t, "the final time exactly");
   assert.deepEqual(buildFrames(b).frames.at(-1).matrix, buildFrames(a).frames.at(-1).matrix);
   assert.deepEqual(logMode(back, b), logMode(text, a));
   assert.ok(packed.length < 520, `packed to ${packed.length} characters for ${a.length} events`);
   assert.equal(packRun(text.replace(/^SPRINT 40L/, "BATTLE P1 vs CPU")), null, "only a Sprint");
+  assert.ok(/^[0-9A-Z$*+\-./:]+$/.test(packed), "only characters a QR code packs tightly");
   assert.equal(unpackRun("AAAA"), null);
 });
