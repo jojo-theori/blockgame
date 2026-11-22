@@ -15,6 +15,11 @@
 .lab-box:focus-within { outline: 1px solid var(--line); }
 /* The message under the box keeps its distance from it. */
 .lab-box + .key-msg { margin-top: 10px; }
+.lab-recent { width: 100%; max-width: 520px; display: flex; flex-direction: column; padding: 0 4px; text-align: left; }
+.lab-recent .k { margin-bottom: 6px; }
+.lab-recent button { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 5px 0; border: 0; background: transparent; font: inherit; font-size: var(--t2); color: var(--dim); text-align: left; cursor: pointer; transition: color 0.15s var(--out); }
+.lab-recent button:hover { color: var(--accent); }
+.lab-recent small { flex: none; font-size: var(--t1); color: var(--faint); }
 .lab-empty > *, .lab-lines { position: relative; z-index: 1; }
 .lab-empty { pointer-events: none; }
 .lab-empty .btn { pointer-events: auto; }

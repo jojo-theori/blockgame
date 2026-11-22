@@ -80,6 +80,7 @@ export default {
   "{n} more": "{n}개 더",
   "Click a piece above to add it, and here to take it out.": "위에서 눌러 넣고, 여기서 눌러 빼세요.",
   Shortcuts: "단축키",
+  "Recently analysed": "최근 분석한 리플레이",
   Tokens: "토큰",
   Actions: "액션",
   Choosing: "고르기",

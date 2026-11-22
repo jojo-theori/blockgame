@@ -43,3 +43,6 @@ export const LINE_AHEAD = 3; // pieces of the queue the better line goes on for
 export const KIND_NAMES = { macro: "Macro", dexterity: "Dexterity", finesse: "Finesse" };
 
 export const MAX_LINES = 400; // lines of a pasted log shown on the input page
+
+// How many recently analysed runs the Replay page lists.
+export const RECENT_SHOWN = 4;

@@ -3,8 +3,9 @@ import { t } from "../i18n.js";
 import { formatTime } from "../game.js";
 import { parseLog, buildFrames, logMode } from "../replay.js";
 import { sampleLog } from "../sample.js";
+import { loadRecent } from "../recent.js";
 import { Kbd } from "../ui.jsx";
-import { ACCENT, PASTE_MOD, modeName, MAX_LINES } from "./lab/consts.js";
+import { ACCENT, PASTE_MOD, modeName, MAX_LINES, RECENT_SHOWN } from "./lab/consts.js";
 import Viewer from "./lab/Viewer.jsx";
 
 export default function Lab({ settings, initial = "", onBack }) {
@@ -20,6 +21,21 @@ export default function Lab({ settings, initial = "", onBack }) {
     return events.some((e) => e.kind === "place") ? { events, ...buildFrames(events), mode: logMode(text, events) } : null;
   }, [text]);
   const lines = useMemo(() => text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), [text]);
+  // Runs that were sent here from a result screen, newest first, each with
+  // the one line that says what it was.
+  const recent = useMemo(
+    () =>
+      loadRecent()
+        .map((r) => {
+          const events = parseLog(r.text);
+          if (!events.some((e) => e.kind === "place")) return null;
+          const end = buildFrames(events).frames.at(-1);
+          return { ...r, what: `${modeName(logMode(r.text, events))}${t("{n} pieces", { n: end.placed })} · ${formatTime(events.at(-1).t)} · ${t("{n} lines", { n: end.lines })}` };
+        })
+        .filter(Boolean)
+        .slice(0, RECENT_SHOWN),
+    [],
+  );
 
   const take = useCallback((pasted) => {
     const clean = (pasted || "").trim();
@@ -133,6 +149,17 @@ export default function Lab({ settings, initial = "", onBack }) {
           )}
         </div>
         <div className="key-msg">{error && <span className="err">{t(error, { key: `${PASTE_MOD}V` })}</span>}</div>
+        {recent.length > 0 && (
+          <div className="lab-recent">
+            <div className="k">{t("Recently analysed")}</div>
+            {recent.map((r) => (
+              <button key={r.at} type="button" onClick={() => take(r.text)}>
+                <span>{r.what}</span>
+                <small>{new Date(r.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</small>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="actions">
         <button className="btn primary" onClick={() => setOpen(true)} disabled={!replay}>

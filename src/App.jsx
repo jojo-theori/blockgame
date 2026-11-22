@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
+import { saveRecent } from "./recent.js";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
 import { useDevProfiles } from "./dev.js";
@@ -170,6 +171,7 @@ export default function App() {
   // A finished game's log, handed to Replay from its result screen.
   const [labLog, setLabLog] = useState("");
   const analyze = useCallback((text) => {
+    saveRecent(text);
     setLabLog(text);
     setView("lab");
   }, []);
