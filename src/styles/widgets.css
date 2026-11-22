@@ -371,24 +371,6 @@
 
 /* ─── Top bar: language, theme, full screen (always visible) ─── */
 .topbar { position: absolute; z-index: 40; top: 10px; right: calc(var(--edge) - 8px); display: flex; gap: 2px; }
-.top-btn {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--dim);
-  font: inherit;
-  font-size: var(--t1);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background 0.2s var(--out), color 0.2s var(--out);
-}
-.top-btn:hover, .top-btn:focus-visible { background: var(--hover); color: var(--fg); }
-.top-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 html, body { transition: background-color 0.25s var(--out), color 0.25s var(--out); }
 /* Theme switch: one slow cross-fade of the whole page. */
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.45s; animation-timing-function: ease-in-out; }

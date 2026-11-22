@@ -44,6 +44,8 @@ export default function ListView(p) {
             </button>
             <div className="sb-item-more">
               <ActionMenu
+                size="m"
+                filled
                 items={[
                   {
                     label: "Play",

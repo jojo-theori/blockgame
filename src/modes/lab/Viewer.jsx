@@ -5,12 +5,12 @@ import { formatTime, getShape } from "../../game.js";
 import { analyze, bestLine } from "../../analysis.js";
 import { evalPosition } from "../../bots/review.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../../render.js";
-import { Stat, KeyHints, ReplayLog, PauseMenu } from "../../ui.jsx";
+import { Stat, KeyHints, ReplayLog, PauseMenu, IconButton, Icon } from "../../ui.jsx";
 import { useFit } from "../../fit.js";
 import { selectKey, keyLabel } from "../../keys.js";
 import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, SCORES, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
 import { ScoreHelp, Award } from "./Summary.jsx";
-import { IconButton, KindIcon, GradeIcon } from "./icons.jsx";
+import { KindIcon, GradeIcon } from "./icons.jsx";
 import { Typed, CountUp } from "./motion.jsx";
 
 export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
@@ -415,16 +415,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                         </button>
                     {moment?.best && (
                       <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          {shownLine ? (
-                            <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none" />
-                          ) : (
-                            <>
-                              <path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6z" />
-                              <circle cx="12" cy="12" r="2.6" />
-                            </>
-                          )}
-                        </svg>
+                        <Icon name={shownLine ? "stop" : "eye"} size={15} />
                         {t(shownLine ? "Stop" : "Show best")}
                       </button>
                     )}
@@ -473,7 +464,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
               <div className="lab-buttons">
                 <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />
                 <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
-                <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} main />
+                <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} lead />
                 <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
                 <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />
                 {/* One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again. */}

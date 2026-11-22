@@ -5,12 +5,12 @@ import { Icon } from "./icons.jsx";
 
 // A round button holding one icon. label names it (tooltip and screen
 // reader). size: "s" 32px, "m" 40px. filled: sits on a soft fill.
-// danger: goes red under the pointer.
-export function IconButton({ icon, label, size = "s", filled = false, danger = false, className = "", ...rest }) {
+// danger: goes red under the pointer. lead: the one main action, reversed.
+export function IconButton({ icon, label, size = "s", filled = false, danger = false, lead = false, className = "", ...rest }) {
   return (
     <button
       type="button"
-      className={"icon-btn " + size + (filled ? " filled" : "") + (danger ? " danger" : "") + (className ? " " + className : "")}
+      className={"icon-btn " + size + (filled ? " filled" : "") + (danger ? " danger" : "") + (lead ? " lead" : "") + (className ? " " + className : "")}
       title={t(label)}
       aria-label={t(label)}
       {...rest}

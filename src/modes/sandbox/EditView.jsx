@@ -236,6 +236,8 @@ export default function EditView(p) {
               {t("Save")}
             </button>
             <ActionMenu
+              size="m"
+              filled
               up
               items={[
                 {

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { sfx } from "../sound.js";
 import { t } from "../i18n.js";
 import { tr } from "./tr.js";
+import { IconButton } from "./primitives.jsx";
 
 // Confirm dialog for destructive actions. Esc or the backdrop cancels; Enter
 // confirms. Focus starts on Cancel so a stray Enter/Space never destroys.
@@ -52,7 +53,8 @@ export function ConfirmDialog({ open, title, body, confirmLabel, onConfirm, onCa
 // ⋯ menu: a round button that opens a short list of actions (right aligned).
 // items: [{ label, onClick, danger?, disabled? }]
 // up: opens above the button. start: the list starts at the button and runs to the right.
-export function ActionMenu({ items, label = "More", up = false, start = false }) {
+// size, filled: of its round button (see IconButton).
+export function ActionMenu({ items, label = "More", up = false, start = false, size = "s", filled = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -73,10 +75,12 @@ export function ActionMenu({ items, label = "More", up = false, start = false })
   }, [open]);
   return (
     <div ref={ref} className={"am" + (open ? " open" : "") + (up ? " up" : "") + (start ? " start" : "")}>
-      <button
-        type="button"
+      <IconButton
+        icon="more"
+        label={label}
+        size={size}
+        filled={filled}
         className="am-btn"
-        aria-label={t(label)}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={(e) => {
@@ -85,13 +89,7 @@ export function ActionMenu({ items, label = "More", up = false, start = false })
           sfx.tick();
           setOpen((o) => !o);
         }}
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="6" cy="12" r="1.6" />
-          <circle cx="12" cy="12" r="1.6" />
-          <circle cx="18" cy="12" r="1.6" />
-        </svg>
-      </button>
+      />
       <ul className="am-menu" role="menu">
         {items.map((it, i) => (
           <li key={it.label} style={{ "--i": i }}>

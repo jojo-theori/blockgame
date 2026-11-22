@@ -1,29 +1,6 @@
 // Icons of the replay screen: transport buttons, the three kinds of score, the grade marks.
-import { t } from "../../i18n.js";
 
 // Transport and navigation icons. Chevrons step, the triangle plays.
-const ICONS = {
-  first: <path d="M17 6.5 11.5 12l5.5 5.5M7.5 6.5v11" />,
-  prev: <path d="M14.5 6.5 9 12l5.5 5.5" />,
-  next: <path d="M9.5 6.5 15 12l-5.5 5.5" />,
-  last: <path d="M7 6.5 12.5 12 7 17.5M16.5 6.5v11" />,
-  back: <path d="M11 6.5 5.5 12l5.5 5.5M6 12h12.5" />,
-  close: <path d="M7.5 7.5l9 9M16.5 7.5l-9 9" />,
-  play: <path className="solid" d="M8.5 5.5v13l10-6.5z" />,
-  pause: <path className="solid" d="M8 5.5h2.5v13H8zM13.5 5.5H16v13h-2.5z" />,
-};
-
-// main: the filled, reversed one (play); round: a quiet filled circle (close).
-export function IconButton({ icon, label, main, round, ...rest }) {
-  return (
-    <button type="button" className={"lab-icon" + (main ? " lead" : "") + (round ? " round" : "")} title={t(label)} aria-label={t(label)} {...rest}>
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        {ICONS[icon]}
-      </svg>
-    </button>
-  );
-}
-
 // One picture per thing scored, used beside its score and on the comments
 // about it: a brain for macro (planning the stack), a bolt for dexterity
 // (speed), a target for finesse (exact, with nothing wasted).

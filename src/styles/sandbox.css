@@ -84,9 +84,7 @@
 
 /* ─── ⋯ action menu ─── */
 .am { position: relative; flex: none; }
-.am-btn { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--dim); cursor: pointer; transition: background 0.18s var(--out), color 0.18s var(--out); }
-.am-btn:hover, .am.open .am-btn { background: var(--hover); color: var(--fg); }
-.am-btn svg { width: 16px; height: 16px; fill: currentColor; }
+.am.open .am-btn { background: var(--hover); color: var(--fg); }
 .am-menu {
   position: absolute;
   z-index: 60;
@@ -126,7 +124,6 @@
 .am.up .am-menu { top: auto; bottom: calc(100% + 4px); transform-origin: bottom right; }
 .sb-row { display: flex; gap: 8px; align-items: center; }
 .sb-row .btn { flex: 1; width: auto; }
-.sb-row .am-btn { width: 40px; height: 40px; background: var(--fill); }
 .swatch { display: inline-block; flex: none; vertical-align: middle; }
 .sb-pen { align-self: center; width: 20px; height: 20px; margin-left: -2px; transform: translateY(-2px); display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--faint); cursor: pointer; transition: color 0.15s var(--out), background 0.15s var(--out); }
 /* While the name is being typed the pen goes (its place is kept). */
@@ -145,7 +142,6 @@
 .sb-actions .btn.primary:hover { filter: brightness(1.1); background: var(--accent); }
 .sb-board-actions { margin-top: auto; display: flex; align-items: center; gap: 8px; }
 .sb-board-actions .btn { flex: 1; height: 40px; }
-.sb-board-actions .am-btn { width: 40px; height: 40px; background: var(--fill); }
 .sb-board-actions .btn:disabled { opacity: 1; color: var(--muted); background: var(--fill); cursor: default; }
 .sb-edit-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }

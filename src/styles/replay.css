@@ -86,26 +86,6 @@
 
 /* Transport: first, back, play, forward, last; then, apart, the speed */
 .lab-buttons { display: flex; align-items: center; gap: 4px; margin-left: -8px; }
-.lab-icon {
-  flex: none;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--dim);
-  cursor: pointer;
-  transition: background 0.2s var(--out), color 0.2s var(--out);
-}
-.lab-icon:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
-.lab-icon:disabled { opacity: 0.3; cursor: default; }
-/* Play is the one filled button of the row: light on dark, reversed. */
-.lab-icon.lead { background: var(--fg); color: var(--on-fg); }
-.lab-icon.lead:hover:not(:disabled) { background: var(--fg-hi); color: var(--on-fg); }
-.lab-icon svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.lab-icon svg .solid { fill: currentColor; stroke: none; }
 .lab-speed {
   flex: none;
   width: 50px;
@@ -219,7 +199,6 @@
 .lab-moment-nav { display: flex; align-items: center; gap: 8px; }
 .lab-moment-nav .btn { height: 34px; padding: 0 13px; }
 .lab-best { gap: 6px; }
-.lab-best svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .lab-moment-nav .btn.primary:disabled { background: var(--cap); border-color: transparent; color: var(--faint); cursor: default; }
 
 .lab-held .k { color: var(--fg); }
