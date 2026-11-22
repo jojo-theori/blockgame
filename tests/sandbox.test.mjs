@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dtCannonExample, spinExamples } from "../src/modes/sandbox/store.js";
+import { dtCannonExample, spinExamples, situationExamples } from "../src/modes/sandbox/store.js";
 import { BlockEngine } from "../src/game.js";
 import { tSpins } from "../src/analysis.js";
 
@@ -65,5 +65,20 @@ test("each spin example clears its lines only with a spin", () => {
     assert.equal(Math.max(0, ...spun.map((p) => p.lines)), lines, ex.title);
     const plainBest = Math.max(0, ...[...plain].map((cells) => cells.match(/.{10}/g).filter((row) => !row.includes("0")).length));
     assert.ok(plainBest < lines, ex.title + ": a spin clears more than any plain drop");
+  }
+});
+
+test("the blog situations are whole boards with their pieces set", () => {
+  const all = situationExamples();
+  assert.equal(all.length, 19);
+  for (const ex of all) {
+    assert.equal(ex.board.length, 20, ex.title);
+    ex.board.forEach((row, r) => {
+      assert.equal(row.length, 10, ex.title);
+      assert.ok(!row.every(Boolean), ex.title + ": no row is already full");
+      row.forEach((v, c) => assert.equal(!!v, !!ex.marks[r][c], ex.title));
+    });
+    assert.ok(ex.order.length && ex.order.every((id) => id >= 1 && id <= 7), ex.title);
+    assert.ok(ex.board.slice(0, 2).every((row) => !row.slice(3, 7).some(Boolean)), ex.title + ": room to spawn");
   }
 });

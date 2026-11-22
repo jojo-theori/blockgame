@@ -98,8 +98,58 @@ export function spinExamples() {
     return { ...b, order: [LETTER_ID[letter]] };
   });
 }
+// Situations from the 정원 blog's guides to cleaning up a field with spins
+// (hse30.tistory.com/343 S and Z, /340 L and J, /544 I), numbered as there.
+// [title, hold, the pieces to come (the first is the one in hand), rows down to the floor]
+// A letter is a cell of that piece, X a garbage cell.
+const SITUATIONS = [
+  ["SZ-Spin 1-1", "I", "LZISTO", ["...S......", "...SS.....", "....S....I", "...JJ....I", "..ZJOO...I", ".ZZJOOSS.I", ".ZTJJSSLLL", ".XXXXXXXXX", ".XXXXXXXXX"]],
+  ["SZ-Spin 1-3", "T", "ZSITLJ", [".........Z", "........ZZ", "OO..SS..ZL", "OO.SS..LLL", "XXXXX.XXXX", "XXXXX.XXXX", "XXXXX.XXXX", "XXXXX.XXXX", "XXXXX.XXXX", "XXXXXXX.XX", "XXXXXXX.XX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXX.XXXX", "XXX.XXXXXX", ".XXXXXXXXX", "XXXXX.XXXX", "XXXXX.XXXX"]],
+  ["SZ-Spin 1-4", "I", "ZSLJIJ", ["OO........", "OO........", "LLLOO.....", "LSSOO....T", "XXXXX.XXXX", "XXXXX.XXXX", "XXXXXXXXX.", "XXXXXXXXX.", "XXXXXXXX.X", "XXXXXXXX.X", "XXXXXXXX.X", "XXX.XXXXXX", "XXX.XXXXXX"]],
+  ["SZ-Spin 2-1", "L", "ZTJISO", ["....T.ZZ..", "...TTTIZZ.", "....SSI...", "OO.SSLIJ..", "OO.LLLIJJJ"]],
+  ["SZ-Spin 2-2", "T", "SIZOLJ", [".........T", "...SS...TT", "OOSS.....T", "OOJJJ.ZS.I", ".LLLJZZSSI", ".XXXXXXXXX", ".XXXXXXXXX", ".XXXXXXXXX"]],
+  ["SZ-Spin 3", "I", "SLZTOJ", ["......SS..", "IIII.SS..J", "XXXXXXX.XX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX"]],
+  ["LJ-Spin 1", "I", "ZLJLOI", [".JJ.......", ".JS....OOI", ".JSS...OOI", ".ZZS...LLI", ".XXXXXXXXX", "XXXXXXXXX.", "XXXXXXXXX.", "XXXXXXXXX.", "XXXXXXXXX."]],
+  ["LJ-Spin 2", "T", "LOTZSI", ["......LLL.", "OOZZ..L...", "OOJZZ.S.OO", "ISJJJ.SSOO", "ISSLL.JSLL", "XXXXX.XXXX", "XXXXX.XXXX"]],
+  ["LJ-Spin 3", "I", "ZJISTO", ["..ZZ......", ".OOZZS....", ".OOSSSSJJ.", ".XXXXXXXXX", ".XXXXXXXXX", "XXXXXXXXX.", "XXXXXXXXX.", "XXXXXXXXX.", "XXXXXXXXX.", "XXXXX.XXXX", "XXXX.XXXXX"]],
+  ["LJ-Spin 4-1", "I", "JLTISO", ["..OO......", "L.OOSSZOO.", "L..SSZZOO.", "LLIIZZJJJ.", "XXXXXXXXX.", "XXXXX.XXXX", "XXXXXX.XXX", "XXXXXXXXX.", "XXXXXXXXX.", "XXXXXXXXX.", "XXXXXXXXX."]],
+  ["LJ-Spin 4-2", "O", "LTZJSI", [".JJ..OO...", ".JTTTOO...", ".JZTZZ..SS", ".ZZSSZZSSL", ".XXXXXXXXX", ".XXXXXXXXX", ".XXXXXXXXX", ".XXXXXXXXX"]],
+  ["LJ-Spin 5", "I", "LJTOSI", ["....JJJ...", "..SSI.J...", ".SSLI.....", ".LLLIJJ...", ".XXXXXXXXX", ".XXXXXXXXX", ".XXXXXXXXX", ".XXXXXXXXX"]],
+  ["I-Spin 1", "I", "TILJSI", [".....OO...", "...JSOO...", "...JSS....", "OOJJZS.JJJ", "OOZZZT..SJ", "XXXXXX.XXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "XXX.XXXXXX"]],
+  ["I-Spin 2", "I", "LSIZJO", ["JJ...JJLLL", "J....JSLOO", "LL.ZZSIIII"]],
+  ["I-Spin 3", "I", "LJSTLO", ["........OO", "........OO", ".......OOJ", ".......OOJ", ".......JJJ", "TTTZI..JJJ", "STZZI.LSLL", "SSZZI.LSSL", "SSZZI.LLSL", "XXXX.XXXXX", "XXXX.XXXXX", "XXXX.XXXXX", "XXXX.XXXXX", "XXXX.XXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX"]],
+  ["I-Spin 4", "S", "JITSZL", ["J.ZZ...OO.", "JJJZZ..OOL", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX", "X.XXXXXXXX"]],
+  ["I-Spin 5", "I", "ISLZJT", [".......S..", "I......SS.", "I.......S.", "IZZLLJJ.OO", "IZZZLJ..OO", "ZZSSLJJ.LL", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX", "XXXXXX.XXX"]],
+  ["I-Spin 6", "I", "IJLTZI", [".....SZZ..", "...ZZSSZZI", "....ZZSOOI", "LLL.JJJOOI", "LZ..JJJSSI", "ZZT.JSSSLL", "OO.LZZIIII", "LS.ZSOOJJI", "LS.ZZJSJJJ", "XX.XXXXXXX", "XX.XXXXXXX", "XX.XXXXXXX", "XX.XXXXXXX", "XX.XXXXXXX", "XX.XXXXXXX", "XX.XXXXXXX"]],
+  ["I-Spin 7", "", "I", ["......T...", ".....XX...", ".....X....", "XXXXXX.XXX", "XXXXXX..XX", "XXXXXX.XXX"]],
+];
+export function situationExamples() {
+  return SITUATIONS.map(([title, hold, order, rows]) => {
+    const b = blank(title);
+    const top = ROWS - rows.length;
+    let n = 0;
+    // Touching cells of one letter are taken as one piece (Erase → Piece).
+    const spread = (r, c, ch, id) => {
+      if (rows[r]?.[c] !== ch || b.marks[top + r][c]) return;
+      b.marks[top + r][c] = id;
+      if (ch === "X") return; // garbage cells each stand alone
+      spread(r + 1, c, ch, id);
+      spread(r - 1, c, ch, id);
+      spread(r, c + 1, ch, id);
+      spread(r, c - 1, ch, id);
+    };
+    rows.forEach((row, r) =>
+      [...row].forEach((ch, c) => {
+        if (ch === ".") return;
+        b.board[top + r][c] = ch === "X" ? 8 : LETTER_ID[ch];
+        spread(r, c, ch, ++n);
+      }),
+    );
+    return { ...b, hold: hold ? LETTER_ID[hold] : 0, order: [...order].map((ch) => LETTER_ID[ch]) };
+  });
+}
 // Each set of examples is added once: the number kept is the last set given.
-const EXAMPLE_SETS = [() => [dtCannonExample()], spinExamples];
+const EXAMPLE_SETS = [() => [dtCannonExample()], spinExamples, situationExamples];
 function withExamples(list) {
   let seen;
   try {
