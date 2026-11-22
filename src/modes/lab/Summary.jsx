@@ -35,8 +35,8 @@ export function ScoreHelp({ review, mode }) {
       "dexterity",
       "Dexterity",
       mode === "sprint"
-        ? ["How fast the pieces go down.", "For 40 lines: 2:00 is 25, 1:00 is 50, 0:30 is 75, 0:15 is 100."]
-        : ["How fast the pieces go down, in pieces per second (PPS).", "By TETR.IO's rank averages: D (0.7 PPS) is 37, B (1.1) is 52, S (1.6) is 67, U (2.4) is 81, X+ (3.5) is 95."],
+        ? ["How fast the pieces go down.", "For 40 lines: 4:00 is 25, 2:00 is 50, 1:00 is 75, 0:30 is 100."]
+        : ["How fast the pieces go down, in pieces per second (PPS).", "By TETR.IO's rank averages: D (0.7 PPS) is 48, B (1.1) is 64, S (1.6) is 77, U (2.4) is 92, and 3 PPS or more is 100."],
     ],
     ["finesse", "Finesse", ["The share of pieces placed without a wasted key press.", "70% is the usual mark for moving on to harder things."]],
   ];

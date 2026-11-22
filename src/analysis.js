@@ -171,17 +171,17 @@ const engineFlag = (loss, rank) => (loss >= ENGINE_GRADES.inaccuracy && rank >= 
 //              sprintMacro). Other modes: the stack evaluator.
 //   dexterity  pieces per second on a log scale, 25 points a doubling, set
 //              against what players actually do:
-//              Sprint  40 lines in 2:00 is 25, 1:00 is 50, 0:30 is 75, 0:15
-//                      is 100 (0.84, 1.7, 3.4, 6.7 PPS; the usual beginner /
-//                      intermediate / advanced / expert bands).
-//              Battle  slower, since there is more to read. From 0.25 PPS (0)
-//                      to 4 PPS (100): TETR.IO's rank averages land at D 37,
-//                      B 52, A 59, S 67, SS 74, U 81, X 89, X+ 95.
+//              Sprint  40 lines in 4:00 is 25, 2:00 is 50, 1:00 is 75, 0:30
+//                      is 100 (0.42, 0.84, 1.7, 3.4 PPS). The top is a time
+//                      strong players reach, not the world record (about 0:13).
+//              Battle  slower, since there is more to read. From 0.19 PPS (0)
+//                      to 3 PPS (100): TETR.IO's rank averages land at D 48,
+//                      B 64, S 77, U 92, X+ 100.
 //   finesse    the share of pieces placed without a wasted key press, the
 //              way TETR.IO and Jstris count it. 70% is the usual mark for
 //              "good enough to move on".
 const clamp = (n) => Math.max(0, Math.min(100, n));
-export const dexterityScore = (pps, mode) => (pps > 0 ? Math.round(clamp((100 * Math.log2(pps / (mode === "sprint" ? 0.42 : 0.25))) / 4)) : 0);
+export const dexterityScore = (pps, mode) => (pps > 0 ? Math.round(clamp((100 * Math.log2(pps / (mode === "sprint" ? 0.21 : 0.1875))) / 4)) : 0);
 export const finesseScore = (clean, scored) => (scored ? Math.round((100 * clean) / scored) : 100);
 const cellKey = (cells) => cells.map(([r, c]) => r * 10 + c).sort((x, y) => x - y).join(",");
 // A line of moves ({ id, cells }, each on the board the one before left)
