@@ -1,7 +1,7 @@
 // ─── Components ───
 // Every shared part on one page, live, so a new screen can be put together
 // from what is here and a change to a part can be seen everywhere at once.
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { t } from "../i18n.js";
 import {
   Segmented,
@@ -19,22 +19,98 @@ import {
   Swatch,
   Icon,
   ICON_NAMES,
+  Button,
   IconButton,
+  HelpTip,
   Chip,
   ChipGrid,
   Well,
 } from "../ui.jsx";
+import { BUTTON, ICON_BUTTON, CHIP } from "../ui/variants.js";
 
 const ACCENT = "#f2cb4c";
 const COLOURS = ["--fg", "--dim", "--faint", "--muted", "--line", "--hover", "--fill", "--bad"];
 const TYPE = ["--t1", "--t2", "--t3", "--t4", "--t5", "--t6", "--t7"];
 const PIECES = [1, 2, 3, 4, 5, 6, 7];
 
-function Row({ name, children }) {
+function Row({ name, stack = false, children }) {
   return (
     <div className="cat-row">
       <div className="k">{t(name)}</div>
-      <div className="cat-items">{children}</div>
+      <div className={"cat-items" + (stack ? " stack" : "")}>{children}</div>
+    </div>
+  );
+}
+
+// One part with a control for each of its props: the part itself, the props
+// beside it, and the code that makes what is showing.
+//   tag       the component's name
+//   axes      { prop: [values] } (from variants.js)
+//   defaults  the value each prop has when left out (left out of the code too)
+//   flags     on/off props
+//   fixed     props the example always passes, as written in the code
+//   body      what goes between the tags
+function Playground({ tag, axes, defaults, flags = [], fixed = "", body, render }) {
+  const [v, setV] = useState(() => ({ ...defaults, ...Object.fromEntries(flags.map((f) => [f, false])) }));
+  const set = (k) => (x) => setV((o) => ({ ...o, [k]: x }));
+  const attrs =
+    (fixed && " " + fixed) +
+    Object.keys(axes)
+      .filter((k) => v[k] !== defaults[k])
+      .map((k) => ` ${k}="${v[k]}"`)
+      .join("") +
+    flags
+      .filter((f) => v[f])
+      .map((f) => " " + f)
+      .join("");
+  return (
+    <div className="cat-play">
+      <div className="cat-stage">{render(v)}</div>
+      <div className="cat-knobs">
+        {Object.entries(axes).map(([k, values]) => (
+          <div key={k} className="cat-knob">
+            <span className="k">{k}</span>
+            <Segmented label={k} options={values.map((id) => ({ id, label: id }))} value={v[k]} onChange={set(k)} />
+          </div>
+        ))}
+        {flags.map((f) => (
+          <div key={f} className="cat-knob">
+            <span className="k">{f}</span>
+            <Segmented
+              label={f}
+              options={[
+                { id: false, label: "Off" },
+                { id: true, label: "On" },
+              ]}
+              value={v[f]}
+              onChange={set(f)}
+            />
+          </div>
+        ))}
+      </div>
+      <code className="cat-code">{body ? `<${tag}${attrs}>${body}</${tag}>` : `<${tag}${attrs} />`}</code>
+    </div>
+  );
+}
+
+// Every value of one prop against every value of another.
+function Matrix({ rows, cols, cell }) {
+  return (
+    <div className="cat-matrix" style={{ "--cols": cols.length }}>
+      <span />
+      {cols.map((c) => (
+        <span key={c} className="k">
+          {c}
+        </span>
+      ))}
+      {rows.map((r) => (
+        <Fragment key={r}>
+          <span className="k">{r}</span>
+          {cols.map((c) => (
+            <span key={c}>{cell(r, c)}</span>
+          ))}
+        </Fragment>
+      ))}
     </div>
   );
 }
@@ -69,21 +145,29 @@ export default function Catalog({ onBack }) {
               </span>
             ))}
           </Row>
-          <Row name="Button">
-            <button className="btn primary">{t("Play")}</button>
-            <button className="btn">{t("Save")}</button>
-            <button className="btn ghost">{t("Back")}</button>
-            <button className="btn danger">{t("Delete")}</button>
-            <button className="btn" disabled>
-              {t("Save")}
-            </button>
+          <Row name="Button" stack>
+            <Playground
+              tag="Button"
+              axes={BUTTON}
+              defaults={{ variant: "secondary", tone: "neutral", size: "m" }}
+              flags={["block", "disabled"]}
+              body="Save"
+              render={(v) => <Button {...v}>{t("Save")}</Button>}
+            />
+            <Matrix rows={BUTTON.variant} cols={BUTTON.tone} cell={(variant, tone) => <Button variant={variant} tone={tone}>{t("Save")}</Button>} />
+            <Matrix rows={["size"]} cols={BUTTON.size} cell={(_, size) => <Button size={size}>{t("Save")}</Button>} />
           </Row>
-          <Row name="Icon button">
-            <IconButton icon="back" label="Back" />
-            <IconButton icon="more" label="More" variant="filled" />
-            <IconButton icon="trash" label="Delete" tone="danger" />
-            <IconButton icon="back" label="Back" size="m" variant="filled" />
-            <IconButton icon="close" label="Close" disabled />
+          <Row name="Icon button" stack>
+            <Playground
+              tag="IconButton"
+              axes={ICON_BUTTON}
+              defaults={{ variant: "ghost", tone: "neutral", size: "s" }}
+              flags={["disabled"]}
+              fixed={'icon="trash" label="Delete"'}
+              render={(v) => <IconButton icon="trash" label="Delete" {...v} />}
+            />
+            <Matrix rows={ICON_BUTTON.variant} cols={ICON_BUTTON.tone} cell={(variant, tone) => <IconButton icon="trash" label="Delete" variant={variant} tone={tone} />} />
+            <Matrix rows={["size"]} cols={ICON_BUTTON.size} cell={(_, size) => <IconButton icon="back" label="Back" variant="filled" size={size} />} />
           </Row>
           <Row name="Icon">
             {ICON_NAMES.map((name) => (
@@ -93,12 +177,17 @@ export default function Catalog({ onBack }) {
               </span>
             ))}
           </Row>
-          <Row name="Chip">
-            <Chip>{t("Sprint")}</Chip>
-            <Chip on>{t("Battle")}</Chip>
-            <Chip tone="danger" title={t("Clear all")}>
-              <Icon name="trash" size={15} />
+          <Row name="Chip" stack>
+            <Playground tag="Chip" axes={CHIP} defaults={{ tone: "neutral" }} flags={["on", "disabled"]} body="Sprint" render={(v) => <Chip {...v}>{t("Sprint")}</Chip>} />
+            <Matrix rows={["off", "on"]} cols={CHIP.tone} cell={(on, tone) => <Chip on={on === "on"} tone={tone}>{t("Sprint")}</Chip>} />
+          </Row>
+          <Row name="Tip">
+            <Chip tip={t("Piece")} keys={["A"]}>
+              <PieceIcon id={1} />
             </Chip>
+            <HelpTip label="Shortcuts">
+              <KeyHints items={[[["Q", "W", "E"], "Piece, cells, erase"]]} />
+            </HelpTip>
           </Row>
           <Row name="Chip grid">
             <ChipGrid cols={4} className="cat-fixed">

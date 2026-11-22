@@ -80,6 +80,7 @@ export default {
   "{n} more": "{n}개 더",
   "Click a piece above to add it, and here to take it out.": "위에서 눌러 넣고, 여기서 눌러 빼세요.",
   Shortcuts: "단축키",
+  Tip: "팁",
   Draw: "그리기",
   Piece: "블록",
   Cells: "칸",

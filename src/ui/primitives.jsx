@@ -20,7 +20,7 @@ const cls = (...parts) => parts.filter(Boolean).join(" ");
 //   icon     the name of an icon to lead with
 export function Button({ variant = "secondary", tone = "neutral", size = "m", block = false, icon, className, children, ...rest }) {
   return (
-    <button type="button" className={cls("btn", variant !== "secondary" && variant, tone !== "neutral" && "tone-" + tone, size !== "m" && "size-" + size, block && "block", className)} {...rest}>
+    <button type="button" className={cls("btn", "ds-btn", variant !== "secondary" && variant, tone !== "neutral" && "tone-" + tone, size !== "m" && "size-" + size, block && "block", className)} {...rest}>
       {icon && <Icon name={icon} size={15} />}
       {children}
     </button>
