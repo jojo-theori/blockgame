@@ -1,0 +1,499 @@
+// The replay itself: the board stepping through the log, the review beside it, the transport under it.
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { t } from "../../i18n.js";
+import { formatTime, getShape } from "../../game.js";
+import { analyze, bestLine } from "../../analysis.js";
+import { evalPosition } from "../../bots/review.js";
+import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../../render.js";
+import { Stat, KeyHints, ReplayLog, PauseMenu } from "../../ui.jsx";
+import { useFit } from "../../fit.js";
+import { selectKey, keyLabel } from "../../keys.js";
+import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, SCORES, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
+import { ScoreHelp, Award } from "./Summary.jsx";
+import { IconButton, KindIcon, GradeIcon } from "./icons.jsx";
+import { Typed, CountUp } from "./motion.jsx";
+
+export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
+  const { events, frames, dealt } = replay;
+  const total = events.length;
+  // Wide enough for the log on the left and the review on the right.
+  const zoom = useFit(1260, 600);
+  const canvasRef = useRef(null);
+  const holdRef = useRef(null);
+  const queueRef = useRef(null);
+
+  // step: how many events have happened; clock: the replay's own time.
+  const [step, setStep] = useState(0);
+  const [clock, setClock] = useState(0);
+  // Opens stopped: the analysis starts by itself and goes to the first moment.
+  const [playing, setPlaying] = useState(false);
+  // Esc pauses, as in the game modes: the menu is the way out.
+  const [menu, setMenu] = useState(null); // null, or { wasPlaying }
+  const [speed, setSpeed] = useState(4); // starts fast; the button steps down from there
+  const clockRef = useRef(0);
+
+  const seek = useCallback(
+    (k) => {
+      const n = Math.min(total, Math.max(0, k));
+      clockRef.current = n ? events[n - 1].t : 0;
+      setClock(clockRef.current);
+      setStep(n);
+    },
+    [events, total],
+  );
+
+  // Playback: one event per beat, at an even pace. The log says when each
+  // piece locked but not how it got there, so the player's own timing is not
+  // re-enacted; the clock on the left still shows the real time of each move.
+  useEffect(() => {
+    if (!playing || step >= total) return;
+    const id = setTimeout(() => {
+      seek(step + 1);
+      if (step + 1 >= total) setPlaying(false);
+    }, BEAT_MS / speed);
+    return () => clearTimeout(id);
+  }, [playing, speed, step, total, seek]);
+
+  // Analysis: scores and the moments worth a second look. `review` is null
+  // until asked for, a number (0..1) while it runs, then the result.
+  const [review, setReview] = useState(0); // starts analysing as soon as it opens
+  // "Show": the better line from this moment, played out piece by piece on
+  // the board. It belongs to the step it was asked on; moving away ends it.
+  const [line, setLine] = useState(null); // { step, moves, shown }
+  const startAnalysis = () => {
+    // The numbers themselves come in an instant. The loading is staged on a
+    // fixed clock instead (LOAD_MS, easing out), so the review arrives with
+    // some ceremony and the result is shown when both are done.
+    let began = null;
+    const staged = new Promise((done) => {
+      const tick = (now) => {
+        began ??= now;
+        const p = Math.min(1, (now - began) / LOAD_MS);
+        setReview((r) => (typeof r === "number" ? 1 - (1 - p) ** 2.2 : r));
+        if (p < 1) requestAnimationFrame(tick);
+        else done();
+      };
+      requestAnimationFrame(tick);
+    });
+    Promise.all([analyze(replay, undefined, evalPosition), staged]).then(([result]) => {
+      // It opens on the summary of the whole run; the moments come after.
+      setReview(result);
+    });
+  };
+  // Runs once, when the replay opens.
+  const began = useRef(false);
+  useEffect(() => {
+    if (began.current) return;
+    began.current = true;
+    startAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const moments = review && typeof review === "object" ? review.moments : NO_MOMENTS;
+  const momentAt = moments.findIndex((m) => m.step === step);
+  // The start of the replay shows the summary: always when nothing happened
+  // on the first move, and until Next is pressed when something did.
+  const [intro, setIntro] = useState(true);
+  const overview = step === 0 && !playing && (intro || momentAt < 0);
+  const moment = momentAt >= 0 && !overview ? moments[momentAt] : null;
+  const shownLine = line && line.step === step ? line : null;
+  const showLine = () => {
+    const ids = [LETTER_ID[events[step].type], ...dealt.slice(frames[step].dealtCount, frames[step].dealtCount + LINE_AHEAD)];
+    setPlaying(false);
+    // A move that clears lines takes two beats: the piece on the board with
+    // the rows still full, then the board after they are gone.
+    // An engine moment brings its own line; the others are worked out here.
+    const moves = (moment?.line || bestLine(frames[step].matrix, ids, replay.mode.mode, moment?.first)).flatMap((m, n) =>
+      m.cleared && m.placed ? [{ ...m, piece: n + 1, matrix: m.placed, cleared: 0 }, { ...m, piece: n + 1 }] : [{ ...m, piece: n + 1 }],
+    );
+    setLine({ step, moves, shown: 1 });
+  };
+  // One more piece of the line every beat. Once it is all on the board it
+  // stays a moment, then goes away by itself, back to the real game.
+  useEffect(() => {
+    if (!shownLine) return;
+    const done = shownLine.shown >= shownLine.moves.length;
+    const id = setTimeout(() => setLine((l) => (done ? null : l && { ...l, shown: l.shown + 1 })), done ? 1400 : 520);
+    return () => clearTimeout(id);
+  }, [shownLine]);
+  // Next or previous moment from wherever the replay is. Going forward, the
+  // moves in between are run through quickly first (about a second at most),
+  // so the moment is seen in the flow of the game and not as a cut.
+  const rushRef = useRef(null);
+  const stopRush = useCallback(() => {
+    clearInterval(rushRef.current);
+    rushRef.current = null;
+  }, []);
+  useEffect(() => stopRush, [stopRush]);
+  const jump = useCallback(
+    (d) => {
+      setIntro(false);
+      // From the summary, Next first shows what happened on the opening move.
+      if (d > 0 && overview && momentAt >= 0) return;
+      const target = d > 0 ? moments.find((m) => m.step > step) : [...moments].reverse().find((m) => m.step < step);
+      if (!target) return;
+      stopRush();
+      setPlaying(false);
+      if (d < 0) return seek(target.step);
+      let at = step;
+      const stride = Math.max(1, Math.ceil((target.step - step) / 22));
+      rushRef.current = setInterval(() => {
+        at = Math.min(target.step, at + stride);
+        seek(at);
+        if (at >= target.step) stopRush();
+      }, 55);
+    },
+    [moments, step, seek, stopRush, overview, momentAt],
+  );
+
+  const hasNext = moments.some((m) => m.step > step || (overview && m.step === step));
+  const restart = () => {
+    stopRush();
+    setPlaying(false);
+    setIntro(true);
+    seek(0);
+  };
+
+  const firstMoment = () => {
+    stopRush();
+    setPlaying(false);
+    setIntro(false);
+    seek(moments[0].step);
+  };
+
+  const toggle = useCallback(() => {
+    stopRush();
+    if (!playing && step >= total) seek(0);
+    setPlaying((p) => !p);
+  }, [playing, step, total, seek, stopRush]);
+  const stepBy = useCallback(
+    (d) => {
+      stopRush();
+      setPlaying(false);
+      seek(step + d);
+    },
+    [seek, step, stopRush],
+  );
+
+  useEffect(() => {
+    if (keysOff) return;
+    const onKey = (e) => {
+      if (e.code === "Escape") {
+        // Open the pause menu, or close it and go on as before.
+        if (menu) {
+          setPlaying(menu.wasPlaying);
+          setMenu(null);
+        } else {
+          stopRush();
+          setMenu({ wasPlaying: playing });
+          setPlaying(false);
+        }
+        return;
+      }
+      if (menu) return; // the menu takes the keys (shared navigation)
+      if (e.target instanceof HTMLElement && e.target.closest("input")) return;
+      if (e.code === selectKey()) {
+        e.preventDefault();
+        if (!e.repeat) toggle();
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        stepBy(-1);
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        stepBy(1);
+      } else if (e.code === "ArrowUp" || e.code === "ArrowDown") {
+        e.preventDefault();
+        jump(e.code === "ArrowDown" ? 1 : -1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [keysOff, toggle, stepBy, jump, menu, playing, stopRush]);
+
+  // Draw: the board so far, plus the next piece above the spot it will land on.
+  const frame = frames[step];
+  useEffect(() => {
+    const next = events[step];
+    const board = { matrix: frame.matrix, currentId: 0 };
+    if (next?.kind === "place") {
+      Object.assign(board, {
+        playing: true,
+        currentId: LETTER_ID[next.type],
+        currentRot: next.rot,
+        currentX: next.placed[0],
+        currentY: next.spawn[1],
+        ghostY: next.placed[1],
+      });
+    }
+    if (shownLine) {
+      // The better line: the board as it would be, the newest piece lit, and
+      // the queue moved on by as many pieces as were placed.
+      const n = shownLine.shown;
+      const last = shownLine.moves[n - 1];
+      drawBoard(canvasRef.current, { matrix: last.matrix, currentId: 0 }, { mark: last.cleared ? null : last.cells });
+      // An engine line knows what it held along the way; the others never hold.
+      drawHold(holdRef.current, last.hold !== undefined ? last.hold : frame.hold);
+      drawQueue(queueRef.current, last.next || dealt.slice(frame.dealtCount + last.piece - 1));
+      return;
+    }
+    if (moment && !playing && next?.kind === "place") {
+      // Stopped on a key moment: the piece is shown where it was put down
+      // (before any line clears), ringed, so the move itself is easy to read.
+      // The better spot is only shown by Show best, so the two never mix.
+      const id = LETTER_ID[next.type];
+      const shape = getShape(id, next.rot);
+      const placed = frame.matrix.map((row) => row.slice());
+      const cells = [];
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape.length; c++) {
+          const y = next.placed[1] + r;
+          const x = next.placed[0] + c;
+          if (!shape[r][c] || y < 0 || y >= placed.length) continue;
+          placed[y][x] = id;
+          cells.push([y, x]);
+        }
+      }
+      drawBoard(canvasRef.current, { matrix: placed, currentId: 0 }, { mark: cells });
+    } else {
+      drawBoard(canvasRef.current, board);
+    }
+    drawHold(holdRef.current, frame.hold);
+    drawQueue(queueRef.current, dealt.slice(frame.dealtCount));
+  }, [events, dealt, frame, step, moment, shownLine, playing, look]);
+
+  const held = step > 0 && events[step - 1].kind === "hold";
+  const shown = useMemo(() => events.slice(Math.max(0, step - 40), step), [events, step]);
+  const blur = (fn) => (e) => {
+    e.currentTarget.blur();
+    fn();
+  };
+
+  return (
+    <>
+      <div className="mode-label">
+        {t("Replay")}
+        {replay.mode.mode === "unknown" ? "" : ` · ${modeName(replay.mode, "")}`}
+      </div>
+      <div style={{ zoom, "--accent": ACCENT }}>
+        <div className="play">
+          <ReplayLog events={shown} total={step} />
+          <div className="side">
+            {/* A hold is easy to miss in a replay, so the step it happens on lights
+                the hold up; the key restarts the pop on every new hold. */}
+            <div key={held ? step : "hold"} className={held ? "lab-held" : ""}>
+              <div className="k">{t("Hold")}</div>
+              <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
+            </div>
+            {/* What was played, with the run's other facts. */}
+            {MODE_NAMES[replay.mode.mode] && (
+              <div className="stat">
+                <div className="k">{t(MODE_NAMES[replay.mode.mode])}</div>
+                <div className="v lab-mode">{replay.mode.lines ? t("{n} lines", { n: replay.mode.lines }) : replay.mode.vs ? `vs ${replay.mode.vs}` : "–"}</div>
+                {/* A CPU's level, and the handicap of each side when either had
+                    one: each on a line of its own, so neither wraps. */}
+                {replay.mode.level && <div className="k lab-mode-sub">{t(replay.mode.level)}</div>}
+                {replay.mode.handicap?.some(Boolean) && (
+                  <div className="k lab-mode-sub">
+                    {t("Handicap")} {replay.mode.handicap.map((h) => (h > 0 ? "+" : "") + h).join(" : ")}
+                  </div>
+                )}
+              </div>
+            )}
+            <Stat k="Time" v={formatTime(clock)} big />
+            <Stat k="Pieces" v={`${frame.placed} / ${frames[total].placed}`} />
+            <Stat k="Lines" v={frame.lines} />
+            <Stat k="PPS" v={clock > 0 ? (frame.placed / clock).toFixed(2) : "0.00"} />
+          </div>
+          <div className="board-wrap">
+            <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
+            {menu && (
+              <PauseMenu
+                onResume={() => {
+                  setPlaying(menu.wasPlaying);
+                  setMenu(null);
+                }}
+                onSetup={onClose}
+                onMenu={onMenu}
+              />
+            )}
+          </div>
+          <div className="side right">
+            <div>
+              <div className="k">{t("Next")}</div>
+              <canvas ref={queueRef} width={HOLD_W} height={SLOT * 5} style={{ marginTop: 8 }} />
+            </div>
+            <KeyHints
+              style={{ flexDirection: "column", alignItems: "flex-start", whiteSpace: "nowrap" }}
+              items={[
+                [[keyLabel(selectKey())], playing ? "pause" : "play"],
+                [["←", "→"], "step"],
+                ...(moments.length ? [[["↑", "↓"], "key moments"]] : []),
+                [["Esc"], menu ? "resume" : "pause"],
+              ]}
+            />
+          </div>
+          {/* Everything that drives the replay sits beside the queue: the review
+              on top, the timeline and transport at the bottom, level with the
+              foot of the board. Nothing here changes the page's layout. */}
+          <div className="lab-side">
+            {/* The scores: soft pulses while they are worked out, then the numbers. */}
+            <div className="lab-top">
+              {review && typeof review === "object" && <ScoreHelp review={review} mode={replay.mode.mode} />}
+              {review !== null && (
+                <div className={"lab-scores" + (typeof review === "number" ? " waiting" : "")}>
+                  {SCORES.map(([key, label, hint], n) => (
+                    <div key={key} title={t(hint)} className={typeof review === "number" && review * SCORES.length > n ? "on" : ""}>
+                      <div className="k lab-score-k">
+                        <KindIcon kind={key} />
+                        {t(label)}
+                      </div>
+                      {/* A soft pulse holds the place while the score is worked out. */}
+                      {typeof review === "number" ? (
+                        <div className="v lab-wait" style={{ "--i": n }} />
+                      ) : (
+                        <div className="v">
+                          <CountUp to={review.scores[key]} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {typeof review === "number" && (
+              <div className="lab-loading">
+                <div className="lab-stage">
+                  <span key={stageOf(review)}>{t(STAGES[stageOf(review)])}</span>
+                  <b>{Math.round(review * 100)}%</b>
+                </div>
+                <i style={{ "--p": review }} />
+              </div>
+            )}
+            {review && typeof review === "object" && (
+              <>
+                <div className="lab-moment">
+                  {/* The comment's slot keeps one height, so the buttons under it
+                      never move; away from a key moment there is only a quiet note. */}
+                  <div className={"lab-slot" + (overview ? " open" : "")}>
+                    {moment ? (
+                      // While the replay runs, comments it passes just appear: the pop
+                      // and the typing are for a moment the player stops on.
+                      <div key={moment.step} className={"lab-bubble " + moment.grade + (playing ? " still" : "")}>
+                        <div className="lab-bubble-head">
+                          <GradeIcon grade={moment.grade} />
+                          <b>
+                            #{moment.step + 1} {events[moment.step].type} · {t(GRADES[moment.grade])}
+                          </b>
+                          <span className="lab-kind" title={t(KIND_NAMES[moment.kind])}>
+                            <KindIcon kind={moment.kind} />
+                          </span>
+                        </div>
+                        <p>
+                          <Typed text={t(moment.text[0], moment.text[1])} instant={playing} />
+                        </p>
+                      </div>
+                    ) : overview ? (
+                      <Award review={review} />
+                    ) : (
+                      <p className="lab-quiet">{t(moments.length ? "Nothing to note at this move." : "Nothing stood out in this run.")}</p>
+                    )}
+                  </div>
+                  {/* Previous and Next come first and never move; Show best joins
+                      them on the right when there is a better line to show. */}
+                  <div className="lab-moment-nav">
+                    {overview ? (
+                      <button type="button" className="btn primary compact" onClick={blur(() => jump(1))} disabled={!moments.length}>
+                        {moments.length ? t("See {n} key moments", { n: moments.length }) : t("No key moments")}
+                      </button>
+                    ) : (
+                      <>
+                        <IconButton icon="prev" label="Previous" onClick={blur(() => jump(-1))} disabled={!moments.some((m) => m.step < step)} />
+                        {/* After the last moment it leads back to the first one.
+                            Both labels are laid out, so the button keeps one width. */}
+                        <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
+                          <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next moment")}</span>
+                          <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Back to start")}</span>
+                        </button>
+                    {moment?.best && (
+                      <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          {shownLine ? (
+                            <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none" />
+                          ) : (
+                            <>
+                              <path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6z" />
+                              <circle cx="12" cy="12" r="2.6" />
+                            </>
+                          )}
+                        </svg>
+                        {t(shownLine ? "Stop" : "Show best")}
+                      </button>
+                    )}
+                        <span className="lab-close">
+                          <IconButton icon="close" label="Back to summary" onClick={blur(restart)} />
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="lab-transport">
+              <div className="lab-track">
+                <input
+                  type="range"
+                  min={0}
+                  max={total}
+                  value={step}
+                  aria-label={t("Position")}
+                  onChange={(e) => {
+                    stopRush();
+                    setPlaying(false);
+                    seek(+e.target.value);
+                  }}
+                  onPointerUp={(e) => e.currentTarget.blur()}
+                />
+                {/* Key moments sit on the track where they happened. */}
+                {moments.map((m, n) => (
+                  <button
+                    key={m.step}
+                    type="button"
+                    tabIndex={-1}
+                    className={"lab-mark " + m.grade + (n === momentAt ? " on" : "")}
+                    style={{ left: `calc(1.5px + (100% - 3px) * ${m.step / total})` }}
+                    aria-label={`#${m.step + 1}`}
+                    onClick={blur(() => {
+                      stopRush();
+                      setPlaying(false);
+                      seek(m.step);
+                    })}
+                  />
+                ))}
+              </div>
+              <div className="lab-buttons">
+                <IconButton icon="first" label="First move" onClick={blur(() => stepBy(-total))} disabled={step === 0} />
+                <IconButton icon="prev" label="Previous move" onClick={blur(() => stepBy(-1))} disabled={step === 0} />
+                <IconButton icon={playing ? "pause" : "play"} label={playing ? "Pause" : "Play"} onClick={blur(toggle)} main />
+                <IconButton icon="next" label="Next move" onClick={blur(() => stepBy(1))} disabled={step >= total} />
+                <IconButton icon="last" label="Last move" onClick={blur(() => stepBy(total))} disabled={step >= total} />
+                {/* One button that steps through the speeds: 4×, 2×, 1×, 0.5×, round again. */}
+                <button
+                  type="button"
+                  className="lab-speed"
+                  onClick={blur(() => setSpeed((v) => SPEEDS[(SPEEDS.indexOf(v) - 1 + SPEEDS.length) % SPEEDS.length]))}
+                  title={t("Speed")}
+                  aria-label={`${t("Speed")} ${speed}×`}
+                >
+                  {speed}×
+                </button>
+              </div>
+              <button type="button" className="btn lab-menu" onClick={onMenu}>
+                {t("Main menu")}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
