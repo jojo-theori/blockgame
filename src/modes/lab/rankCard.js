@@ -165,8 +165,8 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
 // ── Foil ──
 // How much of the card catches the light, by rank. The low ranks are matte;
 // then a thin band of foil comes in, the seal's ring, the letter and the
-// mark, the frame, and at the top the whole card. grain: the texture laid in
-// the foil ("lines" fine and even, "sparkle" scattered points).
+// mark, the frame, and at the top a faint wash over the whole card as well
+// (wash). grain: the texture laid in the foil ("lines", fine and even).
 export const FOIL = {
   E: null,
   D: null,
@@ -175,7 +175,7 @@ export const FOIL = {
   A: { band: 0.07, ring: true, strength: 0.6 },
   S: { band: 0.1, ring: true, letter: true, mark: true, strength: 0.7, grain: "lines" },
   SS: { band: 0.16, ring: true, letter: true, mark: true, frame: true, strength: 0.8, grain: "lines" },
-  SSS: { all: true, strength: 0.3, grain: "sparkle" },
+  SSS: { band: 0.22, ring: true, letter: true, mark: true, frame: true, strength: 0.85, grain: "lines", wash: 0.1 },
 };
 
 // Where the foil sits on this card, as a picture to mask the foil with
@@ -194,10 +194,6 @@ export function drawFoilMask({ letter, step }) {
   const r = 200;
   ctx.fillStyle = "#000";
   ctx.strokeStyle = "#000";
-  if (foil.all) {
-    ctx.fillRect(0, 0, W, H);
-    return canvas;
-  }
   if (foil.band) {
     // A band across the lower half, at a slant, kept inside the glass panel.
     ctx.save();

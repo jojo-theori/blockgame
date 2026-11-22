@@ -125,6 +125,7 @@ function RankCardView({ what, onClose }) {
     >
       <div ref={cardRef} className="lab-cardview-card" onClick={(e) => e.stopPropagation()}>
         <img src={src} alt="" draggable={false} />
+        {foil?.wash && <i className="lab-foil" style={{ opacity: foil.wash }} />}
         {mask && <i className="lab-foil" style={{ ...mask, opacity: foil.strength }} />}
         {mask && foil.grain && <i className={"lab-foil-grain " + foil.grain} style={mask} />}
         <i className="lab-glare" />

@@ -272,10 +272,8 @@
 .lab-cardview-card i { position: absolute; inset: 0; display: block; pointer-events: none; }
 .lab-foil, .lab-foil-grain { mask-size: 100% 100%; -webkit-mask-size: 100% 100%; }
 .lab-foil { background: repeating-linear-gradient(115deg, #ff5fa8 0%, #ffd75e 9%, #6fe3a1 18%, #5fb8ff 27%, #b98cff 36%, #ff5fa8 45%); background-size: 260% 260%; background-repeat: no-repeat; background-position: var(--gx) var(--gy); mix-blend-mode: color-dodge; filter: saturate(1.3); }
-/* The texture in the foil: a fine even grain, or scattered points that shift
-   against each other as the card turns. */
+/* The texture in the foil: a fine even grain. */
 .lab-foil-grain { mix-blend-mode: overlay; }
 .lab-foil-grain.lines { background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.5) 0 1px, rgba(0, 0, 0, 0.35) 1px 3px); opacity: 0.55; }
-.lab-foil-grain.sparkle { background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 1px, transparent 1.6px) var(--gx) var(--gy) / 37px 31px, radial-gradient(circle, rgba(255, 255, 255, 0.8) 0 1.2px, transparent 1.9px) calc(100% - var(--gx)) calc(100% - var(--gy)) / 53px 47px, repeating-linear-gradient(60deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 6px); mix-blend-mode: screen; opacity: 0.5; }
 .lab-glare { background: radial-gradient(circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.22), transparent 55%); mix-blend-mode: screen; }
 .lab-cardview-actions { display: flex; gap: 8px; }
