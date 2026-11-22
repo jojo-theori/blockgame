@@ -1,19 +1,22 @@
 // ─── A run small enough for a QR code ───
-// The fewest bits that still replay a Sprint: for each piece its type, where
-// it was put down and when, whether a key was wasted on it and whether it was
-// a spin. Everything else a replay shows (lines, combos, the board) follows
-// from those. A 40-line run comes to about 270 bytes, which a phone can read
-// off the rank card. How the pieces moved on the way down is not kept: that
-// takes the longer link (pack.js).
+// The fewest bits that still replay a Sprint: which pieces came, where each
+// was put down, whether a key was wasted on it and whether it was a spin,
+// and the time the run took. Everything else a replay shows (lines, combos,
+// the board) follows from those. A 40-line run comes to about 140 bytes,
+// which a phone reads easily off the rank card. What is not kept: how the
+// pieces moved on the way down and when each one landed (the replay spaces
+// them evenly); the longer link (pack.js) has those.
 //
 // Layout (bits): version 4, goal lines 10, events 10, final time in ms 22,
-// then per event: 3 bits (0 a hold, 1–7 the piece), and
-//   hold   the piece held, 3; time
-//   piece  x + 2, 4; rot, 2; fell straight, 1 (else y + 2, 5); wasted a key, 1;
-//          spin, 1 (+ mini, 1); time
+// bags 1, then the events in order. Before an event that takes a new piece
+// from the queue, that piece: its place among those left in the bag of seven
+// (3, 3, 3, 2, 2, 1, 0 bits), or 3 bits each if the pieces did not come in
+// bags. Then the event:
+//   hold   15 in 4 bits
+//   piece  x + 2, 4; rot, 2 (not for O); fell straight, 1 (else y + 2, 5);
+//          wasted a key, 1; for a T, spin, 1 (+ mini, 1)
 // Where a piece simply fell to rest, its height is not written: dropping it
-// in that column gives it back. time is the 100 ms steps since the event
-// before: 3 bits up to 0.6 s, or 7 then 4 more, or 7, 15 and 10 more.
+// in that column gives it back.
 //
 // As text it is written in 43 characters a QR code packs tightly (digits,
 // capitals and a few signs: 16 bits to every three characters), which makes
@@ -21,8 +24,10 @@
 import { COLS, ROWS, getShape } from "./game.js";
 import { parseLog, logMode } from "./replay.js";
 
-const VERSION = 2;
-const STEP = 100;
+const VERSION = 3;
+const HOLD = 15;
+const O = 7;
+const T = 2;
 const LETTERS = " ITLJSZO";
 const LINES = ["", "Single", "Double", "Triple", "Quad"];
 export const RUN_HASH = "#q=";
@@ -104,50 +109,82 @@ function settle(matrix, id, x, y, rot) {
 }
 const emptyBoard = () => Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 
+// The pieces in the order they came from the queue. A piece shows up as the
+// type of the first event after one is taken; swapping with the hold takes
+// none.
+function dealtOf(events) {
+  const dealt = [];
+  let hold = null;
+  let take = true;
+  for (const ev of events) {
+    if (take) dealt.push(LETTERS.indexOf(ev.type));
+    if (ev.kind === "hold") {
+      take = hold === null;
+      hold = ev.type;
+    } else {
+      take = true;
+    }
+  }
+  return dealt;
+}
+const BAG = [1, 2, 3, 4, 5, 6, 7];
+const bitsFor = (n) => Math.ceil(Math.log2(n));
+
 // Log text → the packed run, or null when it is not a Sprint this can hold.
 export function packRun(text) {
   const events = parseLog(text);
   const mode = logMode(text, events);
   if (mode.mode !== "sprint" || !events.length || events.length > 1023 || events.some((e) => e.kind === "garbage")) return null;
+  const dealt = dealtOf(events);
+  // In bags of seven, each with one of every piece (the last may be cut short)?
+  const bags = dealt.every((id, i) => !dealt.slice(i - (i % 7), i).includes(id));
   const w = writer();
   w.put(VERSION, 4);
   w.put(Math.min(1023, mode.lines || 0), 10);
   w.put(events.length, 10);
   w.put(Math.min(2 ** 22 - 1, Math.round(events.at(-1).t * 1000)), 22);
-  let prev = 0;
+  w.put(bags ? 1 : 0, 1);
   let matrix = emptyBoard();
+  let left = [];
+  let next = 0;
+  let current = 0;
+  let hold = 0;
+  let take = true;
   for (const ev of events) {
-    const now = Math.round((ev.t * 1000) / STEP);
-    const dt = Math.max(0, now - prev);
-    prev = now;
-    const time = () => {
-      if (dt < 7) return w.put(dt, 3);
-      w.put(7, 3);
-      if (dt < 22) return w.put(dt - 7, 4);
-      w.put(15, 4);
-      w.put(Math.min(1023, dt), 10);
-    };
+    if (take) {
+      current = dealt[next++];
+      if (bags) {
+        if (!left.length) left = [...BAG];
+        w.put(left.indexOf(current), bitsFor(left.length));
+        left.splice(left.indexOf(current), 1);
+      } else {
+        w.put(current, 3);
+      }
+    }
+    // The piece in hand must be the one the log says: otherwise this is not
+    // a run that can be told this way.
+    if (LETTERS[current] !== ev.type) return null;
     if (ev.kind === "hold") {
-      w.put(0, 3);
-      w.put(LETTERS.indexOf(ev.type), 3);
-      time();
+      w.put(HOLD, 4);
+      take = !hold;
+      [hold, current] = [current, hold];
       continue;
     }
     const [x, y] = ev.placed;
-    if (x < -2 || x > 13 || y < -2 || y > 29) return null;
-    const id = LETTERS.indexOf(ev.type);
-    w.put(id, 3);
+    if (x < -2 || x > 12 || y < -2 || y > 29) return null;
     w.put(x + 2, 4);
-    w.put(ev.rot, 2);
-    const straight = restY(matrix, id, x, ev.rot) === y;
+    if (current !== O) w.put(ev.rot, 2);
+    const straight = restY(matrix, current, x, ev.rot) === y;
     w.put(straight ? 1 : 0, 1);
     if (!straight) w.put(y + 2, 5);
-    [matrix] = settle(matrix, id, x, y, ev.rot);
+    [matrix] = settle(matrix, current, x, y, ev.rot);
     w.put(ev.finesseFault > 0 ? 1 : 0, 1);
-    const spin = ev.action.includes("T-Spin");
-    w.put(spin ? 1 : 0, 1);
-    if (spin) w.put(ev.action.includes("Mini") ? 1 : 0, 1);
-    time();
+    if (current === T) {
+      const spin = ev.action.includes("T-Spin");
+      w.put(spin ? 1 : 0, 1);
+      if (spin) w.put(ev.action.includes("Mini") ? 1 : 0, 1);
+    }
+    take = true;
   }
   return toText(w.bytes);
 }
@@ -160,44 +197,50 @@ export function unpackRun(packed) {
     const goal = get(10);
     const count = get(10);
     const end = get(22);
+    const bags = get(1);
     const lines = [];
     let matrix = emptyBoard();
-    let step = 0;
     let combo = 0;
+    let left = [];
+    let current = 0;
+    let hold = 0;
+    let take = true;
     for (let n = 0; n < count; n++) {
-      const code = get(3);
-      const num = `#${String(n + 1).padStart(2, "0")}`;
-      const time = () => {
-        let dt = get(3);
-        if (dt === 7) {
-          dt = get(4);
-          dt = dt < 15 ? dt + 7 : get(10);
+      if (take) {
+        if (bags) {
+          if (!left.length) left = [...BAG];
+          current = left.splice(get(bitsFor(left.length)), 1)[0];
+        } else {
+          current = get(3);
         }
-        step += dt;
-        // The last event carries the exact time the run ended at.
-        return `[${((n === count - 1 ? end : step * STEP) / 1000).toFixed(3)}s]`;
-      };
-      if (code === 0) {
-        const type = LETTERS[get(3)];
-        lines.push(`${num} ${time()} ${type} hold`);
+      }
+      if (!current) return null;
+      const num = `#${String(n + 1).padStart(2, "0")}`;
+      // When each piece landed is not kept: they are spaced evenly to the end.
+      const stamp = `[${((end * (n + 1)) / count / 1000).toFixed(3)}s]`;
+      const field = get(4);
+      if (field === HOLD) {
+        lines.push(`${num} ${stamp} ${LETTERS[current]} hold`);
+        take = !hold;
+        [hold, current] = [current, hold];
         continue;
       }
-      const x = get(4) - 2;
-      const rot = get(2);
-      const y = get(1) ? restY(matrix, code, x, rot) : get(5) - 2;
+      const x = field - 2;
+      const rot = current === O ? 0 : get(2);
+      const y = get(1) ? restY(matrix, current, x, rot) : get(5) - 2;
       if (y === null) return null;
       const fault = get(1);
-      const spin = get(1);
+      const spin = current === T ? get(1) : 0;
       const mini = spin ? get(1) : 0;
-      const stamp = time();
       // Put the piece down to see what it cleared.
       let cleared;
-      [matrix, cleared] = settle(matrix, code, x, y, rot);
+      [matrix, cleared] = settle(matrix, current, x, y, rot);
       combo = cleared ? combo + 1 : 0;
       const name = cleared ? (spin ? `T-Spin ${mini ? "Mini " : ""}${LINES[cleared]}` : LINES[cleared]) : "";
       const words = [name + (combo > 1 ? ` Combo ${combo - 1}` : ""), cleared && matrix.every((row) => row.every((v) => !v)) ? "PC" : ""].filter(Boolean).join(" ");
       // Key counts are not kept: only whether one was wasted.
-      lines.push(`${num} ${stamp} ${LETTERS[code]} spawn(3,-1) → placed(${x},${y}) rot=${rot} | keys=${1 + fault} | optimal=1${words ? ` | ${words}` : ""}`);
+      lines.push(`${num} ${stamp} ${LETTERS[current]} spawn(3,-1) → placed(${x},${y}) rot=${rot} | keys=${1 + fault} | optimal=1${words ? ` | ${words}` : ""}`);
+      take = true;
     }
     return [`SPRINT ${goal}L`, "", ...lines].join("\n");
   } catch {
