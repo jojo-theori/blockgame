@@ -3,7 +3,7 @@ import { t } from "../../i18n.js";
 import { buildLogText } from "../../game.js";
 import { restartKey, keyLabel } from "../../keys.js";
 import { BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../../render.js";
-import { Stat, KeyHints, ReplayLog, KeyStrokes, PauseMenu } from "../../ui.jsx";
+import { Stat, KeyHints, ReplayLog, KeyStrokes, PauseMenu, Button } from "../../ui.jsx";
 import { ACCENT } from "./store.js";
 
 export default function PlayView(p) {
@@ -23,6 +23,15 @@ export default function PlayView(p) {
           <Stat k="Lines" v={hud.lines} />
           {settings.showKeys && <KeyStrokes key={settings.keysVersion} />}
           <div className="sb-actions">
+            <Button
+              icon="restart"
+              onClick={(e) => {
+                e.currentTarget.blur();
+                start();
+              }}
+            >
+              {t("Restart")}
+            </Button>
             <button
               className="btn primary sb-edit-btn"
               onClick={(e) => {
