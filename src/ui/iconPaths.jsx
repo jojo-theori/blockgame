@@ -71,6 +71,13 @@ export const PATHS = {
     </g>
   ),
   copy: <path d="M9 9h10v10H9zM5 15V5h10" />,
+  robot: (
+    <>
+      <rect x="5" y="8.5" width="14" height="10" rx="2.5" />
+      <path d="M12 8.5V5.5M9.5 12.5v1.6M14.5 12.5v1.6M2.8 12.5v2.5M21.2 12.5v2.5" />
+      <circle cx="12" cy="4.4" r="1.1" />
+    </>
+  ),
   play: <path d="M8.5 5.5v13l10-6.5z" fill="currentColor" stroke="none" />,
   pause: <path d="M8 5.5h2.5v13H8zM13.5 5.5H16v13h-2.5z" fill="currentColor" stroke="none" />,
   stop: <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none" />,

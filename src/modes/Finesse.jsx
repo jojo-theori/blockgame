@@ -464,7 +464,7 @@ export default function Finesse({ settings, onBack }) {
     <>
       <div className="mode-label">Finesse · {goal ? `${goal} pieces` : "Endless"}</div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <EngineLog engineRef={engineRef} mode="FINESSE" />}
+        {settings.showLog !== false && <EngineLog engineRef={engineRef} />}
         <div className="side" style={{ width: 150 }}>
           <Stat k="Time" v={formatTime(hud.clock)} big />
           <Stat k="Pieces" v={goal ? `${st.done} / ${goal}` : st.done} />

@@ -48,12 +48,9 @@
 .veil .grid2 .v { font-size: var(--t4); margin-top: 4px; }
 .veil .row-btns { flex-direction: column; align-items: stretch; gap: 8px; }
 .veil .btn { height: 34px; font-size: var(--t2); }
-.btn-pair { display: flex; gap: 6px; }
-.btn-pair .btn { flex: 1 1 0; min-width: 0; padding-inline: 8px; white-space: nowrap; }
-/* Beside a wide button: one icon, as wide as it is tall. */
-.btn-pair .btn.icon-only { flex: none; aspect-ratio: 1; padding: 0; }
-.btn.replay { background: #3fc8b4; border-color: transparent; color: #04201c; }
-.btn.replay:hover { background: #55d6c3; }
+/* Analyze: teal through blue to violet, deep enough to carry white text. */
+.btn.replay { gap: 7px; border-color: transparent; background: linear-gradient(120deg, #17b890 0%, #2b93e6 52%, #7c64f2 100%); color: #fff; box-shadow: 0 6px 22px -8px rgba(43, 147, 230, 0.75); }
+.btn.replay:hover, .btn.replay.focus { filter: brightness(1.12); background: linear-gradient(120deg, #17b890 0%, #2b93e6 52%, #7c64f2 100%); border-color: transparent; color: #fff; }
 .veil .row-btns + .keys { margin-top: 24px; }
 
 .count {

@@ -633,7 +633,7 @@ export default function Opening({ settings, onBack }) {
         {opener.mirrored ? " · Mirrored" : ""}
       </div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <EngineLog engineRef={engineRef} mode="OPENING" />}
+        {settings.showLog !== false && <EngineLog engineRef={engineRef} />}
         <div className="side" style={{ width: 150 }}>
           <div>
             <div className="k">{t("Hold")}</div>

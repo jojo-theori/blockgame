@@ -110,7 +110,6 @@
 
 /* Inline check shown on a button after a successful action (e.g. Copied) */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-.btn-check { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; animation: appear 0.2s var(--out); }
 
 /* Inline text link (e.g. "Change them in Settings") */
 .link {

@@ -1,19 +1,18 @@
 // Sandbox, play: the board being played.
 import { t } from "../../i18n.js";
-import { buildLogText } from "../../game.js";
 import { restartKey, keyLabel } from "../../keys.js";
 import { BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../../render.js";
 import { Stat, KeyHints, ReplayLog, KeyStrokes, PauseMenu } from "../../ui.jsx";
 import { ACCENT } from "./store.js";
 
 export default function PlayView(p) {
-  const { hud, zoom, settings, log, engineRef, holdRef, toEdit, canvasRef, action, phase, resume, start, onBack, undo, queueRef } = p;
+  const { hud, zoom, settings, log, holdRef, toEdit, canvasRef, action, phase, resume, start, onBack, undo, queueRef } = p;
   const canUndo = hud.undo > 0;
   return (
     <>
       <div className="mode-label">{t("Sandbox")}</div>
       <div className="play sb-stage" style={{ zoom, "--accent": ACCENT }}>
-        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} getText={() => buildLogText(engineRef.current, "SANDBOX")} />}
+        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} />}
         <div className="side">
           <div>
             <div className="k">{t("Hold")}</div>

@@ -444,13 +444,13 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
                         {/* After the last moment it leads back to the first one.
                             Both labels are laid out, so the button keeps one width. */}
                         <button type="button" className="btn primary compact lab-next" onClick={blur(() => (hasNext ? jump(1) : firstMoment()))} disabled={!moments.length}>
-                          <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next moment")}</span>
-                          <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("Back to start")}</span>
+                          <span style={{ visibility: hasNext ? "visible" : "hidden" }}>{t("Next")}</span>
+                          <span style={{ visibility: hasNext ? "hidden" : "visible" }}>{t("First")}</span>
                         </button>
                     {moment?.best && (
                       <button type="button" className={"btn compact lab-best" + (shownLine ? " ghost" : "")} onClick={blur(() => (shownLine ? setLine(null) : showLine()))}>
                         <Icon name={shownLine ? "stop" : "eye"} size={15} />
-                        {t(shownLine ? "Stop" : "Show best")}
+                        {t(shownLine ? "Stop" : "Show")}
                       </button>
                     )}
                         <span className="lab-close">

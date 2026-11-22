@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { t } from "../i18n.js";
-import { BlockEngine, formatTime, buildReplayText, buildLogText } from "../game.js";
+import { BlockEngine, formatTime, buildReplayText } from "../game.js";
 import { createTrace } from "../trace.js";
 import { buildKeyMap, loadKeyBindings, restartKey, keyLabel } from "../keys.js";
 import { drawBoard, drawHold, drawQueue, BOARD_W, BOARD_H, HOLD_W, HOLD_H, SLOT } from "../render.js";
@@ -37,7 +37,6 @@ export default function Sprint({ settings, onBack }) {
   const actionPieceRef = useRef(-1);
   const [displayAttack, setDisplayAttack] = useState(0);
   const [stats, setStats] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [log, setLog] = useState({ events: [], total: 0 });
   const logLenRef = useRef(0);
   // Always opens on 40 lines, whatever was played last.
@@ -260,18 +259,6 @@ export default function Sprint({ settings, onBack }) {
           return;
         }
       }
-      if (e.code === "KeyC") {
-        if ((phase === "completed" || phase === "gameover") && stats?.replayText) {
-          navigator.clipboard
-            .writeText(stats.replayText)
-            .then(() => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            })
-            .catch((err) => console.error("Copy failed:", err));
-          return;
-        }
-      }
       if (e.key === "Escape") {
         if (phase === "playing" || phase === "countdown") return pause();
         if (phase === "paused") return resume();
@@ -321,26 +308,12 @@ export default function Sprint({ settings, onBack }) {
     };
   }, [cancelCountdown]);
 
-  const copyReplay = async () => {
-    if (!stats?.replayText) return;
-    try {
-      await navigator.clipboard.writeText(stats.replayText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error("Copy failed:", e);
-    }
-  };
-  // Take the log straight to Replay, or copy it.
+  // Take the log straight to Replay.
   const logButtons = (
-    <div className="btn-pair">
-      <button className="btn replay" onClick={() => settings.analyze(stats.replayText)}>
-        {t("Analyze")}
-      </button>
-      <button className="btn icon-only" onClick={copyReplay} title={t(copied ? "Copied!" : "Copy log")} aria-label={t("Copy log")}>
-        <Icon name={copied ? "check" : "copy"} size={16} />
-      </button>
-    </div>
+    <button className="btn replay" onClick={() => settings.analyze(stats.replayText)}>
+      <Icon name="robot" size={16} />
+      {t("Analyze")}
+    </button>
   );
 
   // ─── SELECT SCREEN ───
@@ -394,7 +367,7 @@ export default function Sprint({ settings, onBack }) {
     <>
       <div className="mode-label">Sprint · {sprintLines} lines</div>
       <div className="play" style={{ zoom }}>
-        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} getText={() => buildLogText(engineRef.current, `SPRINT ${sprintLines}L`)} />}
+        {settings.showLog !== false && <ReplayLog events={log.events} total={log.total} />}
         <div className="side">
           <div>
             <div className="k">{t("Hold")}</div>
