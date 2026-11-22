@@ -96,8 +96,11 @@ function RankCardView({ what, onClose }) {
   const lean = (e) => {
     const el = cardRef.current;
     const box = el.getBoundingClientRect();
-    const x = (e.clientX - box.left) / box.width - 0.5;
-    const y = (e.clientY - box.top) / box.height - 0.5;
+    // The pointer is followed over the whole screen, but only as far as the
+    // card's own edges: past them the foil would run out and show its seams.
+    const within = (v) => Math.min(0.5, Math.max(-0.5, v));
+    const x = within((e.clientX - box.left) / box.width - 0.5);
+    const y = within((e.clientY - box.top) / box.height - 0.5);
     el.style.setProperty("--rx", `${(-y * 16).toFixed(2)}deg`);
     el.style.setProperty("--ry", `${(x * 20).toFixed(2)}deg`);
     el.style.setProperty("--gx", `${((x + 0.5) * 100).toFixed(1)}%`);
