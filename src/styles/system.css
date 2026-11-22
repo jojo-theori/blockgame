@@ -1,0 +1,52 @@
+/* ─── Design system ───
+   Sizes and shapes the parts share, and the small parts themselves
+   (ui/primitives.jsx). A screen's own sheet places them; it does not
+   restyle them. */
+:root {
+  /* Control heights */
+  --h-s: 32px; /* chips, small round buttons */
+  --h-m: 40px; /* the main button of a column, large round buttons */
+  /* Corners */
+  --r-pill: 999px;
+  --r-box: 12px;
+  --r-card: 14px;
+  /* Space between things */
+  --gap-s: 4px;
+  --gap-m: 6px;
+  --gap-l: 8px;
+}
+
+/* Line icons */
+.icon { display: block; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Round icon button */
+.icon-btn { flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--dim); cursor: pointer; transition: background 0.18s var(--out), color 0.18s var(--out); }
+.icon-btn.s { width: var(--h-s); height: var(--h-s); }
+.icon-btn.m { width: var(--h-m); height: var(--h-m); }
+.icon-btn.filled { background: var(--fill); }
+.icon-btn:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+.icon-btn.danger:hover:not(:disabled) { color: var(--bad); }
+.icon-btn:disabled { opacity: 0.3; cursor: default; }
+.icon-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+
+/* Chips in a grid */
+.chip-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); gap: var(--gap-m); }
+.chip-grid .chip-btn { width: 100%; min-width: 0; height: var(--h-s); padding: 0; margin: 0; justify-content: center; }
+.chip-btn.danger { color: var(--dim); }
+.chip-btn.danger:hover { color: var(--bad); }
+
+/* Soft box */
+.well { padding: 8px; border-radius: var(--r-box); background: var(--fill); }
+.well.empty { display: grid; place-items: center; }
+.well-hint { margin: 0; padding: 0 10px; font-size: var(--t2); line-height: 1.5; color: var(--faint); text-align: center; text-wrap: balance; word-break: keep-all; }
+
+/* Components page (Lab) */
+.cat { width: min(100%, 780px); display: flex; flex-direction: column; gap: 22px; text-align: left; }
+.cat-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 16px; }
+.cat-items { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.cat-token { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t2); color: var(--dim); }
+.cat-token i { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 1px var(--line); }
+.cat-type { color: var(--fg); line-height: 1; }
+.cat-type small { font-size: var(--t1); color: var(--faint); }
+.cat-fixed { width: 210px; }
+.cat-well { width: 210px; height: 64px; }

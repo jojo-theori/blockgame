@@ -6,3 +6,6 @@ export { ReplayLog, EngineLog } from "./ui/log.jsx";
 export { TopBar } from "./ui/chrome.jsx";
 export { ConfirmDialog, ActionMenu } from "./ui/overlays.jsx";
 export { PieceIcon, GarbageIcon, Swatch } from "./ui/pieces.jsx";
+export { Icon } from "./ui/icons.jsx";
+export { ICON_NAMES } from "./ui/iconPaths.jsx";
+export { IconButton, Chip, ChipGrid, Well } from "./ui/primitives.jsx";

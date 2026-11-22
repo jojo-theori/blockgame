@@ -3,7 +3,7 @@ import { t } from "../../i18n.js";
 import { ROWS, COLORS, PIECE_NAMES } from "../../game.js";
 import { BOARD_W, BOARD_H } from "../../render.js";
 import { sfx } from "../../sound.js";
-import { Dropdown, Checkbox, Segmented, ActionMenu, PieceIcon, GarbageIcon, Swatch } from "../../ui.jsx";
+import { Dropdown, Checkbox, Segmented, ActionMenu, PieceIcon, GarbageIcon, Swatch, Chip, ChipGrid, Well, IconButton, Icon } from "../../ui.jsx";
 import { ACCENT, PIECES, PAINTS, nextTitle, ERASE_MODES, ORDER_CELLS } from "./store.js";
 import { EraseIcon } from "./parts.jsx";
 import { DRAW_ICONS } from "./drawIcons.jsx";
@@ -60,16 +60,15 @@ export default function EditView(p) {
             </div>
           </div>
           <div className="k sb-order-k">{t("Piece order")}</div>
-          <div className="sb-add">
+          <ChipGrid cols={4}>
             {PIECES.map((id) => (
-              <button key={id} type="button" className="chip-btn" onClick={() => addPiece(id)} title={t("Add {p}", { p: PIECE_NAMES[id] })}>
+              <Chip key={id} onClick={() => addPiece(id)} title={t("Add {p}", { p: PIECE_NAMES[id] })}>
                 <PieceIcon id={id} />
-              </button>
+              </Chip>
             ))}
             {/* Clear all is the eighth chip, beside the last piece, once there is an order. */}
-            <button
-              type="button"
-              className="chip-btn sb-wipe"
+            <Chip
+              danger
               title={t("Clear all")}
               aria-label={t("Clear all")}
               style={{ visibility: order.length ? "visible" : "hidden" }}
@@ -79,15 +78,12 @@ export default function EditView(p) {
                 setOrder([]);
               }}
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
-              </svg>
-            </button>
-          </div>
+              <Icon name="trash" size={15} />
+            </Chip>
+          </ChipGrid>
           {/* Fixed size, so a long or empty order never moves anything; with
               nothing in it, it says how it is filled. */}
-          <div className={"sb-order" + (order.length ? "" : " empty")} aria-label={t("Piece order")}>
-            {!order.length && <p>{t("Click a piece above to add it, and here to take it out.")}</p>}
+          <Well className="sb-order" aria-label={t("Piece order")} hint={!order.length && t("Click a piece above to add it, and here to take it out.")}>
             {/* Seven to a row (a bag), three rows. What does not fit is counted in the last cell. */}
             {(order.length > ORDER_CELLS ? order.slice(0, ORDER_CELLS - 1) : order).map((id, i) => (
               <button
@@ -108,18 +104,14 @@ export default function EditView(p) {
                 +{order.length - ORDER_CELLS + 1}
               </span>
             )}
-          </div>
+          </Well>
           <div className="sb-checks">
             <Checkbox checked={randomAfter} onChange={setRandomAfter} label="Random pieces after" />
             <Checkbox checked={gravity} onChange={setGravity} label="Gravity" />
           </div>
           {/* Same place as Edit / Main menu while playing (left, under the input) */}
           <div className="sb-actions row">
-            <button className="btn ghost sb-back" onClick={toList} title={t("Back")} aria-label={t("Back")}>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M19 12H5M11 6l-6 6 6 6" />
-              </svg>
-            </button>
+            <IconButton icon="back" label="Back" size="m" filled onClick={toList} />
             <button className="btn primary" onClick={start}>
               {t("Play")}
             </button>
@@ -157,14 +149,13 @@ export default function EditView(p) {
           <div className="sb-panel">
             {tool === "piece" && (
               <>
-                <div className="sb-paints four" role="radiogroup" aria-label={t("Piece")}>
+                <ChipGrid cols={4} role="radiogroup" aria-label={t("Piece")}>
                   {PIECES.map((id) => (
-                    <button
+                    <Chip
                       key={id}
-                      type="button"
-                      role="radio"
+                                            role="radio"
                       aria-checked={stamp === id}
-                      className={"chip-btn" + (stamp === id ? " on" : "")}
+                      on={stamp === id}
                       // A second click on the chosen piece turns it (O has only one way up).
                       onClick={(e) => {
                         e.currentTarget.blur();
@@ -175,13 +166,12 @@ export default function EditView(p) {
                       }}
                     >
                       <PieceIcon id={id} rot={id === stamp ? stampRot : 0} />
-                    </button>
+                    </Chip>
                   ))}
-                  <button
-                    type="button"
-                    role="radio"
+                  <Chip
+                                        role="radio"
                     aria-checked={stamp === 8}
-                    className={"chip-btn" + (stamp === 8 ? " on" : "")}
+                    on={stamp === 8}
                     title={t("Garbage row")}
                     onClick={(e) => {
                       e.currentTarget.blur();
@@ -191,20 +181,19 @@ export default function EditView(p) {
                     }}
                   >
                     <GarbageIcon size={4} />
-                  </button>
-                </div>
+                  </Chip>
+                </ChipGrid>
               </>
             )}
             {tool === "cell" && (
               <>
-                <div className="sb-paints four" role="radiogroup" aria-label={t("Colour")}>
+                <ChipGrid cols={4} role="radiogroup" aria-label={t("Colour")}>
                   {PAINTS.map((v) => (
-                    <button
+                    <Chip
                       key={v}
-                      type="button"
-                      role="radio"
+                                            role="radio"
                       aria-checked={paint === v}
-                      className={"chip-btn" + (paint === v ? " on" : "")}
+                      on={paint === v}
                       onClick={(e) => {
                         e.currentTarget.blur();
                         if (v !== paint) sfx.tick();
@@ -212,21 +201,20 @@ export default function EditView(p) {
                       }}
                     >
                       <Swatch color={COLORS[v]} />
-                    </button>
+                    </Chip>
                   ))}
-                </div>
+                </ChipGrid>
               </>
             )}
             {tool === "erase" && (
               <>
-                <div className="sb-paints two" role="radiogroup" aria-label={t("Erase")}>
+                <ChipGrid cols={2} role="radiogroup" aria-label={t("Erase")}>
                   {ERASE_MODES.map(([id, label]) => (
-                    <button
+                    <Chip
                       key={id}
-                      type="button"
-                      role="radio"
+                                            role="radio"
                       aria-checked={eraseMode === id}
-                      className={"chip-btn" + (eraseMode === id ? " on" : "")}
+                      on={eraseMode === id}
                       title={t(label)}
                       aria-label={t(label)}
                       onClick={(e) => {
@@ -236,9 +224,9 @@ export default function EditView(p) {
                       }}
                     >
                       <EraseIcon mode={id} />
-                    </button>
+                    </Chip>
                   ))}
-                </div>
+                </ChipGrid>
               </>
             )}
           </div>

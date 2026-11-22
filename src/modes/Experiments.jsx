@@ -2,12 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { t } from "../i18n.js";
 import { sfx, setAudition, attackNotes, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle, WAVES, getWave, setWave } from "../sound.js";
 import { Dropdown } from "../ui.jsx";
+import Catalog from "./Catalog.jsx";
 
 const ACCENT = "#f2cb4c";
 
 // ─── Lab: things being tried out ───
 // A list of experiments; each opens on its own page. Esc goes back a step.
-const EXPERIMENTS = [{ id: "sound", label: "Sound test", desc: "Hear every sound the game makes, one at a time or as a run of clears." }];
+const EXPERIMENTS = [
+  { id: "sound", label: "Sound test", desc: "Hear every sound the game makes, one at a time or as a run of clears." },
+  { id: "parts", label: "Components", desc: "The parts every screen is built from." },
+];
 
 export default function Experiments({ settings, onBack }) {
   const [open, setOpen] = useState(null);
@@ -24,6 +28,7 @@ export default function Experiments({ settings, onBack }) {
   }, [open, onBack, settingsOpen]);
 
   if (open === "sound") return <SoundTest kit={sfx} onBack={() => setOpen(null)} />;
+  if (open === "parts") return <Catalog onBack={() => setOpen(null)} />;
   return (
     <div className="page" style={{ "--accent": ACCENT }}>
       <h1 className="title">{t("Lab")}</h1>
