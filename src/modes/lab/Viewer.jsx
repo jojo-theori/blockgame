@@ -32,7 +32,13 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
       })
       .catch((err) => console.error("Copy failed:", err));
   // Wide enough for the log on the left and the review on the right.
-  const zoom = useFit(1260, 600);
+  const fit = useFit(1260, 600);
+  // On a phone (someone who scanned a card's QR code) the screen is laid out
+  // tall instead: the board as wide as it goes with hold and next beside it,
+  // then the transport and the review under it, and the page scrolls. 412 is
+  // the board and one side column.
+  const phone = window.innerWidth < 720;
+  const zoom = phone ? Math.min(1, (window.innerWidth - 24) / 412) : fit;
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);
@@ -321,8 +327,8 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
         {t("Replay")}
         {replay.mode.mode === "unknown" ? "" : ` · ${modeName(replay.mode, "")}`}
       </div>
-      <div style={{ zoom, "--accent": ACCENT }}>
-        <div className="play">
+      <div style={{ zoom, "--accent": ACCENT, "--unzoom": 1 / zoom }}>
+        <div className={"play" + (phone ? " lab-phone" : "")}>
           <ReplayLog events={shown} total={step} />
           <div className="side">
             {/* A hold is easy to miss in a replay, so the step it happens on lights
@@ -332,6 +338,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
               <canvas ref={holdRef} width={HOLD_W} height={HOLD_H} style={{ marginTop: 8 }} />
             </div>
             {/* What was played, with the run's other facts. */}
+            <div className="lab-stats">
             {MODE_NAMES[replay.mode.mode] && (
               <div className="stat">
                 <div className="k">{t(MODE_NAMES[replay.mode.mode])}</div>
@@ -350,6 +357,7 @@ export default function Viewer({ replay, look, keysOff, onClose, onMenu }) {
             <Stat k="Pieces" v={`${frame.placed} / ${frames[total].placed}`} />
             <Stat k="Lines" v={frame.lines} />
             <Stat k="PPS" v={clock > 0 ? (frame.placed / clock).toFixed(2) : "0.00"} />
+            </div>
           </div>
           <div className="board-wrap">
             <canvas ref={canvasRef} width={BOARD_W} height={BOARD_H} className="board-frame" />
