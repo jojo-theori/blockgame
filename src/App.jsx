@@ -4,7 +4,7 @@ import { saveRecent } from "./recent.js";
 import { unpack, HASH } from "./pack.js";
 import { t, setLang } from "./i18n.js";
 import { useKeyNav } from "./nav.js";
-import { useDevProfiles, labOpen } from "./dev.js";
+import { useDevProfiles, labOpen, toggleLab, labCode } from "./dev.js";
 import { Background } from "./bg.jsx";
 import { setSkin, setCellLines, setOrientMark, setBoardTheme } from "./render.js";
 import { selectKey, backKey, keyLabel } from "./keys.js";
@@ -99,6 +99,14 @@ export default function App() {
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
   const [menuIdx, setMenuIdx] = useState(0);
+  // Entering the Lab code says so for a moment ("Lab on" / "Lab off").
+  const codeRef = useRef({ keys: [], at: 0 });
+  const [labNote, setLabNote] = useState("");
+  useEffect(() => {
+    if (!labNote) return;
+    const id = setTimeout(() => setLabNote(""), 3000);
+    return () => clearTimeout(id);
+  }, [labNote]);
   const focusLost = useFocusWarning();
   useKeyNav();
   const rowRefs = useRef([]);
@@ -142,6 +150,20 @@ export default function App() {
   useEffect(() => {
     if (view !== "menu" || settingsOpen) return;
     const handleKey = (e) => {
+      // The Lab code (dev.js): each key must follow the last within two seconds.
+      const now = performance.now();
+      const code = codeRef.current;
+      code.keys = now - code.at > 2000 ? [] : code.keys;
+      code.at = now;
+      const wanted = labCode();
+      code.keys = [...code.keys, e.code].slice(-wanted.length);
+      if (code.keys.join() === wanted.join()) {
+        code.keys = [];
+        setLabNote(toggleLab());
+        setMenuIdx(0);
+        sfx.select();
+        return;
+      }
       if (e.code === "ArrowDown" || (e.code === "Tab" && !e.shiftKey)) {
         e.preventDefault();
         setMenuIdx((i) => stepReady(i, 1));
@@ -210,13 +232,13 @@ export default function App() {
       )}
 
       <FocusWarning show={focusLost} />
-      {devProfile && (
+      {(labNote || devProfile) && (
         <div className="dev-note">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="9.5" />
             <path d="M7.8 12.4l2.9 2.9 5.5-6" />
           </svg>
-          {devProfile.startsWith("Lab") ? devProfile : `${devProfile} keys`}
+          {labNote || `${devProfile} keys`}
         </div>
       )}
       <TopBar lang={lang} setLang={setLangState} theme={theme} setTheme={changeTheme} sound={soundEnabled} setSound={setSoundEnabled} onSettings={openSettings} />

@@ -24,7 +24,6 @@ const WORDS = [
   ["flwl", "lizzy"], // 리지
   ["jojo", "own"],
   ["whwh", "own"], // 조조
-  ["lab", "lab"], // shows or hides Lab on the home menu
 ];
 const LAB_KEY = "jbl-lab";
 export const labOpen = () => {
@@ -34,7 +33,14 @@ export const labOpen = () => {
     return false;
   }
 };
-function toggleLab() {
+// The code that shows or hides Lab, entered on the home menu: left, right,
+// left, right, rotate counter-clockwise, rotate clockwise, on the player's
+// own solo keys.
+export function labCode() {
+  const k = { ...DEFAULT_BINDINGS.solo, ...loadKeyBindings().solo };
+  return [k.left, k.right, k.left, k.right, k.rotateCCW, k.rotateCW];
+}
+export function toggleLab() {
   const on = !labOpen();
   try {
     localStorage.setItem(LAB_KEY, on ? "1" : "0");
@@ -85,7 +91,7 @@ export function useDevProfiles() {
       const hit = WORDS.find(([word]) => typed.endsWith(word));
       if (!hit) return;
       typed = "";
-      const name = hit[1] === "lab" ? toggleLab() : swap(hit[1]);
+      const name = swap(hit[1]);
       setState((s) => ({ name, version: s.version + 1 }));
       clearTimeout(hide);
       hide = setTimeout(() => setState((s) => ({ ...s, name: "" })), 3000);
