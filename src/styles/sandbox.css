@@ -53,8 +53,8 @@
   overflow-y: auto;
   display: grid;
   width: 100%;
-  /* One column in the middle of the page, for now. */
-  grid-template-columns: min(360px, 100%);
+  /* Two columns in the middle of the page; one where there is no room for two. */
+  grid-template-columns: repeat(auto-fit, min(300px, 100%));
   justify-content: center;
   align-content: start;
   gap: 10px;

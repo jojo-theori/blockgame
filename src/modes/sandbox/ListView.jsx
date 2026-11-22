@@ -43,7 +43,9 @@ export default function ListView(p) {
               </span>
             </button>
             <div className="sb-item-more">
+              {/* Lower cards open their menu upward, so it stays inside the list. */}
               <ActionMenu
+                up={i >= 4}
                 items={[
                   {
                     label: "Play",
