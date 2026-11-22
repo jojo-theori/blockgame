@@ -1,4 +1,5 @@
 // Things that open over the page: confirm dialog, action menu.
+import { Icon } from "./icons.jsx";
 import { useEffect, useRef, useState } from "react";
 import { sfx } from "../sound.js";
 import { t } from "../i18n.js";
@@ -109,6 +110,7 @@ export function ActionMenu({ items, label = "More", up = false, start = false, s
                 it.onClick();
               }}
             >
+              {it.icon && <Icon name={it.icon} size={15} />}
               {tr(it.label)}
             </button>
           </li>

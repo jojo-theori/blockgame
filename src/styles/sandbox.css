@@ -110,7 +110,7 @@
 .am.open .am-menu { opacity: 1; transform: none; pointer-events: auto; }
 .am-menu li { opacity: 0; transition: opacity 0.16s var(--out); }
 .am.open .am-menu li { opacity: 1; transition-delay: calc(var(--i, 0) * 30ms); }
-.am-menu button { width: 100%; min-height: 34px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--dim); font: inherit; font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; text-align: left; cursor: pointer; }
+.am-menu button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 34px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: var(--dim); font: inherit; font-size: var(--t2); letter-spacing: 0.06em; text-transform: uppercase; text-align: left; cursor: pointer; }
 .am-menu button:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
 .am-menu button.danger { color: var(--bad); }
 .am-menu button:disabled { color: var(--muted); cursor: default; }

@@ -6,6 +6,7 @@ import { parseLog, buildFrames, logMode } from "../replay.js";
 import { sampleLog } from "../sample.js";
 import { loadRecent, removeRecent } from "../recent.js";
 import { parseMoves } from "../trace.js";
+import { replayLink } from "../pack.js";
 import { Kbd, ActionMenu, ConfirmDialog } from "../ui.jsx";
 import { ACCENT, PASTE_MOD, modeName, MAX_LINES, RECENT_SHOWN } from "./lab/consts.js";
 import Viewer from "./lab/Viewer.jsx";
@@ -36,6 +37,10 @@ export default function Lab({ settings, initial = "", onBack }) {
   // the one line that says what it was.
   const [kept, setKept] = useState(loadRecent);
   const [asking, setAsking] = useState(null); // the run about to be deleted
+  const copyLink = (run) =>
+    replayLink(run)
+      .then((url) => navigator.clipboard.writeText(url))
+      .catch(() => setError("This browser blocked clipboard access for this site."));
   const recent = useMemo(
     () =>
       kept
@@ -177,7 +182,13 @@ export default function Lab({ settings, initial = "", onBack }) {
                     </span>
                   </button>
                   <div className="lab-card-more">
-                    <ActionMenu up items={[{ label: "Delete", danger: true, onClick: () => setAsking(r) }]} />
+                    <ActionMenu
+                      up
+                      items={[
+                        { label: "Delete", icon: "trash", danger: true, onClick: () => setAsking(r) },
+                        { label: "Copy link", icon: "link", onClick: () => copyLink(r.text) },
+                      ]}
+                    />
                   </div>
                 </div>
               ))}
