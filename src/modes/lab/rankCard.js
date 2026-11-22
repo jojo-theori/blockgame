@@ -142,7 +142,7 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   // a little higher to clear it.
   const code = (link && qr(link)) || qr(location.origin + location.pathname);
   const big = !!code && code.length > 29;
-  const down = time ? (big ? 12 : 60) : 0;
+  const down = time ? (big ? 40 : 60) : 0;
   scores.forEach(([label, value], i) => {
     const x = cx + (i - (scores.length - 1) / 2) * 250;
     text(label, x, 1020 + down, 28, 600, "rgba(255, 255, 255, 0.5)");
@@ -154,8 +154,8 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   text([mode, vs].filter(Boolean).join("  ·  "), m + 56, H - m - 60, 30, 500, "rgba(255, 255, 255, 0.62)", "left");
 
   if (code) {
-    const tile = big ? 244 : 150;
-    const pad = big ? 14 : 12;
+    const tile = big ? 190 : 150;
+    const pad = 12;
     const x0 = W - m - 56 - tile;
     const y0 = H - m - 44 - tile;
     rounded(ctx, x0, y0, tile, tile, 22);
