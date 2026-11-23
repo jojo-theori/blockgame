@@ -3,6 +3,7 @@ import { t } from "../i18n.js";
 import { sfx, setAudition, attackNotes, SCALES, getComboScale, setComboScale, CLEAR_STYLES, getClearStyle, setClearStyle, WAVES, getWave, setWave } from "../sound.js";
 import { Dropdown } from "../ui.jsx";
 import Catalog from "./Catalog.jsx";
+import LogoLab from "./LogoLab.jsx";
 
 const ACCENT = "#f2cb4c";
 
@@ -11,6 +12,7 @@ const ACCENT = "#f2cb4c";
 const EXPERIMENTS = [
   { id: "sound", label: "Sound test", desc: "Hear every sound the game makes, one at a time or as a run of clears." },
   { id: "parts", label: "Components", desc: "The parts every screen is built from." },
+  { id: "logo", label: "Logo", desc: "Every way to set S, Z and O down as one mark." },
 ];
 
 export default function Experiments({ settings, onBack }) {
@@ -29,6 +31,7 @@ export default function Experiments({ settings, onBack }) {
 
   if (open === "sound") return <SoundTest kit={sfx} onBack={() => setOpen(null)} />;
   if (open === "parts") return <Catalog onBack={() => setOpen(null)} />;
+  if (open === "logo") return <LogoLab onBack={() => setOpen(null)} />;
   return (
     <div className="page" style={{ "--accent": ACCENT }}>
       <h1 className="title">{t("Lab")}</h1>
