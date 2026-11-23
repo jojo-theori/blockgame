@@ -20,7 +20,15 @@ stack.forEach((line,r)=>[...line].forEach((ch,col)=>{ if(ch==='.') return; x.fil
 const T=[[1,0],[0,1],[1,1],[2,1]];
 for(let b=0;b<4;b++){ x.fillStyle=C.I; x.fillRect(bx+9*cell+1, by+(2+b)*cell+1, cell-2, cell-2); }
 x.fillStyle='#ebebeb'; x.font='700 210px "Helvetica Neue", Helvetica, Arial, sans-serif';
-x.letterSpacing='-9px'; x.fillText('SZO', 92, 296); x.letterSpacing='0px';
+const MARK = {"cells":[{"x":2,"y":0,"color":"#5cc45c"},{"x":2,"y":1,"color":"#5cc45c"},{"x":3,"y":1,"color":"#5cc45c"},{"x":3,"y":2,"color":"#5cc45c"},{"x":0,"y":2,"color":"#e8505b"},{"x":1,"y":2,"color":"#e8505b"},{"x":1,"y":3,"color":"#e8505b"},{"x":2,"y":3,"color":"#e8505b"},{"x":3,"y":3,"color":"#f2cb4c"},{"x":4,"y":3,"color":"#f2cb4c"},{"x":3,"y":4,"color":"#f2cb4c"},{"x":4,"y":4,"color":"#f2cb4c"}],"cx":2.5,"cy":2.5,"x":0.3786796564403574,"y":0.37867965644035717,"w":4.242640687119286,"h":5.656854249492381,"balance":0.4583333333333332,"turn":45}; // written by scripts/favicon.mjs
+// The mark, as tall as the capitals and a little more (it stands on a point), then the name.
+x.font='700 170px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.letterSpacing='-7px';
+const mt=x.measureText('SZO'); const capUp=mt.actualBoundingBoxAscent, capDown=mt.actualBoundingBoxDescent, cap=capUp+capDown, base=296;
+const tall=cap*(MARK.turn%90?1.16:1.02), unit=tall/MARK.h, mw=MARK.w*unit;
+const markTop=base-(capUp-capDown)/2-tall/2+(0.5-MARK.balance)*tall*0.7;
+x.save(); x.translate(100-MARK.x*unit, markTop-MARK.y*unit); x.scale(unit,unit); x.translate(MARK.cx,MARK.cy); x.rotate(MARK.turn*Math.PI/180); x.translate(-MARK.cx,-MARK.cy);
+for(const c of MARK.cells){ x.fillStyle=c.color; x.fillRect(c.x-0.01,c.y-0.01,1.02,1.02); } x.restore();
+x.fillStyle='#ebebeb'; x.fillText('SZO', 100+mw+cap*(MARK.turn%90?0.3:0.36), base); x.letterSpacing='0px';
 x.fillStyle='#8a8a8a'; x.font='500 23px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.letterSpacing='4px'; x.fillText("JOJO'S BLOCKGAME LABORATORY", 104, 350);
 const modes=[['SPRINT','#41b6e6'],['BATTLE','#e8505b'],['OPENING','#b14fd0'],['FINESSE','#5cc45c'],['REPLAY','#3fc8b4'],['SANDBOX','#f2913d']];
 x.font='500 16px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.letterSpacing='2px';

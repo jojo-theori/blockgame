@@ -11,8 +11,68 @@ import stylish from "./img/stylish.png";
 import stylish2 from "./img/stylish2.png";
 import ancient from "./img/ancient.png";
 import crossover from "./img/crossover.png";
+import glitter from "./img/glitter.png";
+import grain from "./img/grain.webp";
+import illusionMask from "./img/illusion-mask.png";
 
 const PATTERNS = [illusion, illusion2, geometric, angular, wave, metal, stylish, stylish2, ancient, crossover];
+
+// The foils' pictures are only asked for when a card first shows, which made
+// the card appear plain and then fill in. This fetches and decodes them ahead
+// of that, once, when the browser is idle; the card's own stylesheets then
+// find them already in memory.
+let warmed = false;
+export function preloadFoils() {
+  if (warmed || typeof Image === "undefined") return;
+  warmed = true;
+  const fetchAll = () => {
+    for (const src of [...PATTERNS, glitter, grain, illusionMask]) {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+      img.decode?.().catch(() => {});
+      kept.push(img); // held, so the decoded pictures are not let go before a card needs them
+    }
+  };
+  if (typeof requestIdleCallback === "function") requestIdleCallback(fetchAll, { timeout: 2000 });
+  else setTimeout(fetchAll, 300);
+}
+const kept = [];
+
+// One of the foil pictures, ready to draw.
+const loading = new Map();
+function picture(src) {
+  if (!loading.has(src)) {
+    loading.set(
+      src,
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      }),
+    );
+  }
+  return loading.get(src);
+}
+
+// What the saved picture needs to carry the same foil as the card on screen:
+// the pattern laid in it and the glitter over it, each with how wide one
+// repeat is as a share of the card's width. Null for a matte card.
+const GLITTER = { SSS: true, A: true, C: true };
+const SET_PATTERN = { SSS: illusion };
+export async function foilTextures(what) {
+  const foil = FOILS[what.letter];
+  if (!foil) return null;
+  const seed = seedOf(what);
+  const pick = (n, shift) => (seed >>> shift) % n;
+  const src = foil.pattern ? PATTERNS[pick(PATTERNS.length, 8)] : SET_PATTERN[what.letter];
+  const [pattern, sparkle] = await Promise.all([src ? picture(src) : null, GLITTER[what.letter] ? picture(glitter) : null]);
+  return {
+    pattern: pattern && { img: pattern, size: foil.pattern ? (26 + pick(5, 14) * 4) / 100 : 0.5 },
+    glitter: sparkle && { img: sparkle, size: (22 + pick(9, 3)) / 100 },
+  };
+}
 
 // rarity   the foil
 // strength how much of it shows (1 is as that project has it)

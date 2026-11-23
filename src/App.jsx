@@ -1,3 +1,4 @@
+import { LogoLockup } from "./Logo.jsx";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { saveRecent } from "./recent.js";
@@ -264,7 +265,9 @@ export default function App() {
       <main className="main">
         {view === "menu" && (
           <div className="home">
-            <h1 className="logo">SZO</h1>
+            <h1 className="logo">
+              <LogoLockup />
+            </h1>
             <div className="sub">Jojo&apos;s Blockgame Laboratory</div>
             <div className="menu">
               {menuModes().map((m, i) => (
