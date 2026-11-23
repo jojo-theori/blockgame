@@ -2,8 +2,8 @@
   <!-- The three pieces of the name, S, Z and O, set down as one shape (Lab → Logo, 5×5-183, turned 45°). -->
   <rect width="32" height="32" rx="8" fill="#0a0a0a"/>
   <g transform="rotate(45 16 16)">
-    <g fill="#5cc45c" stroke="#5cc45c" stroke-width="0.4"><rect x="14.461" y="8.307" width="3.077" height="3.077"/><rect x="14.461" y="11.384" width="3.077" height="3.077"/><rect x="17.539" y="11.384" width="3.077" height="3.077"/><rect x="17.539" y="14.461" width="3.077" height="3.077"/></g>
-    <g fill="#e8505b" stroke="#e8505b" stroke-width="0.4"><rect x="8.307" y="14.461" width="3.077" height="3.077"/><rect x="11.384" y="14.461" width="3.077" height="3.077"/><rect x="11.384" y="17.539" width="3.077" height="3.077"/><rect x="14.461" y="17.539" width="3.077" height="3.077"/></g>
-    <g fill="#f2cb4c" stroke="#f2cb4c" stroke-width="0.4"><rect x="17.539" y="17.539" width="3.077" height="3.077"/><rect x="20.616" y="17.539" width="3.077" height="3.077"/><rect x="17.539" y="20.616" width="3.077" height="3.077"/><rect x="20.616" y="20.616" width="3.077" height="3.077"/></g>
+    <g fill="#5cc45c" stroke="#5cc45c" stroke-width="0.4"><rect x="11.248" y="1.745" width="4.752" height="4.752"/><rect x="11.248" y="6.496" width="4.752" height="4.752"/><rect x="16" y="6.496" width="4.752" height="4.752"/><rect x="16" y="11.248" width="4.752" height="4.752"/></g>
+    <g fill="#e8505b" stroke="#e8505b" stroke-width="0.4"><rect x="1.745" y="11.248" width="4.752" height="4.752"/><rect x="6.496" y="11.248" width="4.752" height="4.752"/><rect x="6.496" y="16" width="4.752" height="4.752"/><rect x="11.248" y="16" width="4.752" height="4.752"/></g>
+    <g fill="#f2cb4c" stroke="#f2cb4c" stroke-width="0.4"><rect x="16" y="16" width="4.752" height="4.752"/><rect x="20.752" y="16" width="4.752" height="4.752"/><rect x="16" y="20.752" width="4.752" height="4.752"/><rect x="20.752" y="20.752" width="4.752" height="4.752"/></g>
   </g>
 </svg>

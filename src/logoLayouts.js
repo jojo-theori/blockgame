@@ -140,15 +140,22 @@ export function markShape(layout, turn = 0) {
 
 // The arrangement as squares to draw inside a box `size` wide: [{x, y, side, color}].
 // With `turn` (degrees) the whole is to be turned about the box's centre by
-// whoever draws it, so the squares are sized for the room a turned shape needs.
-export function markCells(layout, size, pad = 0.16, turn = 0) {
+// whoever draws it. The shape is sized by the room it really takes once
+// turned, and set so that its own outline, not its grid, is centred.
+export function markCells(layout, size, pad = 0.08, turn = 0) {
+  const shape = markShape(layout, turn);
   const room = size * (1 - 2 * pad);
-  // Turned an eighth, a w by h box is (w + h) / √2 across.
-  const span = turn % 90 ? (layout.w + layout.h) / Math.SQRT2 : Math.max(layout.w, layout.h);
-  const side = turn % 90 ? room / span : Math.floor(room / span) || room / span;
-  // On whole pixels, so neighbouring squares meet without a hairline between them.
+  const fit = room / Math.max(shape.w, shape.h);
+  // Upright, squares sit on whole pixels so that neighbours meet without a hairline.
+  const side = turn % 90 ? fit : Math.floor(fit) || fit;
   const whole = turn % 90 ? (v) => v : Math.round;
-  const x0 = whole((size - side * layout.w) / 2);
-  const y0 = whole((size - side * layout.h) / 2);
+  // How far the outline's middle is from the grid's, undone before the turn.
+  const a = (turn * Math.PI) / 180;
+  const dx = (shape.x + shape.w / 2 - shape.cx) * side;
+  const dy = (shape.y + shape.h / 2 - shape.cy) * side;
+  const ox = dx * Math.cos(a) + dy * Math.sin(a);
+  const oy = -dx * Math.sin(a) + dy * Math.cos(a);
+  const x0 = whole(size / 2 - shape.cx * side - ox);
+  const y0 = whole(size / 2 - shape.cy * side - oy);
   return PIECES.flatMap((n) => layout.P[n].map(([x, y]) => ({ x: x0 + x * side, y: y0 + y * side, side, color: PIECE_COLORS[n] })));
 }

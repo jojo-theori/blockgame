@@ -2,14 +2,14 @@
 // marks it as the one in use:  node scripts/favicon.mjs "5×5-183" 45
 // The second argument turns it that many degrees clockwise (0, 45 or -45).
 import { readFileSync, writeFileSync } from "node:fs";
-import { logoLayouts, markCells } from "../src/logoLayouts.js";
+import { logoLayouts, markCells, markShape } from "../src/logoLayouts.js";
 
 const code = (process.argv[2] || "").replace("x", "×");
 const turn = Number(process.argv[3] || 0);
 const layout = logoLayouts().find((a) => a.code === code);
 if (!layout) throw new Error(`no arrangement named "${code}"`);
 const groups = {};
-for (const c of markCells(layout, 32, 0.16, turn)) (groups[c.color] ||= []).push(c);
+for (const c of markCells(layout, 32, 0.08, turn)) (groups[c.color] ||= []).push(c);
 const n = (v) => +v.toFixed(3);
 // Turned, each square gets a hair of its own colour around it, so no line shows where two meet.
 const rects = Object.entries(groups)
@@ -26,11 +26,13 @@ ${rects}
 </svg>
 `,
 );
-const lab = new URL("../src/modes/LogoLab.jsx", import.meta.url);
-writeFileSync(
-  lab,
-  readFileSync(lab, "utf8")
-    .replace(/export const CURRENT = "[^"]*";/, `export const CURRENT = "${code}";`)
-    .replace(/export const CURRENT_TURN = -?\d+;/, `export const CURRENT_TURN = ${turn};`),
-);
+writeFileSync(new URL("../src/logoMark.js", import.meta.url), `// The arrangement the mark uses (see Lab → Logo), and how far it is turned.
+// Written by scripts/favicon.mjs, which also redraws the favicon and the og image's mark.
+export const MARK = { code: "${code}", turn: ${turn} };
+`);
+// The og image is drawn by a page of its own (scripts/og.html), which cannot
+// import from src: it is handed the shape on one line.
+const shape = markShape(layout, turn);
+const og = new URL("./og.html", import.meta.url);
+writeFileSync(og, readFileSync(og, "utf8").replace(/const MARK = .*; \/\/ written by scripts\/favicon\.mjs/, `const MARK = ${JSON.stringify({ ...shape, turn })}; // written by scripts/favicon.mjs`));
 console.log(`favicon: ${code}${turn ? ` turned ${turn}°` : ""}`);
