@@ -82,7 +82,7 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   if (baked) bakeFoil(ctx, letter, m);
 
   ctx.textBaseline = "middle";
-  text("JBL", m + 56, m + 78, 40, 800, "#ffffff", "left");
+  text("SZO", m + 56, m + 78, 40, 800, "#ffffff", "left");
   if (date) text(date, W - m - 56, m + 78, 30, 500, "rgba(255, 255, 255, 0.6)", "right");
 
   // The seal: a ring (turning colours for SS and SSS), a dark face, the letter.
@@ -169,7 +169,7 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
 }
 
 // The card's file name, by rank.
-export const rankCardName = (what) => `jbl-${what.letter}${what.step === "+" ? "-plus" : what.step ? "-minus" : ""}.png`;
+export const rankCardName = (what) => `szo-${what.letter}${what.step === "+" ? "-plus" : what.step ? "-minus" : ""}.png`;
 
 // On the page the foil is live (it follows the pointer); a saved picture gets
 // a still one, caught at one angle: slanted streaks of light, a wash of
@@ -209,7 +209,7 @@ export function saveRankCard(what) {
   drawRankCard(what, { baked: true }).toBlob((blob) => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `jbl-${what.letter}${what.step === "+" ? "-plus" : what.step ? "-minus" : ""}.png`;
+    a.download = `szo-${what.letter}${what.step === "+" ? "-plus" : what.step ? "-minus" : ""}.png`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }, "image/png");

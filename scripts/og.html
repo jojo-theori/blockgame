@@ -20,11 +20,11 @@ stack.forEach((line,r)=>[...line].forEach((ch,col)=>{ if(ch==='.') return; x.fil
 const T=[[1,0],[0,1],[1,1],[2,1]];
 for(let b=0;b<4;b++){ x.fillStyle=C.I; x.fillRect(bx+9*cell+1, by+(2+b)*cell+1, cell-2, cell-2); }
 x.fillStyle='#ebebeb'; x.font='700 210px "Helvetica Neue", Helvetica, Arial, sans-serif';
-x.letterSpacing='-9px'; x.fillText('JBL', 92, 296); x.letterSpacing='0px';
+x.letterSpacing='-9px'; x.fillText('SZO', 92, 296); x.letterSpacing='0px';
 x.fillStyle='#8a8a8a'; x.font='500 23px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.letterSpacing='4px'; x.fillText("JOJO'S BLOCKGAME LABORATORY", 104, 350);
 const modes=[['SPRINT','#41b6e6'],['BATTLE','#e8505b'],['OPENING','#b14fd0'],['FINESSE','#5cc45c'],['REPLAY','#3fc8b4'],['SANDBOX','#f2913d']];
 x.font='500 16px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.letterSpacing='2px';
 let px=100, py=408; const rr=(X,Y,w,h,r)=>{x.beginPath(); x.moveTo(X+r,Y); x.arcTo(X+w,Y,X+w,Y+h,r); x.arcTo(X+w,Y+h,X,Y+h,r); x.arcTo(X,Y+h,X,Y,r); x.arcTo(X,Y,X+w,Y,r); x.closePath();};
 modes.forEach(([n,col])=>{ const tw=x.measureText(n).width; const w=tw+54, h=42; if(px+w>740){px=100; py+=54;} rr(px,py,w,h,21); x.fillStyle='rgba(255,255,255,0.06)'; x.fill(); x.fillStyle=col; x.beginPath(); x.arc(px+21,py+21,5,0,Math.PI*2); x.fill(); x.fillStyle='#d0d0d0'; x.fillText(n, px+35, py+27); px+=w+10; });
-x.letterSpacing='1px'; x.fillStyle='#555'; x.font='400 18px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.fillText('jbl.umjo.me', 104, 580);
+x.letterSpacing='1px'; x.fillStyle='#555'; x.font='400 18px "Helvetica Neue", Helvetica, Arial, sans-serif'; x.fillText('szo.umjo.me', 104, 580);
 </script></body></html>

@@ -21,7 +21,7 @@ async function misaMove(s, { level, style = 2 }) {
   const field = s.rows.join("").replace(/1/g, "2");
   const out = misa.move(field, s.cur.charCodeAt(0), (s.hold || " ").charCodeAt(0), s.queue, s.combo, s.b2b ? 1 : 0, s.incoming);
   if (!out) return "";
-  // MisaMino spawns 3-wide pieces one column further right than JBL, so line
+  // MisaMino spawns 3-wide pieces one column further right than SZO, so line
   // the piece up with it first (after the hold, if it holds).
   const holds = out[0] === "v";
   const piece = holds ? s.hold || s.queue[0] : s.cur;

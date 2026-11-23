@@ -86,9 +86,10 @@ test("shapes and kicks come out as SRS gives them", async () => {
   assert.deepEqual(getKicks(1)[0][1], [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]]);
   assert.deepEqual(getKicks(1)[2]["-1"], [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]]);
   assert.equal(getKicks(5)[1][2].length, 12, "a half turn has its own list");
-  // S or Z first, or O then S or Z, is dealt again.
+  // S, Z or O first is dealt again; no game opens on one.
   assert.equal(awkwardStart([5, 1]), true);
-  assert.equal(awkwardStart([7, 6]), true);
-  assert.equal(awkwardStart([7, 1]), false);
+  assert.equal(awkwardStart([6, 1]), true);
+  assert.equal(awkwardStart([7, 1]), true);
   assert.equal(awkwardStart([2, 5]), false);
+  for (let seed = 1; seed <= 300; seed++) assert.ok(![5, 6, 7].includes(new BlockEngine({ seed }).queue[0]), `seed ${seed}`);
 });

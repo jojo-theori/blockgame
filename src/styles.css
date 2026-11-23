@@ -1,4 +1,4 @@
-/* JBL styles, in the order they cascade. Each file is one stretch of what
+/* SZO styles, in the order they cascade. Each file is one stretch of what
    used to be a single sheet; keep the order when adding one. */
 @import "./styles/base.css";
 @import "./styles/game.css";

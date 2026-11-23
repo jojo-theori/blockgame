@@ -27,7 +27,7 @@ const LEVELS = [
   { id: "hard", label: "Hard" },
   { id: "max", label: "Max" },
 ];
-// Which engine plays the CPU seat. Stacker is JBL's own simple heuristic.
+// Which engine plays the CPU seat. Stacker is SZO's own simple heuristic.
 const BOTS = [
   { id: "cc", label: "Cold Clear" },
   { id: "misa", label: "MisaMino" },

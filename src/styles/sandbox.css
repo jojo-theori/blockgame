@@ -115,7 +115,7 @@
 .am-menu button.danger { color: var(--bad); }
 .am-menu button:disabled { color: var(--muted); cursor: default; }
 @media (prefers-reduced-motion: reduce) { .am-menu, .am-menu li { transition: none; } }
-/* One text line, on the same baseline as the JBL wordmark: nothing here may
+/* One text line, on the same baseline as the SZO wordmark: nothing here may
    be taller than the text (the underline and the save link take no height). */
 .mode-label.sb-title { align-items: baseline; pointer-events: auto; line-height: inherit; }
 .piece-icon { display: inline-block; vertical-align: middle; flex: none; }

@@ -237,7 +237,7 @@ export default function App() {
       <Toaster />
       {view !== "menu" && (
         <button className="wordmark" onClick={goMenu} title={t("Home")}>
-          JBL
+          SZO
         </button>
       )}
 
@@ -264,7 +264,7 @@ export default function App() {
       <main className="main">
         {view === "menu" && (
           <div className="home">
-            <h1 className="logo">JBL</h1>
+            <h1 className="logo">SZO</h1>
             <div className="sub">Jojo&apos;s Blockgame Laboratory</div>
             <div className="menu">
               {menuModes().map((m, i) => (

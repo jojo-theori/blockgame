@@ -40,8 +40,8 @@ export class BlockEngine {
     this.pendingSeq = this.sequence ? this.sequence.slice() : [];
     this.fillQueue();
 
-    // No game opens on an awkward piece (see isBannedStart), as in Jstris: deal
-    // again. This holds in every mode that deals its own pieces, not only Sprint.
+    // No game opens on S, Z or O (see awkwardStart): deal again. This holds in
+    // every mode that deals its own pieces.
     let attempts = 0;
     while (!this.sequence && this.isBannedStart() && attempts < 1000) {
       this.rng = mulberry32(seed + ++attempts * 7919);

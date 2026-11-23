@@ -1,15 +1,7 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- "JBL" in tall condensed capitals (Bebas Neue-like), drawn as paths so it
-       renders the same everywhere without a web font. -->
+  <!-- The three pieces of the name, S, Z and O, in their colours. -->
   <rect width="32" height="32" rx="8" fill="#0a0a0a"/>
-  <g fill="#ffffff" fill-rule="evenodd" transform="translate(16 16) scale(1.1) translate(-16 -16)">
-    <!-- J -->
-    <path d="M8.4 7H11V21.2Q11 25 7.6 25Q4.2 25 4.2 21.2V19.6H6.8V21.2Q6.8 22.5 7.6 22.5Q8.4 22.5 8.4 21.2Z"/>
-    <!-- B -->
-    <path d="M12.4 7H16.9Q20 7 20 10.3V11.7Q20 13.6 18.7 14.2Q20.3 14.8 20.3 17V21.4Q20.3 25 17 25H12.4Z
-             M15 9.4H16.5Q17.4 9.4 17.4 10.3V12.1Q17.4 13 16.5 13H15Z
-             M15 15.3H16.8Q17.7 15.3 17.7 16.2V21.7Q17.7 22.6 16.8 22.6H15Z"/>
-    <!-- L -->
-    <path d="M21.6 7H24.2V22.4H27.8V25H21.6Z"/>
-  </g>
+  <g fill="#5cc45c"><rect x="8" y="6" width="4" height="4"/><rect x="12" y="6" width="4" height="4"/><rect x="4" y="10" width="4" height="4"/><rect x="8" y="10" width="4" height="4"/></g>
+  <g fill="#e8505b"><rect x="16" y="14" width="4" height="4"/><rect x="20" y="14" width="4" height="4"/><rect x="20" y="18" width="4" height="4"/><rect x="24" y="18" width="4" height="4"/></g>
+  <g fill="#f2cb4c"><rect x="6" y="18" width="8" height="8"/></g>
 </svg>
