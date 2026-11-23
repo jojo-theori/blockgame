@@ -355,38 +355,18 @@
 .lab-cardview-name input:focus { outline-color: var(--fg); }
 .lab-cardview-count { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: var(--t2); color: var(--faint); font-variant-numeric: tabular-nums; pointer-events: none; }
 
-/* ─── Lab → Logo: the design lab ─── */
-/* A page of its own over the app, on the lab's grey canvas: a fixed head with
-   the topics as tabs, then sections of white tiles, each named above. */
-.exp-dl { position: fixed; inset: 0; z-index: 120; overflow-y: auto; background: #e4e7eb; color: #0f1115; letter-spacing: -0.02em; word-break: keep-all; user-select: text; }
-.exp-dl-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 16px; padding: 12px 28px; background: rgba(228, 231, 235, 0.94); backdrop-filter: blur(8px); }
-.exp-dl-head > b { font-size: 15px; font-weight: 800; white-space: nowrap; }
-.exp-dl-head nav { display: flex; flex-wrap: wrap; gap: 6px; }
-.exp-dl-head button { height: 30px; padding: 0 12px; border: 1px solid #d3d7dc; border-radius: 999px; background: transparent; color: #0f1115; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.exp-dl-head button:hover { border-color: #0f1115; }
-.exp-dl-head button.on { background: #0f1115; border-color: #0f1115; color: #fff; }
-.exp-dl-back { margin-left: auto; }
-.exp-dl main { padding: 0 28px 64px; }
-.exp-dl-sec { padding-top: 28px; }
-.exp-dl-sec h2 { margin: 0 0 14px; font-size: 20px; font-weight: 800; }
-.exp-dl-sec h2 span { margin-left: 10px; font-size: 12px; font-weight: 400; color: #57606a; }
-.exp-dl-grid { display: grid; grid-template-columns: repeat(auto-fill, min(120px, 100%)); gap: 20px 24px; }
-.exp-dl-item.wide { grid-column: span 4; }
-.exp-dl-label { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; }
-.exp-dl-label b { font-size: 13px; font-weight: 800; }
-.exp-dl-label b.now { color: #0b99ff; }
-.exp-dl-label span { font-size: 12px; color: #57606a; overflow: hidden; text-overflow: ellipsis; }
-.exp-dl-tile { display: grid; place-items: center; width: 100%; padding: 16px; border: 0; border-radius: 6px; background: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06); cursor: pointer; }
-.exp-dl-tile.still { cursor: default; padding: 32px; }
-.exp-dl-tile.now { outline: 2px solid rgba(11, 153, 255, 0.35); outline-offset: -2px; }
-.exp-dl-tile.on { outline: 2px solid #0f1115; outline-offset: -2px; }
-.exp-dl-tile:not(.still):hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14); }
-.exp-dl-row { display: flex; align-items: flex-end; gap: 24px; }
-.exp-dl-dark { display: flex; align-items: center; justify-content: space-around; gap: 32px; width: 100%; padding: 36px 28px; border-radius: 6px; background: #0a0a0a; color: #ebebeb; }
-.exp-dl-lockup { display: flex; align-items: center; gap: 16px; }
-.exp-dl-lockup strong { font-size: 72px; font-weight: 700; letter-spacing: -0.045em; line-height: 1; }
-.exp-dl-lockup.stacked { flex-direction: column; gap: 10px; }
-.exp-dl-lockup.stacked strong { font-size: 56px; }
-.exp-dl-lockup em { font-style: normal; font-size: 10px; font-weight: 500; letter-spacing: 0.22em; color: #8a8a8a; }
-@media (max-width: 1100px) { .exp-dl-head { padding: 10px 16px; } .exp-dl main { padding: 0 16px 48px; } .exp-dl-item.wide { grid-column: 1 / -1; } .exp-dl-dark { flex-direction: column; } }
-@media (max-height: 640px) { .exp-dl-head { position: static; } }
+/* ─── Lab → Logo ─── */
+/* Laid out by the Components page's frame (.cat). The marks sit on the page
+   itself; a choice is a quiet tile that lights on hover and when chosen. */
+.exp-logo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: var(--gap-2, 8px); margin-top: 10px; }
+.exp-logo-choice { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 6px 10px; border: 0; border-radius: var(--r-box); background: var(--fill); color: var(--faint); font: inherit; font-size: var(--t1); font-variant-numeric: tabular-nums; cursor: pointer; transition: background 0.2s var(--out), color 0.2s var(--out), box-shadow 0.2s var(--out); }
+.exp-logo-choice:hover { background: var(--hover); color: var(--fg); }
+.exp-logo-choice.on { color: var(--fg); box-shadow: 0 0 0 1px var(--accent); }
+.exp-logo-uses { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 28px 44px; margin-top: 14px; }
+.exp-logo-sizes { display: flex; align-items: flex-end; gap: 18px; }
+.exp-logo-icon { border-radius: 25%; box-shadow: 0 0 0 1px var(--line); }
+.exp-logo-lockup { display: flex; align-items: center; gap: 14px; color: var(--fg); }
+.exp-logo-lockup strong { font-size: 64px; font-weight: 700; letter-spacing: -0.045em; line-height: 1; }
+.exp-logo-lockup.stacked { flex-direction: column; gap: 10px; }
+.exp-logo-lockup.stacked strong { font-size: 52px; }
+.exp-logo-lockup em { font-style: normal; font-size: var(--t1); letter-spacing: 0.22em; color: var(--dim); }
