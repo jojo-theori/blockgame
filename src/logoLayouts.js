@@ -45,8 +45,15 @@ function describe(P) {
   }
   let holes = 0;
   for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) if (!filled.has(key([x, y])) && !open.has(key([x, y]))) holes++;
-  const flipped = (cells) => cells.map(([x, y]) => key([w - 1 - x, y])).sort().join(";");
   const same = (cells) => cells.map(key).sort().join(";");
+  // Whether reflecting the shape lands it on itself. A reflection turns S into
+  // Z, so the two must trade places and O must sit on the axis. (No
+  // arrangement is the same after a half turn: each piece would have to land
+  // on itself, all three about one centre.)
+  const lands = (move) => {
+    const moved = (cells) => cells.map((c) => key(move(c))).sort().join(";");
+    return moved(P.S) === same(P.Z) && moved(P.Z) === same(P.S) && moved(P.O) === same(P.O);
+  };
   const xs = PIECES.map((n) => centre(P[n], 0));
   const ys = PIECES.map((n) => centre(P[n], 1));
   return {
@@ -57,7 +64,11 @@ function describe(P) {
     holes,
     touches: (touch(P.S, P.Z) ? 1 : 0) + (touch(P.Z, P.O) ? 1 : 0) + (touch(P.S, P.O) ? 1 : 0),
     // S and Z are each other's mirror image, so a shape can be symmetric with O on the axis.
-    mirror: flipped(P.S) === same(P.Z) && flipped(P.O) === same(P.O),
+    mirror: lands(([x, y]) => [w - 1 - x, y]),
+    // The same, top to bottom, and across either diagonal (a square box only).
+    flip: lands(([x, y]) => [x, h - 1 - y]),
+    diagonal: w === h && lands(([x, y]) => [y, x]),
+    antidiagonal: w === h && lands(([x, y]) => [h - 1 - y, w - 1 - x]),
     // Reads S, Z, O from the left, or from the top.
     across: xs[0] < xs[1] && xs[1] < xs[2],
     down: ys[0] < ys[1] && ys[1] < ys[2],

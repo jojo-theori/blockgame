@@ -39,7 +39,7 @@ function Section({ title, count, children }) {
 
 // One arrangement to choose: the mark, and under it its name.
 function Choice({ layout, picked, onPick }) {
-  const facts = [layout.code === CURRENT && t("Now"), layout.mirror && t("symmetric"), layout.across && "S·Z·O", layout.holes > 0 && t("{n} shut in", { n: layout.holes })].filter(Boolean).join(" · ");
+  const facts = [layout.code === CURRENT && t("Now"), (layout.mirror || layout.flip || layout.diagonal || layout.antidiagonal) && t("symmetric"), layout.across && "S·Z·O", layout.holes > 0 && t("{n} shut in", { n: layout.holes })].filter(Boolean).join(" · ");
   return (
     <button type="button" className={"exp-logo-choice" + (picked ? " on" : "")} onClick={() => onPick(layout.code)} aria-pressed={picked} title={facts || undefined}>
       <Mark layout={layout} size={56} bare />
@@ -78,7 +78,7 @@ const TOPICS = [
   ["pick", "Chosen", "The arrangement in use and the one chosen, at favicon sizes and with the name."],
   ["tight", "Tightest", "The smallest boxes the three fit in."],
   ["order", "Reads S, Z, O", "The pieces in the order of the name, from the left or from the top."],
-  ["mirror", "Symmetric", "S and Z as each other's reflection, O on the axis."],
+  ["mirror", "Symmetric", "S and Z as each other's reflection, O on the axis: left and right, top and bottom, or across a diagonal."],
   ["all", "All", "Every arrangement, by the box it fits in."],
 ];
 const ACCENT = "#f2cb4c";
@@ -126,7 +126,11 @@ export default function LogoLab({ onBack }) {
       [t("Across"), all.filter((a) => a.across)],
       [t("Down"), all.filter((a) => a.down && !a.across)],
     ],
-    mirror: [[t("Symmetric"), all.filter((a) => a.mirror)]],
+    mirror: [
+      [t("Left and right"), all.filter((a) => a.mirror)],
+      [t("Top and bottom"), all.filter((a) => a.flip)],
+      [t("Diagonal"), all.filter((a) => a.diagonal || a.antidiagonal)],
+    ],
     all: groups,
   };
 
