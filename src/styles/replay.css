@@ -363,7 +363,7 @@
 .exp-logo-choice:hover { background: var(--hover); color: var(--fg); }
 .exp-logo-choice.on { color: var(--fg); box-shadow: 0 0 0 1px var(--accent); }
 .exp-logo-uses { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 28px 44px; margin-top: 14px; }
-.exp-logo-turn { display: flex; margin-top: 10px; }
+.exp-logo-knobs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: -8px; }
 .exp-logo-sizes { display: flex; align-items: flex-end; gap: 18px; }
 .exp-logo-icon { border-radius: 25%; box-shadow: 0 0 0 1px var(--line); }
 .exp-logo-name { font-size: 64px; }
