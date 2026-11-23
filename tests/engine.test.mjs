@@ -71,3 +71,24 @@ test("attack follows the table: 0, 1, 2 and 4 lines, and one more for a quad bac
   assert.equal(clearRows(e, 1).attack, 1, "a single keeps the combo going (+1) and breaks back to back");
   assert.equal(clearRows(e, 4).attack, 4 + 1, "combo of three; back to back starts over");
 });
+
+test("shapes and kicks come out as SRS gives them", async () => {
+  const { getShape } = await import("../src/engine/pieces.js");
+  const { getKicks } = await import("../src/engine/srs.js");
+  const { awkwardStart } = await import("../src/engine/deal.js");
+  // T pointing right, I upright in its third column, O the same in every state.
+  assert.deepEqual(getShape(2, 1), [[0, 1, 0], [0, 1, 1], [0, 1, 0]]);
+  assert.deepEqual(getShape(1, 1).map((row) => row.indexOf(1)), [2, 2, 2, 2]);
+  assert.deepEqual(getShape(7, 3), getShape(7, 0));
+  // The tables as tetris.wiki prints them (x right, y up).
+  assert.deepEqual(getKicks(2)[0][1], [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]]);
+  assert.deepEqual(getKicks(2)[3]["-1"], [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]]);
+  assert.deepEqual(getKicks(1)[0][1], [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]]);
+  assert.deepEqual(getKicks(1)[2]["-1"], [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]]);
+  assert.equal(getKicks(5)[1][2].length, 12, "a half turn has its own list");
+  // S or Z first, or O then S or Z, is dealt again.
+  assert.equal(awkwardStart([5, 1]), true);
+  assert.equal(awkwardStart([7, 6]), true);
+  assert.equal(awkwardStart([7, 1]), false);
+  assert.equal(awkwardStart([2, 5]), false);
+});
