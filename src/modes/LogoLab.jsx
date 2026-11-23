@@ -6,7 +6,7 @@ import { t } from "../i18n.js";
 import { logoLayouts, markCells } from "../logoLayouts.js";
 
 // The arrangement the favicon uses now (public/favicon.svg).
-export const CURRENT = "4×4-03";
+export const CURRENT = "5×5-183";
 const PICK_KEY = "jbl-logo-pick";
 
 // The mark on its tile: a dark rounded square, as the favicon is.
