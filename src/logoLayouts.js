@@ -114,6 +114,30 @@ export function logoLayouts() {
   return list;
 }
 
+// The arrangement with nothing around it: unit squares, the angle to turn
+// them by, and the box the turned shape really fills (for setting it beside
+// type, where the empty corners of a square box would throw the spacing off).
+export function markShape(layout, turn = 0) {
+  const cells = PIECES.flatMap((n) => layout.P[n].map(([x, y]) => ({ x, y, color: PIECE_COLORS[n] })));
+  const cx = layout.w / 2;
+  const cy = layout.h / 2;
+  const a = (turn * Math.PI) / 180;
+  const xs = [];
+  const ys = [];
+  for (const c of cells)
+    for (const [px, py] of [[c.x, c.y], [c.x + 1, c.y], [c.x, c.y + 1], [c.x + 1, c.y + 1]]) {
+      xs.push(cx + (px - cx) * Math.cos(a) - (py - cy) * Math.sin(a));
+      ys.push(cy + (px - cx) * Math.sin(a) + (py - cy) * Math.cos(a));
+    }
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  const h = Math.max(...ys) - y;
+  // Where the shape's weight sits, as a share of its height from the top
+  // (0.5 when it is balanced): a shape heavy at the top looks set too high.
+  const weight = cells.reduce((sum, c) => sum + cy + (c.x + 0.5 - cx) * Math.sin(a) + (c.y + 0.5 - cy) * Math.cos(a), 0) / cells.length;
+  return { cells, cx, cy, x, y, w: Math.max(...xs) - x, h, balance: (weight - y) / h };
+}
+
 // The arrangement as squares to draw inside a box `size` wide: [{x, y, side, color}].
 // With `turn` (degrees) the whole is to be turned about the box's centre by
 // whoever draws it, so the squares are sized for the room a turned shape needs.

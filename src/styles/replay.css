@@ -366,8 +366,8 @@
 .exp-logo-turn { display: flex; margin-top: 10px; }
 .exp-logo-sizes { display: flex; align-items: flex-end; gap: 18px; }
 .exp-logo-icon { border-radius: 25%; box-shadow: 0 0 0 1px var(--line); }
-.exp-logo-lockup { display: flex; align-items: center; gap: 14px; color: var(--fg); }
-.exp-logo-lockup strong { font-size: 64px; font-weight: 700; letter-spacing: -0.045em; line-height: 1; }
-.exp-logo-lockup.stacked { flex-direction: column; gap: 10px; }
-.exp-logo-lockup.stacked strong { font-size: 52px; }
+.exp-logo-lockup { display: flex; align-items: baseline; color: var(--fg); }
+.exp-logo-lockup strong { font-weight: 700; letter-spacing: -0.045em; line-height: 1; }
+.exp-logo-lockup.stacked { flex-direction: column; align-items: center; }
+.exp-logo-lockup.stacked em { margin-top: -0.4em; }
 .exp-logo-lockup em { font-style: normal; font-size: var(--t1); letter-spacing: 0.22em; color: var(--dim); }

@@ -4,7 +4,7 @@
 // It is built like the Components page: topics on the left, one on the right.
 import { useEffect, useMemo, useState } from "react";
 import { t } from "../i18n.js";
-import { logoLayouts, markCells } from "../logoLayouts.js";
+import { logoLayouts, markCells, markShape } from "../logoLayouts.js";
 import { Segmented } from "../ui.jsx";
 
 // The arrangement the favicon uses now (public/favicon.svg).
@@ -26,6 +26,56 @@ function Mark({ layout, size, bare = false, turn = 0 }) {
         ))}
       </g>
     </svg>
+  );
+}
+
+// The mark cut to its own outline, `height` tall: for setting beside type.
+function TightMark({ layout, turn, height, style }) {
+  const s = markShape(layout, turn);
+  return (
+    <svg width={(height * s.w) / s.h} height={height} viewBox={`${s.x} ${s.y} ${s.w} ${s.h}`} style={style} aria-hidden="true">
+      <g shapeRendering={turn ? "geometricPrecision" : "crispEdges"} transform={turn ? `rotate(${turn} ${s.cx} ${s.cy})` : undefined}>
+        {s.cells.map((c, i) => (
+          <rect key={i} x={c.x} y={c.y} width={1} height={1} fill={c.color} stroke={turn ? c.color : undefined} strokeWidth={turn ? 0.03 : undefined} />
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+// How tall the capitals of the name really are at a type size, and how far
+// their feet sit below the baseline (round letters overshoot it a little).
+const FACE = '700 100px "Helvetica Neue", Helvetica, Arial, sans-serif';
+let capsOf = null;
+function caps(size) {
+  if (!capsOf) {
+    const ctx = document.createElement("canvas").getContext("2d");
+    ctx.font = FACE;
+    const m = ctx.measureText("SZO");
+    capsOf = { up: m.actualBoundingBoxAscent / 100, down: m.actualBoundingBoxDescent / 100 };
+  }
+  return { up: capsOf.up * size, down: capsOf.down * size };
+}
+
+// The mark and the name set together. The eye, not the box, decides the fit:
+// the mark is as tall as the capitals, a little taller when it stands on a
+// point (a point reads smaller than a flat side), its middle on the middle of
+// the capitals, and the space between is measured from the shape itself.
+function Lockup({ layout, turn, size, stacked = false }) {
+  const { up, down } = caps(size);
+  const cap = up + down;
+  const pointed = turn % 90 !== 0;
+  const tall = cap * (stacked ? 1.5 : 1) * (pointed ? 1.16 : 1.02);
+  // Beside the name the mark hangs from the baseline: lift or lower it so the
+  // middles agree, then most of the way toward where its weight sits, since a
+  // shape heavy at the top looks set too high when only its box is centred.
+  const shift = tall / 2 - (up - down) / 2 + (0.5 - markShape(layout, turn).balance) * tall * 0.7;
+  return (
+    <div className={"exp-logo-lockup" + (stacked ? " stacked" : "")} style={{ gap: stacked ? cap * 0.34 : cap * (pointed ? 0.3 : 0.36) }}>
+      <TightMark layout={layout} turn={turn} height={tall} style={stacked ? undefined : { transform: `translateY(${shift}px)` }} />
+      <strong style={{ fontSize: size }}>SZO</strong>
+      {stacked && <em>JOJO&apos;S BLOCKGAME LABORATORY</em>}
+    </div>
   );
 }
 
@@ -63,15 +113,8 @@ function Uses({ layout, label, turn }) {
             <Mark key={s} layout={layout} size={s} turn={turn} />
           ))}
         </div>
-        <div className="exp-logo-lockup">
-          <Mark layout={layout} size={64} bare turn={turn} />
-          <strong>SZO</strong>
-        </div>
-        <div className="exp-logo-lockup stacked">
-          <Mark layout={layout} size={88} bare turn={turn} />
-          <strong>SZO</strong>
-          <em>JOJO&apos;S BLOCKGAME LABORATORY</em>
-        </div>
+        <Lockup layout={layout} turn={turn} size={64} />
+        <Lockup layout={layout} turn={turn} size={52} stacked />
       </div>
     </section>
   );
