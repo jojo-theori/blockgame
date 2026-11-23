@@ -115,9 +115,13 @@ export function logoLayouts() {
 }
 
 // The arrangement as squares to draw inside a box `size` wide: [{x, y, side, color}].
-export function markCells(layout, size, pad = 0.16) {
+// With `turn` (degrees) the whole is to be turned about the box's centre by
+// whoever draws it, so the squares are sized for the room a turned shape needs.
+export function markCells(layout, size, pad = 0.16, turn = 0) {
   const room = size * (1 - 2 * pad);
-  const side = Math.floor(room / Math.max(layout.w, layout.h)) || room / Math.max(layout.w, layout.h);
+  // Turned an eighth, a w by h box is (w + h) / √2 across.
+  const span = turn % 90 ? (layout.w + layout.h) / Math.SQRT2 : Math.max(layout.w, layout.h);
+  const side = turn % 90 ? room / span : Math.floor(room / span) || room / span;
   // On whole pixels, so neighbouring squares meet without a hairline between them.
   const x0 = Math.round((size - side * layout.w) / 2);
   const y0 = Math.round((size - side * layout.h) / 2);

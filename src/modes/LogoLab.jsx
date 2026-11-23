@@ -5,20 +5,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { t } from "../i18n.js";
 import { logoLayouts, markCells } from "../logoLayouts.js";
+import { Segmented } from "../ui.jsx";
 
 // The arrangement the favicon uses now (public/favicon.svg).
 export const CURRENT = "4×4-13";
 const PICK_KEY = "jbl-logo-pick";
 
 // The mark. As a favicon it sits on its dark rounded square; bare, it is only the pieces.
-function Mark({ layout, size, bare = false }) {
-  const cells = markCells(layout, size, bare ? 0 : 0.16);
+function Mark({ layout, size, bare = false, turn = 0 }) {
+  const cells = markCells(layout, size, bare ? 0 : 0.16, turn);
   return (
     <svg className={bare ? "" : "exp-logo-icon"} width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
       {!bare && <rect width={size} height={size} rx={size * 0.25} fill="#0a0a0a" />}
-      <g shapeRendering="crispEdges">
+      {/* Upright, squares sit on whole pixels. Turned, each gets a hair of its
+          own colour around it, so no line shows where two meet. */}
+      <g shapeRendering={turn ? "geometricPrecision" : "crispEdges"} transform={turn ? `rotate(${turn} ${size / 2} ${size / 2})` : undefined}>
         {cells.map((c, i) => (
-          <rect key={i} x={c.x} y={c.y} width={c.side} height={c.side} fill={c.color} />
+          <rect key={i} x={c.x} y={c.y} width={c.side} height={c.side} fill={c.color} stroke={turn ? c.color : undefined} strokeWidth={turn ? Math.max(1, size / 90) : undefined} />
         ))}
       </g>
     </svg>
@@ -49,22 +52,22 @@ function Choice({ layout, picked, onPick }) {
 }
 
 // An arrangement at the sizes and in the company it will keep.
-function Uses({ layout, label }) {
+function Uses({ layout, label, turn }) {
   return (
     <section>
       <div className="k">{label}</div>
       <div className="exp-logo-uses">
         <div className="exp-logo-sizes">
           {[180, 64, 32, 16].map((s) => (
-            <Mark key={s} layout={layout} size={s} />
+            <Mark key={s} layout={layout} size={s} turn={turn} />
           ))}
         </div>
         <div className="exp-logo-lockup">
-          <Mark layout={layout} size={64} bare />
+          <Mark layout={layout} size={64} bare turn={turn} />
           <strong>SZO</strong>
         </div>
         <div className="exp-logo-lockup stacked">
-          <Mark layout={layout} size={88} bare />
+          <Mark layout={layout} size={88} bare turn={turn} />
           <strong>SZO</strong>
           <em>JOJO&apos;S BLOCKGAME LABORATORY</em>
         </div>
@@ -101,6 +104,9 @@ export default function LogoLab({ onBack }) {
       /* the choice is only a convenience */
     }
   }, [pick]);
+  // The chosen view can show the marks turned an eighth either way: a shape
+  // symmetric across a diagonal stands upright that way.
+  const [turn, setTurn] = useState(0);
   const choose = (code) => {
     setPick(code);
     setTopic("pick");
@@ -157,8 +163,23 @@ export default function LogoLab({ onBack }) {
             </header>
             {topic === "pick" ? (
               <>
-                <Uses layout={now} label={`${t("Now")} · ${now.code}`} />
-                {chosen.code !== CURRENT && <Uses layout={chosen} label={`${t("Chosen")} · ${chosen.code}`} />}
+                <section>
+                  <div className="k">{t("Turn")}</div>
+                  <div className="exp-logo-turn">
+                    <Segmented
+                      label={t("Turn")}
+                      value={turn}
+                      onChange={setTurn}
+                      options={[
+                        { id: -45, label: "−45°" },
+                        { id: 0, label: "0°" },
+                        { id: 45, label: "45°" },
+                      ]}
+                    />
+                  </div>
+                </section>
+                <Uses layout={now} label={`${t("Now")} · ${now.code}`} turn={turn} />
+                {chosen.code !== CURRENT && <Uses layout={chosen} label={`${t("Chosen")} · ${chosen.code}`} turn={turn} />}
               </>
             ) : (
               sets[topic].map(([title, list]) => (
