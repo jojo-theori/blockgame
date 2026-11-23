@@ -199,7 +199,7 @@ const SHAPES = {
   ],
 };
 
-// Spawn positions (x, y) - from Jstris source
+// Spawn positions (x, y): every piece enters at the same place, one row above the board.
 const SPAWNS = {
   1: [3, -1],
   2: [3, -1],
@@ -210,7 +210,7 @@ const SPAWNS = {
   7: [3, -1],
 };
 
-// SRS wall kick data - from Jstris/Guideline
+// SRS wall kick data, as the Guideline gives it.
 // kicks[fromRot][direction] = [[dx, dy], ...]
 const KICKS_JLSTZ = {
   0: {
@@ -429,7 +429,8 @@ const KICKS_I = {
   },
 };
 
-// Attack table from Jstris: [0, 0, 1, 2, 4, 4, 6, 2, 0, 10, 1]
+// Attack and combo tables: the defaults in the Jstris guide
+// (https://github.com/jezevec10/jstris-guide, "Attack and Combo table").
 // index: 0=unused, 1=single, 2=double, 3=triple, 4=quad, 5=TSD, 6=TST, 7=TSS, 8=mini, 9=PC, 10=b2b bonus
 const ATTACK_TABLE = [0, 0, 1, 2, 4, 4, 6, 2, 0, 10, 1];
 const COMBO_TABLE = [0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5];
@@ -518,7 +519,7 @@ export class BlockEngine {
     this.pendingSeq = this.sequence ? this.sequence.slice() : [];
     this.fillQueue();
 
-    // Jstris: reject banned start sequences (S/Z/O as first pieces in Sprint)
+    // A Sprint does not open on an awkward piece (see isBannedStart), as in Jstris: deal again.
     let attempts = 0;
     while (!this.sequence && this.isBannedStart() && attempts < 1000) {
       this.rng = mulberry32(seed + ++attempts * 7919);
@@ -609,11 +610,8 @@ export class BlockEngine {
     }
   }
 
-  // Jstris isBannedStartSequence (exact match):
-  // Jstris IDs: I=0, O=1, T=2, L=3, J=4, S=5, Z=6
-  // Our IDs:    I=1, T=2, L=3, J=4, S=5, Z=6, O=7
-  // "id >= 5" in Jstris = S(5) and Z(6) only (NOT O, which is 1)
-  // Sprint: ban if first piece is S/Z, OR first is O and second is S/Z
+  // A start to deal again: the first piece is S or Z, or it is O and the
+  // second is S or Z. (Piece ids: I=1, T=2, L=3, J=4, S=5, Z=6, O=7.)
   isBannedStart() {
     if (this.queue.length < 2) return false;
     const a = this.queue[0],

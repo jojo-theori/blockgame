@@ -6,7 +6,7 @@ Live: **[jbl.umjo.me](https://jbl.umjo.me)**
 
 ## Credits & Inspiration
 
-This project's timing, attack table, kick data, and randomizer behavior were studied from **[Jstris](https://jstris.jezevec10.com/)** by [Jezevec10](https://github.com/Jezevec10). Huge thanks to the Jstris project and its community for open-sourcing their work under GPL — this project would not exist without that generosity.
+The attack and combo tables, the lock and garbage delays and the randomizer follow the rules **[Jstris](https://jstris.jezevec10.com/)** by [Jezevec10](https://github.com/Jezevec10) documents in its public [guide](https://github.com/jezevec10/jstris-guide). Huge thanks to Jstris and its community — this project would not exist without them.
 
 JBL is an independent, non-affiliated project. It is not endorsed by or connected to Jstris or The Tetris Company. Core mechanics follow the publicly documented [SRS Guideline](https://tetris.wiki/Super_Rotation_System).
 
