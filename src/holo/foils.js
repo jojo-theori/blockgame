@@ -11,8 +11,33 @@ import stylish from "./img/stylish.png";
 import stylish2 from "./img/stylish2.png";
 import ancient from "./img/ancient.png";
 import crossover from "./img/crossover.png";
+import glitter from "./img/glitter.png";
+import grain from "./img/grain.webp";
+import illusionMask from "./img/illusion-mask.png";
 
 const PATTERNS = [illusion, illusion2, geometric, angular, wave, metal, stylish, stylish2, ancient, crossover];
+
+// The foils' pictures are only asked for when a card first shows, which made
+// the card appear plain and then fill in. This fetches and decodes them ahead
+// of that, once, when the browser is idle; the card's own stylesheets then
+// find them already in memory.
+let warmed = false;
+export function preloadFoils() {
+  if (warmed || typeof Image === "undefined") return;
+  warmed = true;
+  const fetchAll = () => {
+    for (const src of [...PATTERNS, glitter, grain, illusionMask]) {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+      img.decode?.().catch(() => {});
+      kept.push(img); // held, so the decoded pictures are not let go before a card needs them
+    }
+  };
+  if (typeof requestIdleCallback === "function") requestIdleCallback(fetchAll, { timeout: 2000 });
+  else setTimeout(fetchAll, 300);
+}
+const kept = [];
 
 // rarity   the foil
 // strength how much of it shows (1 is as that project has it)

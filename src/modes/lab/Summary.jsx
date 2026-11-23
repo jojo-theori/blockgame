@@ -3,7 +3,7 @@ import { t } from "../../i18n.js";
 import { KIND_NAMES, SCORES } from "./consts.js";
 import { pointsOf, rankOf } from "./rank.js";
 import { drawRankCard, saveRankCard } from "./rankCard.js";
-import { foilOf } from "../../holo/foils.js";
+import { foilOf, preloadFoils } from "../../holo/foils.js";
 import { Button, Icon, IconButton } from "../../ui.jsx";
 import { loadName, saveName, NAME_MAX, NAME_PLACEHOLDER } from "../../name.js";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -236,6 +236,9 @@ function RankCardView({ what: given, onClose }) {
 export function Award({ review, card, mode }) {
   const v = verdict(review);
   const phone = usePhone();
+  // The large card's foils are fetched while the summary is being read, so
+  // the card opens whole.
+  useEffect(preloadFoils, []);
   const scores = (
     <div className="lab-award-scores">
       {SCORES.map(([kind, label]) => (
