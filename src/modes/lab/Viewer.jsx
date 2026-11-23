@@ -14,6 +14,7 @@ import { replayLink } from "../../pack.js";
 import { runLink } from "../../compact.js";
 import { ACCENT, LETTER_ID, SPEEDS, MODE_NAMES, modeName, NO_MOMENTS, GRADES, BEAT_MS, LOAD_MS, STAGES, stageOf, LINE_AHEAD, KIND_NAMES } from "./consts.js";
 import { Award } from "./Summary.jsx";
+import { preloadFoils } from "../../holo/foils.js";
 import { KindIcon, GradeIcon } from "./icons.jsx";
 import { Typed } from "./motion.jsx";
 
@@ -42,6 +43,8 @@ export default function Viewer({ replay, shared = false, look, keysOff, onClose,
   // that nothing on a phone ever scrolls.
   const phone = usePhone();
   const zoom = phone ? Math.min((window.innerWidth - 40) / 372, Math.max(0.45, (window.innerHeight - 352) / 560), 1.15) : fit;
+  // The rank card's foils are fetched while the analysis is still running.
+  useEffect(preloadFoils, []);
   const canvasRef = useRef(null);
   const holdRef = useRef(null);
   const queueRef = useRef(null);

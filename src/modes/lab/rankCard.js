@@ -2,6 +2,7 @@
 // trading card (1080 × 1504, 0.718 wide to tall)
 // drawn on a canvas and handed over as a PNG. Laid out like a gift card: a
 // field of the rank's colours, a glass panel on it, the seal in the middle.
+import { foilTextures } from "../../holo/foils.js";
 import { qr } from "../../qr.js";
 
 const W = 1080;
@@ -26,7 +27,7 @@ function rounded(ctx, x, y, w, h, r) {
 
 // what: { letter, step, title, scores: [[label, value]], name, mode, vs, date,
 // time } — time is a finished Sprint's, and then it is the largest line.
-export function drawRankCard({ letter, step, title, scores, name, mode, vs, date, time, link }, { baked = false } = {}) {
+export function drawRankCard({ letter, step, title, scores, name, mode, vs, date, time, link }, { baked = false, textures = null } = {}) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -79,7 +80,7 @@ export function drawRankCard({ letter, step, title, scores, name, mode, vs, date
   ctx.fillRect(m, m, W - 2 * m, 420);
   ctx.restore();
 
-  if (baked) bakeFoil(ctx, letter, m);
+  if (baked) bakeFoil(ctx, letter, m, textures);
 
   ctx.textBaseline = "middle";
   text("SZO", m + 56, m + 78, 40, 800, "#ffffff", "left");
@@ -175,7 +176,7 @@ export const rankCardName = (what) => `szo-${what.letter}${what.step === "+" ? "
 // a still one, caught at one angle: slanted streaks of light, a wash of
 // colour burnt into the glass, and a glare in a corner. How much, by rank.
 const BAKED = { E: 0, D: 0.1, C: 0.14, B: 0.18, A: 0.22, S: 0.28, SS: 0.34, SSS: 0.42 };
-function bakeFoil(ctx, letter, m) {
+function bakeFoil(ctx, letter, m, textures) {
   const k = BAKED[letter];
   if (!k) return;
   ctx.save();
@@ -202,11 +203,61 @@ function bakeFoil(ctx, letter, m) {
   ctx.globalAlpha = k;
   ctx.fillStyle = glare;
   ctx.fillRect(0, 0, W, H);
+
+  // The foil's own texture, as on screen: the pattern laid in it, lit in the
+  // colours of the slant, and the glitter over it.
+  const rainbow = [[0, "#ff5fa8"], [0.2, "#ffd75e"], [0.4, "#6fe3a1"], [0.6, "#5fb8ff"], [0.8, "#b98cff"], [1, "#ff5fa8"]];
+  const tiled = ({ img, size }, tint) => {
+    const tile = document.createElement("canvas");
+    tile.width = Math.max(8, Math.round(W * size));
+    tile.height = Math.max(8, Math.round((tile.width * img.height) / img.width));
+    tile.getContext("2d").drawImage(img, 0, 0, tile.width, tile.height);
+    const layer = document.createElement("canvas");
+    layer.width = W;
+    layer.height = H;
+    const lc = layer.getContext("2d");
+    lc.fillStyle = "#000";
+    lc.fillRect(0, 0, W, H);
+    lc.fillStyle = lc.createPattern(tile, "repeat");
+    lc.fillRect(0, 0, W, H);
+    if (tint) {
+      const g = lc.createLinearGradient(0, H * 0.15, W, H * 0.85);
+      rainbow.forEach(([at, color]) => g.addColorStop(at, color));
+      lc.globalCompositeOperation = "multiply";
+      lc.fillStyle = g;
+      lc.fillRect(0, 0, W, H);
+    }
+    return layer;
+  };
+  if (textures?.pattern) {
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.min(0.34, k * 1.5); // capped: the top ranks must stay readable
+    ctx.drawImage(tiled(textures.pattern, true), 0, 0);
+  }
+  if (textures?.glitter) {
+    ctx.globalCompositeOperation = "color-dodge";
+    ctx.globalAlpha = Math.min(0.6, k * 2.4);
+    ctx.drawImage(tiled(textures.glitter, true), 0, 0);
+  }
   ctx.restore();
 }
 
-export function saveRankCard(what) {
-  drawRankCard(what, { baked: true }).toBlob((blob) => {
+// The card as shown on screen (not baked), as a picture address. Drawing it
+// takes a moment, so it is kept: drawn ahead while the summary is read
+// (Summary.jsx), and found here when the card opens.
+const drawn = new Map();
+export function cardImage(what) {
+  const key = JSON.stringify(what);
+  if (!drawn.has(key)) {
+    if (drawn.size > 8) drawn.delete(drawn.keys().next().value);
+    drawn.set(key, drawRankCard(what).toDataURL("image/png"));
+  }
+  return drawn.get(key);
+}
+
+export async function saveRankCard(what) {
+  const textures = await foilTextures(what).catch(() => null);
+  drawRankCard(what, { baked: true, textures }).toBlob((blob) => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `szo-${what.letter}${what.step === "+" ? "-plus" : what.step ? "-minus" : ""}.png`;

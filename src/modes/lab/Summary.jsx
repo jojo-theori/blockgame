@@ -2,7 +2,7 @@
 import { t } from "../../i18n.js";
 import { KIND_NAMES, SCORES } from "./consts.js";
 import { pointsOf, rankOf } from "./rank.js";
-import { drawRankCard, saveRankCard } from "./rankCard.js";
+import { cardImage, saveRankCard } from "./rankCard.js";
 import { foilOf, preloadFoils } from "../../holo/foils.js";
 import { Button, Icon, IconButton } from "../../ui.jsx";
 import { loadName, saveName, NAME_MAX, NAME_PLACEHOLDER } from "../../name.js";
@@ -121,7 +121,7 @@ function RankCardView({ what: given, onClose }) {
     setName(saveName(draft));
     setEditing(false);
   };
-  const src = useMemo(() => drawRankCard(what).toDataURL("image/png"), [what]);
+  const src = useMemo(() => cardImage(what), [what]);
   // This rank's foil (none on the lowest: it is matte).
   const foil = useMemo(() => foilOf(what), [what]);
   const cardRef = useRef(null);
@@ -236,9 +236,20 @@ function RankCardView({ what: given, onClose }) {
 export function Award({ review, card, mode }) {
   const v = verdict(review);
   const phone = usePhone();
-  // The large card's foils are fetched while the summary is being read, so
-  // the card opens whole.
-  useEffect(preloadFoils, []);
+  // The card as it will open: this run's facts, today's date.
+  const whole = useMemo(
+    () => ({ ...v, ...card, title: t(v.title), date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [review, JSON.stringify(card)],
+  );
+  // The large card is made ready while the summary is being read, so it opens
+  // whole and at once: its foils fetched, its picture drawn.
+  useEffect(() => {
+    preloadFoils();
+    const draw = () => cardImage({ ...whole, name: whole.name || (whole.shared ? "" : loadName() || NAME_PLACEHOLDER) });
+    const id = typeof requestIdleCallback === "function" ? requestIdleCallback(draw, { timeout: 1500 }) : setTimeout(draw, 200);
+    return () => (typeof cancelIdleCallback === "function" ? cancelIdleCallback(id) : clearTimeout(id));
+  }, [whole]);
   const scores = (
     <div className="lab-award-scores">
       {SCORES.map(([kind, label]) => (
@@ -272,9 +283,7 @@ export function Award({ review, card, mode }) {
     el.style.setProperty("--gy", `${((y + 0.5) * 100).toFixed(1)}%`);
   };
   const rest = level;
-  const open = () => {
-    setShown({ ...v, ...card, title: t(v.title), date: new Date().toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }), scores: SCORES.map(([kind, label]) => [label, review.scores[kind]]) });
-  };
+  const open = () => setShown(whole);
   return (
     <div
       ref={cardRef}
