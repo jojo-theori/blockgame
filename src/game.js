@@ -199,7 +199,8 @@ const SHAPES = {
   ],
 };
 
-// Spawn positions (x, y): every piece enters at the same place, one row above the board.
+// Spawn positions (x, y), as the Guideline asks: flat side down, the three-wide
+// pieces in columns 4 to 6, I and O in the middle, starting above the board.
 const SPAWNS = {
   1: [3, -1],
   2: [3, -1],
@@ -519,7 +520,8 @@ export class BlockEngine {
     this.pendingSeq = this.sequence ? this.sequence.slice() : [];
     this.fillQueue();
 
-    // A Sprint does not open on an awkward piece (see isBannedStart), as in Jstris: deal again.
+    // No game opens on an awkward piece (see isBannedStart), as in Jstris: deal
+    // again. This holds in every mode that deals its own pieces, not only Sprint.
     let attempts = 0;
     while (!this.sequence && this.isBannedStart() && attempts < 1000) {
       this.rng = mulberry32(seed + ++attempts * 7919);
