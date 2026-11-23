@@ -13,8 +13,8 @@ const PICK_KEY = "jbl-logo-pick";
 function Mark({ layout, size, bare = false, radius = 0.25 }) {
   const cells = markCells(layout, size, bare ? 0 : 0.16);
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-      {!bare && <rect width={size} height={size} rx={size * radius} fill="#0a0a0a" />}
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} shapeRendering="crispEdges" aria-hidden="true">
+      {!bare && <rect width={size} height={size} rx={size * radius} fill="#0a0a0a" shapeRendering="geometricPrecision" />}
       {cells.map((c, i) => (
         <rect key={i} x={c.x} y={c.y} width={c.side} height={c.side} fill={c.color} />
       ))}

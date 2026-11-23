@@ -107,7 +107,8 @@ export function logoLayouts() {
 export function markCells(layout, size, pad = 0.16) {
   const room = size * (1 - 2 * pad);
   const side = Math.floor(room / Math.max(layout.w, layout.h)) || room / Math.max(layout.w, layout.h);
-  const x0 = (size - side * layout.w) / 2;
-  const y0 = (size - side * layout.h) / 2;
+  // On whole pixels, so neighbouring squares meet without a hairline between them.
+  const x0 = Math.round((size - side * layout.w) / 2);
+  const y0 = Math.round((size - side * layout.h) / 2);
   return PIECES.flatMap((n) => layout.P[n].map(([x, y]) => ({ x: x0 + x * side, y: y0 + y * side, side, color: PIECE_COLORS[n] })));
 }
