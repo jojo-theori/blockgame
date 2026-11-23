@@ -123,7 +123,8 @@ export function markCells(layout, size, pad = 0.16, turn = 0) {
   const span = turn % 90 ? (layout.w + layout.h) / Math.SQRT2 : Math.max(layout.w, layout.h);
   const side = turn % 90 ? room / span : Math.floor(room / span) || room / span;
   // On whole pixels, so neighbouring squares meet without a hairline between them.
-  const x0 = Math.round((size - side * layout.w) / 2);
-  const y0 = Math.round((size - side * layout.h) / 2);
+  const whole = turn % 90 ? (v) => v : Math.round;
+  const x0 = whole((size - side * layout.w) / 2);
+  const y0 = whole((size - side * layout.h) / 2);
   return PIECES.flatMap((n) => layout.P[n].map(([x, y]) => ({ x: x0 + x * side, y: y0 + y * side, side, color: PIECE_COLORS[n] })));
 }

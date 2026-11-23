@@ -8,7 +8,8 @@ import { logoLayouts, markCells } from "../logoLayouts.js";
 import { Segmented } from "../ui.jsx";
 
 // The arrangement the favicon uses now (public/favicon.svg).
-export const CURRENT = "4×4-13";
+export const CURRENT = "5×5-183";
+export const CURRENT_TURN = 45;
 const PICK_KEY = "jbl-logo-pick";
 
 // The mark. As a favicon it sits on its dark rounded square; bare, it is only the pieces.
@@ -106,7 +107,7 @@ export default function LogoLab({ onBack }) {
   }, [pick]);
   // The chosen view can show the marks turned an eighth either way: a shape
   // symmetric across a diagonal stands upright that way.
-  const [turn, setTurn] = useState(0);
+  const [turn, setTurn] = useState(CURRENT_TURN);
   const choose = (code) => {
     setPick(code);
     setTopic("pick");
@@ -178,8 +179,8 @@ export default function LogoLab({ onBack }) {
                     />
                   </div>
                 </section>
-                <Uses layout={now} label={`${t("Now")} · ${now.code}`} turn={turn} />
-                {chosen.code !== CURRENT && <Uses layout={chosen} label={`${t("Chosen")} · ${chosen.code}`} turn={turn} />}
+                <Uses layout={now} label={`${t("Now")} · ${now.code}${CURRENT_TURN ? ` · ${CURRENT_TURN}°` : ""}`} turn={CURRENT_TURN} />
+                {(chosen.code !== CURRENT || turn !== CURRENT_TURN) && <Uses layout={chosen} label={`${t("Chosen")} · ${chosen.code}${turn ? ` · ${turn}°` : ""}`} turn={turn} />}
               </>
             ) : (
               sets[topic].map(([title, list]) => (
