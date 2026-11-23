@@ -1,0 +1,21 @@
+// The keys a new player starts with.
+export const DEFAULT_KEYS = {
+  ArrowLeft: "left",
+  ArrowRight: "right",
+  ArrowDown: "softdrop",
+  " ": "harddrop",
+  x: "rotateCW",
+  X: "rotateCW",
+  "\u314C": "rotateCW",
+  ArrowUp: "rotateCW",
+  z: "rotateCCW",
+  Z: "rotateCCW",
+  "\u314B": "rotateCCW",
+  a: "rotate180",
+  A: "rotate180",
+  "\u3141": "rotate180",
+  c: "hold",
+  C: "hold",
+  "\u314A": "hold",
+  Shift: "hold",
+};

@@ -196,7 +196,7 @@ test("a Battle board packs into a QR code with its garbage, and replays the same
     assert.equal(mode.me, "Cold Clear");
     assert.equal(mode.vs, "P1");
     assert.deepEqual(mode.handicap, [1, 0]);
-    assert.ok(qr(`HTTPS://JBL.UMJO.ME/Q/${packed}`), `seed ${seed}: fits a QR code (${packed.length} characters)`);
+    assert.ok(qr(`HTTPS://SZO.UMJO.ME/Q/${packed}`), `seed ${seed}: fits a QR code (${packed.length} characters)`);
     checked++;
   }
   assert.ok(checked >= 5, `only ${checked} games had garbage`);
